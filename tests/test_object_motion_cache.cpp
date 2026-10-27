@@ -2,13 +2,16 @@
 // Full readback/validity regression across alternating sizes and cache eviction.
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <bit>
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <set>
 #include <stdexcept>
 #include <string>
+#include <thread>
 #include <vector>
 #include "bbport_settings.h"
 #include "video_core/renderer_vulkan/vk_instance.h"
@@ -21,6 +24,147 @@ using namespace Vulkan;
 #ifdef _WIN32
 extern "C" void runtime_restart() { std::abort(); }
 #endif
+
+namespace Vulkan {
+struct ObjectMotionCacheTest {
+    static size_t Retired(const ObjectMotion& motion) { return motion.retired_images.size(); }
+    static u64 RetiredBytes(const ObjectMotion& motion) { return motion.retired_bytes; }
+    static void Collect(ObjectMotion& motion) { motion.CollectRetiredImages(); }
+    static bool Has(const ObjectMotion& motion, u32 w, u32 h) {
+        if (motion.image && motion.image_width == w && motion.image_height == h) return true;
+        return std::any_of(motion.cached_images.begin(), motion.cached_images.end(),
+            [=](const auto& c) { return c.image && c.width == w && c.height == h; });
+    }
+    static void Limits(const ObjectMotion& motion) {
+        if (Retired(motion) > ObjectMotion::MaxRetiredImages ||
+            RetiredBytes(motion) > ObjectMotion::MaxRetiredBytes)
+            throw std::runtime_error("retirement exceeds its count/VRAM limit");
+    }
+};
+} // namespace Vulkan
+
+void Require(bool condition, const char* message) {
+    if (!condition) throw std::runtime_error(message);
+}
+
+u32 Allocations(const Instance& instance) {
+    VmaTotalStatistics stats{};
+    vmaCalculateStatistics(instance.GetAllocator(), &stats);
+    return stats.total.statistics.allocationCount;
+}
+
+void AttachSize(ObjectMotion& motion, Scheduler& scheduler, u32 w, u32 h) {
+    RenderState state{};
+    state.width = w; state.height = h; state.num_layers = 1;
+    motion.Attach(state, w, h);
+    scheduler.BeginRendering(state);
+    scheduler.EndRendering();
+}
+
+// A real queued submission stays blocked on a host-signalled timeline semaphore. The
+// watchdog releases it even if a regression blocks the CPU, so failures cannot hang the GPU.
+class Gate {
+    vk::Device device;
+    vk::UniqueSemaphore semaphore;
+    std::atomic<bool> release{false};
+    std::jthread watchdog;
+public:
+    explicit Gate(vk::Device device) : device{device} {
+        const vk::SemaphoreTypeCreateInfo type{.semaphoreType=vk::SemaphoreType::eTimeline};
+        auto [result, value] = device.createSemaphoreUnique({.pNext=&type});
+        Require(result == vk::Result::eSuccess, "gate semaphore allocation failed");
+        semaphore = std::move(value);
+        watchdog = std::jthread([this] {
+            const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(750);
+            while (!release.load() && std::chrono::steady_clock::now() < deadline)
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            Require(this->device.signalSemaphore({.semaphore=*semaphore, .value=1}) == vk::Result::eSuccess,
+                    "gate signal failed");
+        });
+    }
+    void Submit(Scheduler& scheduler) {
+        SubmitInfo info{}; info.AddWait(*semaphore); scheduler.Flush(info);
+    }
+    void Release() { release.store(true); watchdog.join(); }
+    ~Gate() { if (watchdog.joinable()) Release(); }
+};
+
+void SpecialCase(const std::string& kind, Instance& instance, Scheduler& scheduler) {
+    const u32 before = Allocations(instance);
+    {
+        ObjectMotion motion(instance, scheduler);
+        Require(motion.Enabled(), "object motion unavailable");
+        const u32 initial = Allocations(instance);
+        if (kind == "destruct" || kind == "drain") {
+            for (auto [w,h] : std::vector<std::pair<u32,u32>>{{128,72},{96,54},{64,36},{48,27},{32,18},{16,9}})
+                AttachSize(motion,scheduler,w,h);
+            Require(ObjectMotionCacheTest::Retired(motion)==2, "expected two unsubmitted retirements");
+            Require(Allocations(instance)==initial+6, "retained images missing before completion");
+            if (kind == "drain") {
+                scheduler.Finish();
+                motion.OnFrameStart();
+                Require(ObjectMotionCacheTest::Retired(motion)==0, "frame start did not collect retired images");
+            }
+            // 'destruct' leaves the current work unsubmitted: the destructor must finish it
+            // before releasing both the resident targets and the retirement queue.
+        } else if (kind == "lru") {
+            for (auto [w,h] : std::vector<std::pair<u32,u32>>{{128,72},{96,54},{64,36},{48,27},{128,72},{32,18}})
+                AttachSize(motion,scheduler,w,h);
+            Require(ObjectMotionCacheTest::Has(motion,128,72), "recently revisited A was evicted");
+            Require(!ObjectMotionCacheTest::Has(motion,96,54), "least recently used B was retained");
+            Require(ObjectMotionCacheTest::Has(motion,64,36) && ObjectMotionCacheTest::Has(motion,48,27),
+                    "a newer cache entry was evicted instead");
+            scheduler.Finish(); ObjectMotionCacheTest::Collect(motion);
+        } else {
+            const bool bytes = kind == "budget";
+            const bool oversized = kind == "oversized";
+            AttachSize(motion,scheduler,128,72);
+            AttachSize(motion,scheduler,oversized ? 4096 : bytes ? 2560 : 96,
+                       oversized ? 2160 : bytes ? 1792 : 54);
+            AttachSize(motion,scheduler,bytes ? 2688 : 64,bytes ? 1792 : 36);
+            AttachSize(motion,scheduler,48,27);
+            const u64 held = scheduler.CurrentTick();
+            Gate gate(instance.GetDevice());
+            gate.Submit(scheduler);
+            Require(!scheduler.IsFree(held), "gate did not hold GPU work");
+            // A gets a new use in the current submission; B is now the oldest inactive size.
+            AttachSize(motion,scheduler,128,72);
+            const u64 current = scheduler.CurrentTick();
+            AttachSize(motion,scheduler,32,18);
+            if (oversized) {
+                Require(scheduler.IsFree(held), "oversized retirement did not await completion");
+                Require(ObjectMotionCacheTest::Retired(motion)==0, "oversized image was deferred");
+            } else {
+                Require(!scheduler.IsFree(held), "first eviction waited for unfinished GPU work");
+                Require(ObjectMotionCacheTest::Retired(motion)==1, "old B image was not retained");
+                Require(Allocations(instance)==initial+5, "pending image was freed before its GPU tick");
+                AttachSize(motion,scheduler,16,9);
+                if (bytes) {
+                    Require(scheduler.IsFree(held), "VRAM retirement limit failed to wait");
+                    Require(ObjectMotionCacheTest::Retired(motion)==0, "completed images not released");
+                } else {
+                    Require(!scheduler.IsFree(held), "second eviction unexpectedly waited");
+                    Require(ObjectMotionCacheTest::Retired(motion)==2, "two pending images expected");
+                    Require(Allocations(instance)==initial+6, "pending allocation accounting differs");
+                    AttachSize(motion,scheduler,8,4); // the count cap must await the older submission
+                    Require(scheduler.IsFree(held), "retirement count cap did not wait");
+                    Require(ObjectMotionCacheTest::Retired(motion)==0, "completed retirements leaked");
+                }
+            }
+            // A full Finish would submit the current work too; the narrow wait must not.
+            Require(scheduler.CurrentTick()==current, "eviction drained/submitted current GPU work");
+            ObjectMotionCacheTest::Limits(motion);
+            gate.Release();
+            scheduler.Finish(); ObjectMotionCacheTest::Collect(motion);
+        }
+        if (kind != "destruct") {
+            Require(ObjectMotionCacheTest::Retired(motion)==0, "retired images remain after GPU completion");
+            Require(Allocations(instance)==initial+4, "resident target count differs from four");
+        }
+    }
+    Require(Allocations(instance)==before, "object-motion teardown leaked VMA allocations");
+    std::printf("PASS kind=%s LRU/deferred_lifetime/bounds/teardown checked\n",kind.c_str());
+}
 
 int main(int argc, char **argv) {
     try {
@@ -35,12 +179,21 @@ int main(int argc, char **argv) {
             sizes = {{128, 72}, {64, 36}, {128, 72}, {128, 72}, {64, 36}, {64, 36}};
         const u64 stride = u64(sizes[0].first) * sizes[0].second * 16;
         BbSettings::Get().object_motion = true;
-        BbSettings::Get().upscaler = BbSettings::UpscalerFsr3;
-        Instance instance(0, false);
+        const int upscaler = argc > 2 ? std::atoi(argv[2]) : BbSettings::UpscalerFsr3;
+        BbSettings::Get().upscaler = upscaler;
+        const bool validation = argc > 3 && std::string(argv[3]) == "validation";
+        Instance instance(0, validation);
         VULKAN_HPP_DEFAULT_DISPATCHER.init(instance.GetInstance());
         VULKAN_HPP_DEFAULT_DISPATCHER.init(instance.GetDevice());
         const auto device = instance.GetDevice();
         Scheduler scheduler(instance);
+        if (kind == "lru" || kind == "deferred" || kind == "budget" || kind == "oversized" ||
+            kind == "drain" || kind == "destruct") {
+            Require(std::getenv("BB_OBJECT_MOTION_CACHE") &&
+                    std::string(std::getenv("BB_OBJECT_MOTION_CACHE"))=="1", "special cases need cache on");
+            SpecialCase(kind,instance,scheduler);
+            return 0;
+        }
         VkBuffer staging{};
         VmaAllocation allocation{};
         VmaAllocationInfo allocation_info{};
@@ -81,7 +234,8 @@ int main(int argc, char **argv) {
                 const u32 targets = stats.total.statistics.allocationCount -
                                     initial_stats.total.statistics.allocationCount;
                 const u32 expected_targets = cache ? std::min<size_t>(observed_sizes.size(), 4) : 1;
-                if (targets != expected_targets)
+                ObjectMotionCacheTest::Limits(motion);
+                if (targets != expected_targets + ObjectMotionCacheTest::Retired(motion))
                     throw std::runtime_error("target allocation count differs from selected cache mode");
                 auto &attachment = state.color_attachments[Shader::MotionVectors::Output];
                 if (attachment.is_clear) {
@@ -115,6 +269,11 @@ int main(int argc, char **argv) {
                 .dstAccessMask = vk::AccessFlagBits2::eHostRead};
             cmd.pipelineBarrier2({.memoryBarrierCount = 1, .pMemoryBarriers = &host_barrier});
             scheduler.Finish();
+            ObjectMotionCacheTest::Collect(motion);
+            Require(ObjectMotionCacheTest::Retired(motion)==0, "retired images did not drain");
+            const u32 expected_targets = cache ? std::min<size_t>(observed_sizes.size(),4) : 1;
+            Require(Allocations(instance)==initial_stats.total.statistics.allocationCount+expected_targets,
+                    "final resident allocation count differs");
             vmaInvalidateAllocation(instance.GetAllocator(), allocation, 0, VK_WHOLE_SIZE);
             for (u32 i = 0; i < steps; ++i) {
                 const auto [w, h] = sizes[i % sizes.size()];
@@ -131,8 +290,8 @@ int main(int argc, char **argv) {
             }
         }
         vmaDestroyBuffer(instance.GetAllocator(), staging, allocation);
-        std::printf("PASS kind=%s steps=%u all_pixels_identical_to_expected hash=%016llx\n",
-                    kind.c_str(), steps, (unsigned long long)fnv);
+        std::printf("PASS kind=%s upscaler=%d steps=%u all_pixels_identical_to_expected hash=%016llx\n",
+                    kind.c_str(), upscaler, steps, (unsigned long long)fnv);
         return 0;
     } catch (const std::exception &e) {
         std::printf("FAIL: %s\n", e.what());
