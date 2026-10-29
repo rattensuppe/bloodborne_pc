@@ -281,6 +281,13 @@ if (WIN32)
     # <windows.h> out of the way of std::min/max and the Vulkan/SDL headers.
     target_compile_definitions(bbgpu PUBLIC NOMINMAX WIN32_LEAN_AND_MEAN VK_USE_PLATFORM_WIN32_KHR)
     target_sources(bbgpu PRIVATE fsr411_dx12/native_fsr411.cpp fsr411_dx12/fsr411_support.cpp)
+    # SDK 2.4 headers only for upscaling TUs: keep FG's existing SDK headers intact.
+    set(FSR24_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/fsr24/sdk/api/include;${CMAKE_CURRENT_SOURCE_DIR}/fsr24/sdk/upscalers/include")
+    set_source_files_properties(fsr411_dx12/native_fsr411.cpp fsr411_dx12/fsr411_support.cpp
+        shadps4/video_core/renderer_vulkan/vk_fsr412_driver.cpp ../tools/fsr411_capabilities.cpp
+        PROPERTIES INCLUDE_DIRECTORIES "${FSR24_INCLUDES}")
+    set_source_files_properties(shadps4/video_core/renderer_vulkan/vk_fsr412_driver.cpp
+        PROPERTIES COMPILE_DEFINITIONS _WINDOWS)
     # AMD's runtime loader checks MSBuild's _WINDOWS macro, not MinGW's _WIN32.
     set_source_files_properties(fsr411_dx12/native_fsr411.cpp PROPERTIES COMPILE_DEFINITIONS _WINDOWS)
     set_source_files_properties(fsr411_dx12/fsr411_support.cpp PROPERTIES COMPILE_DEFINITIONS _WINDOWS)
@@ -332,9 +339,14 @@ if (WIN32)
     target_link_options(bb-probe PRIVATE -Wl,--disable-high-entropy-va "SHELL:-Xlinker --stack -Xlinker 16777216,16777216")
     add_executable(bb-gpu-capabilities ../tools/gpu_capabilities.c ../tools/fsr411_capabilities.cpp
         fsr411_dx12/fsr411_support.cpp ../packaging/windows/bb-gpu-capabilities.rc)
+    target_compile_definitions(bb-gpu-capabilities PRIVATE _WINDOWS)
     target_include_directories(bb-gpu-capabilities PRIVATE shim fsr411_dx12
         fsr411_dx12/sdk/api/include fsr411_dx12/sdk/upscalers/include)
     target_compile_definitions(bb-gpu-capabilities PRIVATE NOMINMAX)
+    add_executable(fsr24-api-test EXCLUDE_FROM_ALL ../tests/test_fsr24_api.cpp)
+    target_include_directories(fsr24-api-test PRIVATE fsr411_dx12 ${FSR24_INCLUDES})
+    target_compile_definitions(fsr24-api-test PRIVATE _WINDOWS NOMINMAX)
+    target_compile_options(fsr24-api-test PRIVATE -UNDEBUG)
     target_link_libraries(bb-gpu-capabilities PRIVATE Vulkan::Vulkan d3d12 dxgi)
     # "Play Bloodborne.exe": the game with the launcher's saved settings, no launcher window.
     add_executable(bb-play WIN32 ../packaging/windows/play.c ../packaging/windows/play.rc)

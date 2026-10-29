@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include "native_fsr411.h"
-#include "driver_provider.h"
+#include "sdk24_upscaling.h"
 #include <windows.h>
 #include <d3d12.h>
 #include <dxgi1_6.h>
@@ -64,6 +64,12 @@ struct NativeFsr411::Impl {
     HMODULE module{};
     ffxFunctions ffx{};
     ffxContext context{};
+    const FsrSdk24::Api* sdk24{};
+    FsrSdk24::Version sdk_selected{};
+    ffxCreateBackendDX12Desc sdk_backend{};
+    ffxOverrideVersion sdk_override{};
+    ffxCreateContextDescUpscaleVersion sdk_version{};
+    ffxCreateContextDescUpscale sdk_create{};
     IDXGIFactory4* factory{};
     IDXGIAdapter1* adapter{};
     ID3D12Device* device{};
@@ -194,12 +200,10 @@ struct NativeFsr411::Impl {
         Check(device->CreateSharedHandle(input_fence, nullptr, GENERIC_ALL, nullptr, &input_handle), "Share input fence");
         event = CreateEventW(nullptr, FALSE, FALSE, nullptr);
         if (!event) throw std::runtime_error("Create fence event failed");
-        DriverFsr::External direct{};
-        if(driver412){
-            direct=DriverFsr::Get(DriverFsr::Runtime(true),FFX_API_CREATE_CONTEXT_DESC_TYPE_UPSCALE);
-            if((uint32_t(direct.provider.versionId)&0x7fffffffu)!=config.model_version ||
-               !DriverFsr::Supported(direct,device))
-                throw std::runtime_error("AMD DX12 4.1.2 provider unavailable on this device");
+        if (driver412) {
+            sdk24 = &FsrSdk24::Runtime(true);
+            sdk_selected = FsrSdk24::Select(*sdk24, device);
+            ffx = sdk24->functions;
         }
         uint64_t chosen{};
         if (!driver412) {
@@ -235,12 +239,6 @@ struct NativeFsr411::Impl {
         ffxCreateContextDescUpscaleVersion version{};
         version.header.type=FFX_API_CREATE_CONTEXT_DESC_TYPE_UPSCALE_VERSION;
         version.version=config.model_version;
-        if(driver412){
-            ffx.CreateContext=direct.provider.createContext;ffx.DestroyContext=direct.provider.destroyContext;
-            ffx.Configure=direct.provider.configure;ffx.Query=direct.provider.query;ffx.Dispatch=direct.provider.dispatch;
-            override.header.pNext=nullptr;
-            backend.header.pNext=&version.header;
-        }
         ffxCreateContextDescUpscale create{};
         create.header.type = FFX_API_CREATE_CONTEXT_DESC_TYPE_UPSCALE;
         create.header.pNext = driver412 ? &backend.header : &override.header;
@@ -249,7 +247,17 @@ struct NativeFsr411::Impl {
         else create.flags |= FFX_UPSCALE_ENABLE_NON_LINEAR_COLORSPACE;
         create.maxRenderSize = {config.render_width, config.render_height};
         create.maxUpscaleSize = {config.output_width, config.output_height};
-        const auto rc = ffx.CreateContext(&context, &create.header, nullptr);
+        auto* create_desc = &create;
+        if (driver412) {
+            sdk_backend = backend; sdk_version = version; sdk_override = override; sdk_create = create;
+            sdk_override.versionId = sdk_selected.id;
+            sdk_override.header.pNext = nullptr;
+            sdk_version.header.pNext = &sdk_override.header;
+            sdk_backend.header.pNext = &sdk_version.header;
+            sdk_create.header.pNext = &sdk_backend.header;
+            create_desc = &sdk_create;
+        }
+        const auto rc = ffx.CreateContext(&context, &create_desc->header, nullptr);
         if (rc != FFX_API_RETURN_OK)
             throw std::runtime_error("FSR 4.1.1 context creation returned " + std::to_string(rc));
         ffxQueryGetProviderVersion provider{};
@@ -257,7 +265,11 @@ struct NativeFsr411::Impl {
         if (!driver412 && (ffx.Query(&context, &provider.header) != FFX_API_RETURN_OK || !provider.versionName ||
             !std::strstr(provider.versionName, "4.1.1")))
             throw std::runtime_error("AMD context did not select FSR4 4.1.1");
-        if(driver412) provider.versionName=direct.provider.versionName;
+        if (driver412) {
+            sdk_selected = FsrSdk24::Verify(*sdk24, &context, sdk_selected);
+            provider.versionName = sdk_selected.name.c_str();
+            std::printf("FSR 4.1.2 AMD DX12: SDK 2.4 public API; provider %s\n", provider.versionName);
+        }
         std::printf("FSR %s native: ACTIVE %s, %ux%u -> %ux%u, %s\n",driver412?"4.1.2":"4.1.1", provider.versionName,
                     config.render_width, config.render_height, config.output_width, config.output_height,
                     config.hdr ? "HDR" : "sRGB");

@@ -1,0 +1,96 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+#pragma once
+#include <windows.h>
+#include <cstdio>
+#include <filesystem>
+#include <mutex>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <vector>
+#include "ffx_api_loader.h"
+#include "ffx_upscale.h"
+
+// Public FFX exports from the unmodified SDK 2.4 upscaler DLL. Load the effect
+// explicitly: the central loader reuses an already loaded DLL with the same
+// name, which could be our retained 4.1.1 runtime. Never use internal driver ABI.
+namespace FsrSdk24 {
+struct Error : std::runtime_error {
+    const char* reason;
+    Error(const char* why, const std::string& text) : std::runtime_error(text), reason(why) {}
+};
+struct Version { uint64_t id{}; std::string name; };
+inline bool Is412(const char* name) {
+    return name && std::string_view(name).starts_with("4.1.2") &&
+        (!name[5] || name[5] == ' ' || name[5] == '-' || name[5] == '*');
+}
+inline std::filesystem::path Directory() {
+    if (const auto path = _wgetenv(L"BB_TEST_FSR24_DIR"); path && *path) return path;
+    std::wstring path(32768, L'\0');
+    const auto size = GetModuleFileNameW(nullptr, path.data(), DWORD(path.size()));
+    if (!size || size == path.size()) throw Error("files", "Cannot locate the SDK 2.4 runtime folder");
+    path.resize(size);
+    return std::filesystem::path(path).parent_path() / L"fsr24";
+}
+struct Api {
+    HMODULE module{};
+    ffxFunctions functions{};
+    std::filesystem::path path;
+};
+inline const Api& Runtime(bool dx12) {
+    static Api apis[2];
+    static std::mutex mutex;
+    std::scoped_lock lock{mutex};
+    auto& api = apis[dx12 ? 1 : 0];
+    if (api.module) return api;
+    const auto path = std::filesystem::absolute(Directory() / (dx12 ? L"amd_fidelityfx_upscaler_dx12.dll" : L"amd_fidelityfx_upscaler_vk.dll"));
+    std::error_code error;
+    if (!std::filesystem::is_regular_file(path, error)) throw Error("files", "Missing SDK 2.4 file: " + path.filename().string());
+    const auto module = LoadLibraryExW(path.c_str(), nullptr, LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
+    if (!module) throw Error("runtime", "Cannot load SDK 2.4 " + path.filename().string() + ": Windows error " + std::to_string(GetLastError()));
+    std::wstring loaded(32768, L'\0');
+    const auto length = GetModuleFileNameW(module, loaded.data(), DWORD(loaded.size()));
+    loaded.resize(length);
+    if (!length || _wcsicmp(std::filesystem::path(loaded).lexically_normal().c_str(), path.lexically_normal().c_str())) {
+        FreeLibrary(module);
+        throw Error("runtime", "SDK 2.4 load resolved to a different upscaler DLL");
+    }
+    ffxFunctions functions{};
+    ffxLoadFunctions(&functions, module);
+    if (!functions.CreateContext || !functions.DestroyContext || !functions.Configure || !functions.Query || !functions.Dispatch) {
+        FreeLibrary(module);
+        throw Error("runtime", "SDK 2.4 upscaler API exports missing");
+    }
+    api = {module, functions, path}; // Contexts may outlive callers; retain verified modules until exit.
+    return api;
+}
+inline Version Select(const Api& api, void* device) {
+    uint64_t count{};
+    ffxQueryDescGetVersions query{};
+    query.header.type = FFX_API_QUERY_DESC_TYPE_GET_VERSIONS;
+    query.createDescType = FFX_API_CREATE_CONTEXT_DESC_TYPE_UPSCALE;
+    query.device = device;
+    query.outputCount = &count;
+    if (api.functions.Query(nullptr, &query.header) != FFX_API_RETURN_OK || !count || count > 64)
+        throw Error("provider", "SDK 2.4 upscaler enumeration unavailable on this GPU/driver");
+    const auto capacity = count;
+    std::vector<uint64_t> ids(capacity);
+    std::vector<const char*> names(capacity);
+    query.versionIds = ids.data(); query.versionNames = names.data();
+    if (api.functions.Query(nullptr, &query.header) != FFX_API_RETURN_OK || count > capacity)
+        throw Error("provider", "SDK 2.4 upscaler enumeration changed; retry the support check");
+    for (size_t i = 0; i < count; ++i) {
+        std::printf("SDK 2.4 upscaler provider: %s\n", names[i] ? names[i] : "(none)");
+        if (Is412(names[i])) return {ids[i], names[i]};
+    }
+    throw Error("provider", "SDK 2.4: FSR 4.1.2 unavailable on this GPU/driver");
+}
+inline Version Verify(const Api& api, ffxContext* context, const Version& selected) {
+    ffxQueryGetProviderVersion query{};
+    query.header.type = FFX_API_QUERY_DESC_TYPE_GET_PROVIDER_VERSION;
+    if (api.functions.Query(context, &query.header) != FFX_API_RETURN_OK ||
+        !Is412(query.versionName) || query.versionId != selected.id)
+        throw Error("provider", "SDK 2.4 context did not select the requested FSR 4.1.2 provider");
+    return {query.versionId, query.versionName};
+}
+} // namespace FsrSdk24
