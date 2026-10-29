@@ -255,6 +255,7 @@ struct NativeFsr411::Impl {
             sdk_version.header.pNext = &sdk_override.header;
             sdk_backend.header.pNext = &sdk_version.header;
             sdk_create.header.pNext = &sdk_backend.header;
+            FsrSdk24::ConfigureDiagnostics(sdk_create);
             create_desc = &sdk_create;
         }
         const auto rc = ffx.CreateContext(&context, &create_desc->header, nullptr);
@@ -267,6 +268,7 @@ struct NativeFsr411::Impl {
             throw std::runtime_error("AMD context did not select FSR4 4.1.1");
         if (driver412) {
             sdk_selected = FsrSdk24::Verify(*sdk24, &context, sdk_selected);
+            FsrSdk24::LogMemory(*sdk24, &context, "AMD DX12");
             provider.versionName = sdk_selected.name.c_str();
             std::printf("FSR 4.1.2 AMD DX12: SDK 2.4 public API; provider %s\n", provider.versionName);
         }

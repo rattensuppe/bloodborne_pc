@@ -14,9 +14,6 @@
 #include <cstdlib>
 #include <stdexcept>
 namespace Vulkan {
-namespace {
-void Message(uint32_t type,const wchar_t*message){std::printf("AMD Vulkan 4.1.2 message %u: %ls\n",type,message);}
-}
 struct Fsr412Driver::Impl {
     const Instance& instance; Scheduler& scheduler;
     const FsrSdk24::Api* api{}; ffxContext context{};
@@ -53,10 +50,11 @@ struct Fsr412Driver::Impl {
         create.flags = FFX_UPSCALE_ENABLE_AUTO_EXPOSURE | FFX_UPSCALE_ENABLE_DEPTH_INVERTED;
         create.flags |= f.hdr ? FFX_UPSCALE_ENABLE_HIGH_DYNAMIC_RANGE : FFX_UPSCALE_ENABLE_NON_LINEAR_COLORSPACE;
         create.maxRenderSize = {f.render_width, f.render_height}; create.maxUpscaleSize = {f.output.width, f.output.height};
-        create.fpMessage = &Message;
+        FsrSdk24::ConfigureDiagnostics(create);
         const auto rc = api->functions.CreateContext(&context, &create.header, nullptr);
         if (rc || !context) throw std::runtime_error("SDK 2.4 Vulkan context returned " + std::to_string(rc));
         selected = FsrSdk24::Verify(*api, &context, selected);
+        FsrSdk24::LogMemory(*api, &context, "AMD Vulkan");
         out_width=f.output.width;out_height=f.output.height;context_rw=f.render_width;context_rh=f.render_height;context_hdr=f.hdr;
         std::printf("FSR 4.1.2 AMD Vulkan: ACTIVE %s, %ux%u -> %ux%u, %s; SDK 2.4 public API\n",
             selected.name.c_str(),f.render_width,f.render_height,out_width,out_height,f.hdr?"HDR":"sRGB");

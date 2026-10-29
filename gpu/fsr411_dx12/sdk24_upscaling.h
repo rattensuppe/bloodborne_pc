@@ -2,6 +2,7 @@
 #pragma once
 #include <windows.h>
 #include <cstdio>
+#include <cstdlib>
 #include <filesystem>
 #include <mutex>
 #include <stdexcept>
@@ -20,6 +21,18 @@ struct Error : std::runtime_error {
     Error(const char* why, const std::string& text) : std::runtime_error(text), reason(why) {}
 };
 struct Version { uint64_t id{}; std::string name; };
+// Development-only input checks. Default rendering and benchmark paths stay unchanged.
+inline bool DebugChecking() {
+    const char* value = std::getenv("BB_FSR24_DEBUG");
+    return value && std::string_view(value) == "1";
+}
+inline void Message(uint32_t type, const wchar_t* message) {
+    if (message) std::printf("FSR SDK 2.4 message %u: %ls\n", type, message);
+}
+inline void ConfigureDiagnostics(ffxCreateContextDescUpscale& create) {
+    create.fpMessage = &Message;
+    if (DebugChecking()) create.flags |= FFX_UPSCALE_ENABLE_DEBUG_CHECKING;
+}
 inline bool Is412(const char* name) {
     return name && std::string_view(name).starts_with("4.1.2") &&
         (!name[5] || name[5] == ' ' || name[5] == '-' || name[5] == '*');
@@ -92,5 +105,20 @@ inline Version Verify(const Api& api, ffxContext* context, const Version& select
         !Is412(query.versionName) || query.versionId != selected.id)
         throw Error("provider", "SDK 2.4 context did not select the requested FSR 4.1.2 provider");
     return {query.versionId, query.versionName};
+}
+inline void LogMemory(const Api& api, ffxContext* context, const char* backend) {
+    FfxApiEffectMemoryUsage memory{};
+    ffxQueryDescUpscaleGetGPUMemoryUsage query{};
+    query.header.type = FFX_API_QUERY_DESC_TYPE_UPSCALE_GPU_MEMORY_USAGE;
+    query.gpuMemoryUsageUpscaler = &memory;
+    const auto rc = api.functions.Query(context, &query.header);
+    if (rc == FFX_API_RETURN_OK) {
+        std::printf("FSR 4.1.2 %s SDK memory: total=%llu bytes, aliasable=%llu bytes\n",
+            backend, static_cast<unsigned long long>(memory.totalUsageInBytes),
+            static_cast<unsigned long long>(memory.aliasableUsageInBytes));
+    } else {
+        // Diagnostic query support is not a rendering or hardware requirement.
+        std::printf("FSR 4.1.2 %s SDK memory query unavailable: code=%u\n", backend, unsigned(rc));
+    }
 }
 } // namespace FsrSdk24

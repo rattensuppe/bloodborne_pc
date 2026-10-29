@@ -1,5 +1,12 @@
 # FSR SDK 2.4 upscaling on Windows
 
+For development only, `BB_FSR24_DEBUG=1` enables AMD's SDK input checker on
+both 4.1.2 methods. It is off by default; leave it off for performance and
+image-quality comparisons. Both methods log SDK messages and query the
+SDK's total/aliasable GPU memory once after each context creation. These
+figures describe the SDK effect, not total process VRAM. An unsupported
+memory query is logged and does not disable upscaling.
+
 FSR 4.1.2 uses the public FidelityFX API from AMD's signed SDK 2.4 effect
 libraries for both AMD Vulkan and AMD DX12. The older 4.1.1 methods remain.
 The DX12 method still uses the existing Vulkan/DX12 texture and fence bridge.
