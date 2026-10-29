@@ -284,9 +284,11 @@ if (WIN32)
     # SDK 2.4 headers only for upscaling TUs: keep FG's existing SDK headers intact.
     set(FSR24_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/fsr24/sdk/api/include;${CMAKE_CURRENT_SOURCE_DIR}/fsr24/sdk/upscalers/include")
     set_source_files_properties(fsr411_dx12/native_fsr411.cpp fsr411_dx12/fsr411_support.cpp
+        shadps4/video_core/renderer_vulkan/vk_instance.cpp
         shadps4/video_core/renderer_vulkan/vk_fsr412_driver.cpp ../tools/fsr411_capabilities.cpp
         PROPERTIES INCLUDE_DIRECTORIES "${FSR24_INCLUDES}")
-    set_source_files_properties(shadps4/video_core/renderer_vulkan/vk_fsr412_driver.cpp
+    set_source_files_properties(shadps4/video_core/renderer_vulkan/vk_instance.cpp
+        shadps4/video_core/renderer_vulkan/vk_fsr412_driver.cpp
         PROPERTIES COMPILE_DEFINITIONS _WINDOWS)
     # AMD's runtime loader checks MSBuild's _WINDOWS macro, not MinGW's _WIN32.
     set_source_files_properties(fsr411_dx12/native_fsr411.cpp PROPERTIES COMPILE_DEFINITIONS _WINDOWS)
@@ -347,6 +349,9 @@ if (WIN32)
     target_include_directories(fsr24-api-test PRIVATE fsr411_dx12 ${FSR24_INCLUDES})
     target_compile_definitions(fsr24-api-test PRIVATE _WINDOWS NOMINMAX)
     target_compile_options(fsr24-api-test PRIVATE -UNDEBUG)
+    add_executable(fsr24-vulkan-features-test EXCLUDE_FROM_ALL ../tests/test_fsr24_vulkan_features.cpp)
+    target_include_directories(fsr24-vulkan-features-test PRIVATE fsr411_dx12)
+    target_compile_options(fsr24-vulkan-features-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
     target_link_libraries(bb-gpu-capabilities PRIVATE Vulkan::Vulkan d3d12 dxgi)
     # "Play Bloodborne.exe": the game with the launcher's saved settings, no launcher window.
     add_executable(bb-play WIN32 ../packaging/windows/play.c ../packaging/windows/play.rc)

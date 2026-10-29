@@ -7,6 +7,13 @@ SDK's total/aliasable GPU memory once after each context creation. These
 figures describe the SDK effect, not total process VRAM. An unsupported
 memory query is logged and does not disable upscaling.
 
+On AMD devices with the SDK Vulkan DLL present, device creation enables the
+advertised Cooperative Matrix and Float8 features plus `computeFullSubgroups`.
+Float8 requires both Float8 feature bits and Cooperative Matrix support.
+Absent features remain disabled: they are optional accelerators, not a new
+RX-series restriction. Enabled bits are logged, without claiming which ML
+model the SDK uses. Vulkan validation and real GPU comparisons remain required.
+
 FSR 4.1.2 uses the public FidelityFX API from AMD's signed SDK 2.4 effect
 libraries for both AMD Vulkan and AMD DX12. The older 4.1.1 methods remain.
 The DX12 method still uses the existing Vulkan/DX12 texture and fence bridge.

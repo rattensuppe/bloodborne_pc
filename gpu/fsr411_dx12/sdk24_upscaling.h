@@ -45,6 +45,14 @@ inline std::filesystem::path Directory() {
     path.resize(size);
     return std::filesystem::path(path).parent_path() / L"fsr24";
 }
+inline bool VulkanRuntimePresent() noexcept {
+    try {
+        std::error_code error;
+        return std::filesystem::is_regular_file(Directory() / L"amd_fidelityfx_upscaler_vk.dll", error);
+    } catch (...) {
+        return false;
+    }
+}
 struct Api {
     HMODULE module{};
     ffxFunctions functions{};
