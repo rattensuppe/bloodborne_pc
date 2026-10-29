@@ -6,6 +6,7 @@
 > [ML-FG 4.0.2](docs/SDK24_ML_FG.md). FSR 4.1.1 and ML-FG 4.0.1 remain selectable.
 > Builds, isolated GPU checks on RX 9070, and launcher/package checks pass.
 > Gameplay and performance comparisons for the SDK changes are pending.
+> **[Download prototype.1 ZIP](https://github.com/rattensuppe/bloodborne_pc/releases/download/v1.9.5-sdk24-prototype.1/Bloodborne-Windows-1.9.5-SDK24-FSR412-FGML402-prototype.1.zip)** · [Release notes](https://github.com/rattensuppe/bloodborne_pc/releases/tag/v1.9.5-sdk24-prototype.1)
 
 <a href="https://trendshift.io/repositories/306163?utm_source=trendshift-badge&amp;utm_medium=badge&amp;utm_campaign=badge-trendshift-306163" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/306163/daily?language=C%2B%2B" alt="Supermedo%2Funcharted_pc | Trendshift" width="250" height="55"/></a>
 
