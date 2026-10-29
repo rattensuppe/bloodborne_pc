@@ -1,4 +1,12 @@
 # Bloodborne for Windows
+
+> **SDK 2.4 prototype — Windows 1.9.5**
+> This branch combines the RCAS/output and motion-cache optimizations with
+> [SDK-based FSR 4.1.2 upscaling](docs/FSR24_UPSCALING.md) and
+> [ML-FG 4.0.2](docs/SDK24_ML_FG.md). FSR 4.1.1 and ML-FG 4.0.1 remain selectable.
+> Builds, isolated GPU checks on RX 9070, and launcher/package checks pass.
+> Gameplay and performance comparisons for the SDK changes are pending.
+
 <a href="https://trendshift.io/repositories/306163?utm_source=trendshift-badge&amp;utm_medium=badge&amp;utm_campaign=badge-trendshift-306163" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/306163/daily?language=C%2B%2B" alt="Supermedo%2Funcharted_pc | Trendshift" width="250" height="55"/></a>
 
 **Bloodborne running natively on Windows 10 and 11, by [Supermedo](https://github.com/Supermedo) Mohammed Albarghouthi.**
