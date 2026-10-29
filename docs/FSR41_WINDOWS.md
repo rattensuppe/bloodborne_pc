@@ -39,10 +39,10 @@ and help text is shared in the 13 launcher languages.
 The 4.1.2 methods use the public SDK API, with separate effect libraries under
 `bin/fsr24`. They do not use the previous internal driver ABI or import lookup
 adjustment. [SDK pinning, loading and verification](FSR24_UPSCALING.md).
-Installed-driver discovery and the existing `BB_TEST_AMD_*` overrides remain
-separate for frame generation. Existing profile, data-directory, save and cache
-conventions remain unchanged. Actual support still depends on the selected GPU
-and its driver.
+The existing driver-discovery helpers remain separate; SDK effect loading
+does not depend on their `BB_TEST_AMD_*` paths. Existing profile, data-directory,
+save and cache conventions remain unchanged. Actual support still depends on
+the selected GPU and its driver. [Separate SDK ML-FG integration](SDK24_ML_FG.md).
 Both ML-FG 4.0.1 and 4.0.2 remain separate choices with their existing RX 9000,
 Windows 11, exact-provider and SDR requirements.
 

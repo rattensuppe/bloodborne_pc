@@ -20,16 +20,16 @@ def verified(path, row):
     except OSError:
         return False
 
-def prepare(target, check=False):
+def prepare(target, check=False, pin=PIN):
     target = Path(target)
-    for row in PIN['files']:
+    for row in pin['files']:
         path = target/Path(row['path']).name
         if verified(path, row):
             continue
         if check:
             raise ValueError('SDK 2.4 file missing or changed: '+path.name)
         target.mkdir(parents=True, exist_ok=True)
-        url = f"https://raw.githubusercontent.com/GPUOpen-LibrariesAndSDKs/FidelityFX-SDK/{PIN['commit']}/{row['path']}"
+        url = f"https://raw.githubusercontent.com/GPUOpen-LibrariesAndSDKs/FidelityFX-SDK/{pin['commit']}/{row['path']}"
         temporary = None
         try:
             with tempfile.NamedTemporaryFile(dir=target, suffix='.part', delete=False) as stream:

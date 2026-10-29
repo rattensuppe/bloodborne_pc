@@ -26,9 +26,9 @@ FSR 3 is never silently accepted as FSR 4.1.2. Missing package files, failed
 runtime loading and unavailable GPU/driver providers remain distinct failures.
 Launcher and overlay keep the four existing choices and saved preferences.
 
-SDK 2.4 API headers are scoped to the upscaling translation units; frame
-generation retains its previous headers and binary files. This change does
-not integrate FSR Lite, change the FG implementation, or enable new pacing.
+The upscaling API headers are scoped to its translation units. The separate
+[SDK ML-FG change](SDK24_ML_FG.md) retains the same upscaling code and adds the
+current FG runtime independently. FSR Lite and new pacing are not integrated.
 
 For local comparisons retain the original 1.9.5+RCAS/cache build and use the
 same copied save, camera and settings. Isolated tests establish API operation,
