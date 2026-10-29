@@ -8,9 +8,8 @@
 > and a session fallback that preserves the selected FSR upscaler.
 > Build, 154 launcher/package regression tests and six native CPU test programs pass.
 > GPU, gameplay and performance validation for these additions is pending.
-> **[Download prototype.1 ZIP](https://github.com/rattensuppe/bloodborne_pc/releases/download/v1.9.5-sdk24-prototype.1/Bloodborne-Windows-1.9.5-SDK24-FSR412-FGML402-prototype.1.zip)** · [Release notes](https://github.com/rattensuppe/bloodborne_pc/releases/tag/v1.9.5-sdk24-prototype.1)
-> ZIP source: [`591856f`](https://github.com/rattensuppe/bloodborne_pc/commit/591856f).
-> The diagnostics, device-feature and fallback commits are subsequent source updates.
+> **[Download prototype.2 ZIP](https://github.com/rattensuppe/bloodborne_pc/releases/download/v1.9.5-sdk24-prototype.2/Bloodborne-Windows-1.9.5-SDK24-FSR412-FGML402-prototype.2.zip)** · [Release notes](https://github.com/rattensuppe/bloodborne_pc/releases/tag/v1.9.5-sdk24-prototype.2)
+> ZIP source: [`bd28740`](https://github.com/rattensuppe/bloodborne_pc/commit/bd28740e5e664aeb134a4443a6442db2cf5ee245).
 
 <a href="https://trendshift.io/repositories/306163?utm_source=trendshift-badge&amp;utm_medium=badge&amp;utm_campaign=badge-trendshift-306163" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/306163/daily?language=C%2B%2B" alt="Supermedo%2Funcharted_pc | Trendshift" width="250" height="55"/></a>
 
