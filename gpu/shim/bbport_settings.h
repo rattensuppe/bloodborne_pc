@@ -95,6 +95,16 @@ inline constexpr int FovDefault = 43, FovMin = 30, FovMax = 90;
 
 struct Values {
     std::atomic<int> upscaler{UpscalerFsr3};
+    /// Session state only. Save() always writes the user's upscaler choice.
+    std::atomic<int> fsr4_fallback_source{-1};
+    std::atomic<unsigned> upscaler_request{0};
+    bool UpscalerFallbackActive() const {
+        const int selected = upscaler.load();
+        return IsFsr4(selected) && fsr4_fallback_source.load() == selected;
+    }
+    int ActiveUpscaler() const {
+        return UpscalerFallbackActive() ? UpscalerFsr3 : upscaler.load();
+    }
     std::atomic<int> preset{NativeAA};
     std::atomic<bool> sharpen{true};
     std::atomic<float> sharpness{0.3f};
@@ -237,6 +247,9 @@ Values& Get();
 void Load();
 /// Checks the loaded choice before the first frame; unsupported FSR 4 uses FSR 3.1.
 void ConfigureUpscalerSupport(bool fsr4, bool fsr411, const char* fsr411_problem = nullptr);
+/// Explicit selection/retry; unlike runtime fallback this may change the saved choice.
+void SelectUpscaler(int provider);
+void UpscalerFailure(int provider);
 /// After device creation: DLSS availability; a DLSS setting falls back to FSR 3.1 without it.
 void ConfigureDlssSupport(bool available, const char* problem);
 void ConfigureFg401Support(bool available, const char* problem, int provider = FrameGenFsr401);

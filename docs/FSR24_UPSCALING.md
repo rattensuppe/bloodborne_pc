@@ -14,6 +14,13 @@ Absent features remain disabled: they are optional accelerators, not a new
 RX-series restriction. Enabled bits are logged, without claiming which ML
 model the SDK uses. Vulkan validation and real GPU comparisons remain required.
 
+FSR runtime failure uses FSR 3.1 for the current session while retaining the
+selected FSR version/backend in `bbport.ini`. The counter reports the active
+upscaler. The overlay offers an explicit retry; selecting another method also
+retries with a new context. Resizing alone does not keep retrying a failed
+dispatch. Restarting clears the session fallback. There is no automatic
+second dispatch on an unclassified SDK/device error.
+
 FSR 4.1.2 uses the public FidelityFX API from AMD's signed SDK 2.4 effect
 libraries for both AMD Vulkan and AMD DX12. The older 4.1.1 methods remain.
 The DX12 method still uses the existing Vulkan/DX12 texture and fence bridge.

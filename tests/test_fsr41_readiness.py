@@ -22,7 +22,9 @@ class ReadinessTests(unittest.TestCase):
         self.assertTrue(cache.KEYS[1].startswith('May solve general FSR FPS drops;'))
         self.assertEqual(family.HINTS[2],'Recommended if FSR 4.1.2 is unavailable or causes issues.')
         for language, texts in family.TEXTS.items():
-            self.assertEqual(texts[-2:],cache.TEXTS[language])
+            for key, translated in zip(cache.KEYS, cache.TEXTS[language]):
+                self.assertEqual(texts[family.KEYS.index(key)], translated)
+            self.assertTrue(all(texts[family.KEYS.index(key)] for key in family.FALLBACK_KEYS))
             self.assertEqual(len(texts),len(family.KEYS))
 
     def test_automatic_recommendations_use_the_same_verified_route_order(self):

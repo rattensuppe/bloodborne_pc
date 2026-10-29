@@ -439,6 +439,7 @@ void Fsr41Settings() {
                 Store(s.fsr41_version,route.version,true);
                 Store(s.fsr411_backend,route.backend,true);
                 Store(s.upscaler,route.version,true);
+                BbSettings::SelectUpscaler(route.version);
             }
             ImGui::EndDisabled();
             ImGui::SameLine();
@@ -527,6 +528,7 @@ void Menu() {
                         }
                     }
                 } else Store(s.upscaler, i, true);
+                BbSettings::SelectUpscaler(s.upscaler);
             }
             ImGui::EndDisabled();
             if (!supported) {
@@ -577,6 +579,12 @@ void Menu() {
         if (!BbSettings::IsFsr4(s.upscaler))
             ImGui::TextUnformatted("The selected mode is active. You can select FSR 4 again.");
         ImGui::PopTextWrapPos();
+    }
+    if (s.UpscalerFallbackActive()) {
+        ImGui::TextWrapped("%s", Fsr41Ui::Text(Fsr41Ui::FallbackActive));
+        if (ImGui::Button(Fsr41Ui::Text(Fsr41Ui::Retry))) {
+            BbSettings::SelectUpscaler(s.upscaler);
+        }
     }
     if (BbSettings::IsFsr4(s.upscaler)) {
         if (s.upscaler == BbSettings::UpscalerFsr412) {
@@ -1103,10 +1111,11 @@ void FpsCounter() {
         const int out = s.output_res;
         ImGui::TextDisabled("|  %ux%u", output_width ? output_width : u32(BbSettings::OutputWidths[out]),
                             output_height ? output_height : u32(BbSettings::OutputHeights[out]));
-        if (UpscalerLabel(s.upscaler)[0] != '\0') {
+        const int active_upscaler = s.ActiveUpscaler();
+        if (UpscalerLabel(active_upscaler)[0] != '\0') {
             ImGui::SameLine(0.0f, 6.0f * base_scale);
-            ImGui::TextColored(PlainCounter() ? PlainValue : UpscalerColor(s.upscaler), "%s",
-                               UpscalerLabel(s.upscaler));
+            ImGui::TextColored(PlainCounter() ? PlainValue : UpscalerColor(active_upscaler), "%s",
+                               UpscalerLabel(active_upscaler));
         }
         const int generated = s.frame_gen != BbSettings::FrameGenOff ? s.frame_gen_now.load() : 0;
         if (generated > 0 && s.game_fps > 0.0f) {

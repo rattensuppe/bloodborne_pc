@@ -158,6 +158,24 @@ KEYS += COMPACT_KEYS
 TEXTS = {language: texts + COMPACT_TEXTS[language] for language, texts in TEXTS.items()}
 KEYS += motion_cache.KEYS
 TEXTS = {language: texts + motion_cache.TEXTS[language] for language, texts in TEXTS.items()}
+FALLBACK_KEYS = ('FSR 3.1 active; saved selection retained.', 'Retry')
+FALLBACK_TEXTS = {
+    'en': FALLBACK_KEYS,
+    'de': ('FSR 3.1 aktiv; Auswahl bleibt gespeichert.', 'Erneut versuchen'),
+    'ru': ('FSR 3.1 активен; выбор сохранён.', 'Повторить'),
+    'ar': ('FSR 3.1 نشط؛ الاختيار المحفوظ لم يتغير.', 'إعادة المحاولة'),
+    'es': ('FSR 3.1 activo; se conserva la selección.', 'Reintentar'),
+    'pt': ('FSR 3.1 ativo; seleção mantida.', 'Tentar novamente'),
+    'fr': ('FSR 3.1 actif ; sélection conservée.', 'Réessayer'),
+    'it': ('FSR 3.1 attivo; selezione conservata.', 'Riprova'),
+    'pl': ('FSR 3.1 aktywny; wybór pozostaje zapisany.', 'Spróbuj ponownie'),
+    'tr': ('FSR 3.1 etkin; kayıtlı seçim korundu.', 'Yeniden dene'),
+    'zh': ('FSR 3.1 已启用；保留已保存的选择。', '重试'),
+    'ja': ('FSR 3.1 が動作中。保存済みの選択は維持されます。', '再試行'),
+    'ko': ('FSR 3.1 사용 중. 저장된 선택은 유지됩니다.', '다시 시도'),
+}
+KEYS += FALLBACK_KEYS
+TEXTS = {language: texts + FALLBACK_TEXTS[language] for language, texts in TEXTS.items()}
 for language, texts in TEXTS.items():
     assert len(texts) == len(KEYS), language
     # Register without constructing a cached language table before the launcher's
