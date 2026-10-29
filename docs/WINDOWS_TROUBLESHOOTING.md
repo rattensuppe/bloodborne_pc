@@ -60,9 +60,14 @@ Object motion vectors: off
   Authorities) held an expired `ISRG Root X2` cross-certificate (valid until 2025-09-16,
   thumbprint `151682F5218C0A511C28F4060A73B9CA78CE9A53`), and building the chain from the
   leaf alone first failed with `NotTimeValid`. Outside the game both checks pass once Windows
-  has cached the current intermediates, yet the game kept failing; the cause inside the game
-  is not found yet. Removing the expired certificate is the next thing to try. More detail
-  comes with `BB_GPU_LOG=info` in Extra variables.
+  has cached the current intermediates. The same happened with game.supermedo.com (`YE1`) and
+  the log line `certificate is not trusted by Windows either (error 0x1)`: OpenSSL failed on
+  PCs whose Windows store didn't have the ISRG roots yet, and the port's own fallback also gave
+  Windows the leaf alone (0x1 is `NotTimeValid`); retrying Play Online usually worked. Since
+  1.9.6 the port carries ISRG Root X1, X2, YE and YR itself (`gpu/bbnet/include/windows_trust.h`,
+  checked by `windows-trust-test`), so OpenSSL trusts Let's Encrypt servers without Windows'
+  roots, and the fallback gives Windows the whole chain the server sent. More detail comes with
+  `BB_GPU_LOG=info` in Extra variables.
 
 ## Launcher settings get overwritten
 

@@ -30,6 +30,14 @@ def servers_notice():
 
 
 NOTES = {
+    '1.9.6': (
+        None,
+        [('Fixes', [
+            'Online: "Failed to connect to Bloodborne server" at Play Online on some PCs is fixed. The port now '
+            "carries Let's Encrypt's root certificates itself, so it trusts SuperMedo Server and The Hunter's "
+            "Dream even before Windows has downloaded them, and Windows' own check gets the server's whole "
+            'certificate chain.',
+        ])]),
     '1.9.5': (
         servers_notice,
         [('Online', [
