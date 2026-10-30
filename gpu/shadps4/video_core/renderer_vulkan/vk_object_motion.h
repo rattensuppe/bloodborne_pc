@@ -55,13 +55,8 @@ public:
     /// holds this frame's vectors at `width` x `height`.
     vk::ImageView PrepareRead(vk::CommandBuffer cmdbuf, u32 width, u32 height, bool& valid);
     /// The image of the last PrepareRead (layout General), or null.
-    [[nodiscard]] vk::ImageView View() const noexcept {
-        return view ? *view : vk::ImageView{};
-    }
-    [[nodiscard]] vk::Image Image(u32 width, u32 height) const noexcept {
-        return written && width == image_width && height == image_height
-            ? vk::Image(image) : vk::Image{};
-    }
+    [[nodiscard]] vk::ImageView View() noexcept;
+    [[nodiscard]] vk::Image Image(u32 width, u32 height) noexcept;
 
 private:
     friend struct ObjectMotionCacheTest;
