@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
+#include "../gpu/shadps4/shader_recompiler/motion_storage.h"
+#include "ffx_upscale.h"
 #include "fsr411_support.h"
 #include "fsr411_vulkan_support.h"
 #include "sdk24_upscaling.h"
 #include "vk/ffx_api_vk.h"
-#include "ffx_upscale.h"
 #include <cstdio>
 #include <stdexcept>
 #include <string_view>
@@ -46,6 +47,8 @@ void Gpu(VkPhysicalDevice physical) {
     std::printf(",\"vendor_id\":%u,\"device_id\":%u,\"driver_name\":", p.vendorID, p.deviceID);
     String(driver.driverName);
     std::printf(",\"driver_info\":"); String(driver.driverInfo);
+    std::printf(",\"object_motion_ssbo\":%s",
+                Shader::MotionStorage::UsesSsbo(p.vendorID, p.deviceID) ? "true" : "false");
     std::printf(",\"vulkan\":\"%u.%u.%u\"}", VK_API_VERSION_MAJOR(p.apiVersion),
         VK_API_VERSION_MINOR(p.apiVersion), VK_API_VERSION_PATCH(p.apiVersion));
 }

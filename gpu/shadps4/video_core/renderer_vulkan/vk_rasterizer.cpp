@@ -1127,6 +1127,8 @@ void Rasterizer::DrawRecord(const GraphicsPipeline* pipeline, const PreparedDraw
     }
     SetProjectionJitter(push_data, regs, draw_jitter);
     pipeline->BindResources(set_writes, push_data);
+    if (motion_draw)
+        object_motion->BindParameters(pipeline->GetLayout());
     UpdateDynamicState(pipeline, is_indexed);
     MarkPass(pipeline, state);
     scheduler.BeginRendering(state);

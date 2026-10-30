@@ -1,0 +1,78 @@
+# RX 6000 object motion through SSBOs
+
+With **Object motion vectors** enabled, recognized Navi21/22/23/24 devices
+automatically use ordinary Vulkan StorageBuffer descriptors for draw parameters
+and vertex-position history. The existing launcher and overlay controls apply;
+there is no additional user setting or required force parameter.
+
+The previous raw GPU-address path could lose the device when loading the world
+on these cards, so bbport disabled object motion there. A parameter-only reader
+also reproduced the failure on RX 6800 XT / Adrenalin 26.10.1. Reading the same
+data through an ordinary SSBO worked. This supports the access-path workaround;
+the precise driver/compiler root cause is not established.
+
+## Implementation
+
+- `motion_storage.h` identifies Navi2x devices by PCI vendor/device ID. Other
+  GPUs retain their existing path. Older AMD guards, required Vulkan features
+  and the existing low-VRAM policy remain.
+- Set1 binding0 is the readonly parameter buffer. Bindings1/2 reference fixed,
+  bounded views of the existing history buffer: 64 MiB + 16 bytes each. They do
+  not allocate additional history copies or require per-frame descriptor updates.
+- Parameter indices and history accesses are bounded; history indexing uses
+  64-bit arithmetic. Duplicate indexed vertex invocations use uint32 atomic
+  component stores. Existing frame barriers and parameter-ring waits remain.
+- This path uses motion varyings at locations24/25. Attribute collisions skip
+  object-motion instrumentation for that draw, retaining camera motion.
+- The native capability tool exposes `gpu.object_motion_ssbo` from the same
+  C++ device policy. The launcher uses that field to lift its RX6000 guard.
+  Missing/old metadata conservatively retains the guard. VRAM checks still apply.
+- **Motion-vector cache** remains optional and off by default. Its startup mode,
+  saved preference and launcher/overlay synchronization are unchanged.
+
+This common renderer path is independent of the selected FSR version/backend.
+It does not alter AMD's upscaler shaders, models, exposure or frame generation.
+
+## Verification
+
+Native tests exercise the actual emitted shaders and ObjectMotion buffer owner:
+history bounds/readback, both history halves, parameter-ring reuse, previous GPU
+writes, duplicate indices, instancing, normal/push set0 layouts and direct/threaded
+recording. A private constructor overload allows the test to exercise SSBO on a
+different GPU; the production constructor always selects from the physical GPU.
+Cache pixel-readback tests cover both paths with caching off/on.
+
+On RX9070 / Adrenalin26.10.1, 56 history bounds/data cases and 48 native frames
+with two draws each passed, along with four cache cases. The SSBO tests have no
+Khronos core/synchronization validation errors. Eight backend modules (SSBO/BDA,
+vertex/fragment, motion/plain) passed standalone SPIR-V validation.
+
+An external RX6800XT / Adrenalin26.10.1 tester completed all four SDK2.4 gameplay
+cases at 2560x1440/Quality, 60FPS, FG off:
+
+| FSR4.1.2 method | Motion-vector cache | Result |
+|---|---|---|
+| AMD Vulkan | Off | Active provider4.1.2, normal exit |
+| AMD DX12 | Off | Active provider4.1.2, normal exit |
+| AMD Vulkan | On | Active provider4.1.2, normal exit |
+| AMD DX12 | On | Active provider4.1.2, normal exit |
+
+All four reports identify the tested renderer, automatic SSBO selection and
+prepared previous-frame history. No device loss or upscaler fallback occurred.
+The tester reported no visual anomalies and judged overall image quality better
+than FSR3.1. This is subjective feedback from short runs on one GPU/driver.
+The gameplay reports contain no numerical GPU motion-vector readback or uncapped
+frame-time benchmark. Longer sessions, more GPUs, resolution changes and FG3.1
+remain useful beta coverage.
+
+The original SDK2.4 Vulkan shader findings documented in
+[FSR24_UPSCALING.md](FSR24_UPSCALING.md#local-validation-findings-october-30-2026)
+remain separate from SSBO validation.
+
+Build the opt-in `motion-storage-test`, `motion-shader-test`,
+`motion-history-test` and `object-motion-cache-test` targets for regression checks.
+`test_motion_storage_launcher.py` checks the launcher guard without loading its UI.
+`motion-shader-test <output-directory> --gpu` runs the native SSBO readbacks;
+use private BB_USER_DIR/BB_GPU_USER_DIR test folders. Test-only
+BB_OMV_TEST_SET0_PUSH/BB_OMV_TEST_THREADED select the recording variants.
+These tests are excluded from normal application builds and never run in-game.

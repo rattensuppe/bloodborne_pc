@@ -1138,7 +1138,8 @@ def object_motion_unavailable(gpu, gpu_line, extra_env=''):
     if 'BB_OBJECT_MOTION=1' in str(extra_env).split():
         return ''
     gpu = gpu or {}
-    if gpu.get('vendor_id') == 0x1002 and isinstance(gpu.get('device_id'), int) and gpu['device_id'] < 0x7440:
+    if gpu.get('vendor_id') == 0x1002 and isinstance(gpu.get('device_id'), int) and gpu['device_id'] < 0x7440 \
+            and gpu.get('object_motion_ssbo') is not True:
         return _('Not available on RX 6000 and older Radeon cards: they lose the device with it.',
                  'Недоступно на Radeon RX 6000 и более старых: с ним видеокарта теряет устройство.')
     parts = [part.strip() for part in str(gpu_line or '').split(',')]

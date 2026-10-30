@@ -27,6 +27,11 @@ extern "C" void runtime_restart() { std::abort(); }
 
 namespace Vulkan {
 struct ObjectMotionCacheTest {
+    static std::unique_ptr<ObjectMotion> Make(const Instance& instance, Scheduler& scheduler) {
+        if (std::getenv("BB_OMV_TEST_SSBO"))
+            return std::unique_ptr<ObjectMotion>(new ObjectMotion(instance, scheduler, true));
+        return std::make_unique<ObjectMotion>(instance, scheduler);
+    }
     static u64 LastTick(const ObjectMotion& motion) { return motion.image_last_tick; }
     static vk::Image RawImage(const ObjectMotion& motion) { return vk::Image(motion.image); }
     static size_t Retired(const ObjectMotion& motion) { return motion.retired_images.size(); }
@@ -94,7 +99,8 @@ public:
 void SpecialCase(const std::string& kind, Instance& instance, Scheduler& scheduler) {
     const u32 before = Allocations(instance);
     {
-        ObjectMotion motion(instance, scheduler);
+        auto owner = ObjectMotionCacheTest::Make(instance, scheduler);
+        auto& motion = *owner;
         Require(motion.Enabled(), "object motion unavailable");
         const u32 initial = Allocations(instance);
         if (kind == "destruct" || kind == "drain") {
@@ -172,7 +178,8 @@ void LateReadCase(bool view_read, Instance& instance, Scheduler& scheduler) {
     const auto device=instance.GetDevice();
     const u32 before=Allocations(instance);
     {
-        ObjectMotion motion(instance,scheduler);
+        auto owner = ObjectMotionCacheTest::Make(instance, scheduler);
+        auto& motion = *owner;
         motion.OnFrameStart();
         for (const auto [w,h] : std::array<std::pair<u32,u32>,5>{{{128,72},{96,54},{64,36},{48,27},{128,72}}})
             AttachSize(motion,scheduler,w,h);
@@ -268,7 +275,8 @@ int main(int argc, char **argv) {
         std::vector<std::array<u32, 4>> expected;
         u64 fnv = 1469598103934665603ull;
         {
-            ObjectMotion motion(instance, scheduler);
+            auto owner = ObjectMotionCacheTest::Make(instance, scheduler);
+        auto& motion = *owner;
             if (!motion.Enabled())
                 throw std::runtime_error("object motion unavailable");
             const char* cache_setting = std::getenv("BB_OBJECT_MOTION_CACHE");
