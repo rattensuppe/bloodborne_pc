@@ -4,14 +4,14 @@
 > This branch combines the RCAS/output and motion-cache optimizations with
 > [SDK-based FSR 4.1.2 upscaling](docs/FSR24_UPSCALING.md) and
 > [ML-FG 4.0.2](docs/SDK24_ML_FG.md). FSR 4.1.1 and ML-FG 4.0.1 remain selectable.
-> Current source also adds SDK diagnostics, conditional Vulkan accelerator features,
-> and a session fallback that preserves the selected FSR upscaler.
-> Build and CPU/package checks cover the synchronized source.
-> Gameplay and performance results remain specific to the tested build.
-> **[Download prototype.2 ZIP](https://github.com/rattensuppe/bloodborne_pc/releases/download/v1.9.5-sdk24-prototype.2/Bloodborne-Windows-1.9.5-SDK24-FSR412-FGML402-prototype.2.zip)** · [Release notes](https://github.com/rattensuppe/bloodborne_pc/releases/tag/v1.9.5-sdk24-prototype.2)
-> The published prototype.2 ZIP remains on Windows 1.9.5, source
-> [`bd28740`](https://github.com/rattensuppe/bloodborne_pc/commit/bd28740e5e664aeb134a4443a6442db2cf5ee245).
-> Current branch source also includes the Windows 1.9.6 online-connection fix.
+> Device-feature setup, safe late cache reads, support-query reuse and preserved
+> selections on runtime fallback are included. Build, CPU/package checks and
+> 56 isolated GPU functional cases passed. SDK Vulkan has
+> [open shader-validation findings](docs/FSR24_UPSCALING.md#local-validation-findings-october-30-2026);
+> gameplay image quality and performance need a fresh comparison.
+> **[Download prototype.3 ZIP](https://github.com/rattensuppe/bloodborne_pc/releases/download/v1.9.6-sdk24-prototype.3/Bloodborne-Windows-1.9.6-SDK24-FSR412-FGML402-prototype.3.zip)** · [Release notes](https://github.com/rattensuppe/bloodborne_pc/releases/tag/v1.9.6-sdk24-prototype.3)
+> The Windows 1.9.6 package contains source
+> [`3449119`](https://github.com/rattensuppe/bloodborne_pc/commit/3449119f07446085ce763a40f51cbfbfe8867861).
 
 <a href="https://trendshift.io/repositories/306163?utm_source=trendshift-badge&amp;utm_medium=badge&amp;utm_campaign=badge-trendshift-306163" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/306163/daily?language=C%2B%2B" alt="Supermedo%2Funcharted_pc | Trendshift" width="250" height="55"/></a>
 
