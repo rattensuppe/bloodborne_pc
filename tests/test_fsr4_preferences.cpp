@@ -8,6 +8,10 @@
 #include <windows.h>
 int main() {
     using namespace BbSettings;
+    for (int provider=UpscalerOff;provider<UpscalerCount;++provider) {
+        assert(WindowsAutoExposureFixed(provider,Fsr411Vulkan)==(provider==UpscalerFsr412));
+        assert(WindowsAutoExposureFixed(provider,Fsr411Dx12)==(provider==UpscalerFsr412||provider==UpscalerFsr411));
+    }
     wchar_t path[MAX_PATH]{};
     assert(GetTempFileNameW(std::filesystem::temp_directory_path().c_str(),L"bbu",0,path));
     _wputenv_s(L"BB_CONFIG",path);

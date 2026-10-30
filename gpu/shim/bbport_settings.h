@@ -28,6 +28,10 @@ inline bool IsMlFrameGen(int provider) {
     return provider == FrameGenFsr401 || provider == FrameGenFsr402;
 }
 enum Fsr411Backend : int { Fsr411Vulkan = 0, Fsr411Dx12 = 1 };
+inline constexpr bool WindowsAutoExposureFixed(int upscaler, int backend) {
+    return upscaler == UpscalerFsr412 ||
+        (upscaler == UpscalerFsr411 && backend == Fsr411Dx12);
+}
 
 /// Game effects switched by the community patches at start (patches.py EFFECTS): ini key,
 /// menu label, default (the game's own behaviour).

@@ -17,5 +17,6 @@ class RepairTests(unittest.TestCase):
         self.assertEqual(family.preferred_route([state,{'supported':True},state,state]),1)
         for language in family.TEXTS:
             self.assertEqual(bbport_lang.table(language)['Restart required'],family.RESTART_TEXTS[language])
+            self.assertEqual(bbport_lang.table(language)[family.AUTO_EXPOSURE_KEY],family.AUTO_EXPOSURE_TEXTS[language])
 
 if __name__=='__main__':unittest.main()

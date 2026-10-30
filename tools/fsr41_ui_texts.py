@@ -21,7 +21,8 @@ enum TextId {Settings, Family, Recommended, Alternative, Compatibility,
              Supported, Gpu, Capability, Driver, Files, Check, Disabled, Interop, Checking,
              Help, Download, Recheck, Close, Selected, Unavailable, Method, Availability,
              Support, Details, Hint412Vk, Hint412Dx, Hint411Dx, Hint411Vk,
-             MotionCacheLabel, MotionCacheHelp, FallbackActive, Retry, RestartRequired};
+             MotionCacheLabel, MotionCacheHelp, FallbackActive, Retry, RestartRequired,
+             AutoExposureAutomatic};
 inline constexpr const char* languages[] = {LANGUAGES};
 inline constexpr const char* texts[13][TEXT_COUNT] = {
 ROWS

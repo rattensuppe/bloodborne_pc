@@ -95,7 +95,7 @@ def message(status, translate):
     if status['supported']: return ''
     if status['reason'] == 'files': return translate('Files missing') + ': SDK 2.4'
     if status['reason'] in ('runtime', 'check'): return translate('Check failed') + ': SDK 2.4'
-    key = {'checking': 'FSR 4.1.2: checking supportâ€¦',
+    key = {'checking': 'FSR 4.1.2: checking support…',
            'hardware': 'FSR 4.1.2 requires an AMD GPU.',
            'driver': 'FSR 4.1.2: update the AMD driver.'}.get(status['reason'], 'FSR 4.1.2: update the AMD driver.')
     return translate(key)

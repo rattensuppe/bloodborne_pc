@@ -189,6 +189,17 @@ RESTART_TEXTS = {
 }
 KEYS += ('Restart required',)
 TEXTS = {language: texts + (RESTART_TEXTS[language],) for language, texts in TEXTS.items()}
+AUTO_EXPOSURE_KEY = 'Always enabled for this method.'
+AUTO_EXPOSURE_TEXTS = {
+    'en': AUTO_EXPOSURE_KEY, 'de': 'Für diese Methode immer aktiv.',
+    'ru': 'Всегда включено для этого метода.', 'ar': 'مفعّل دائمًا لهذه الطريقة.',
+    'es': 'Siempre activada con este método.', 'pt': 'Sempre ativa neste método.',
+    'fr': 'Toujours activée pour cette méthode.', 'it': 'Sempre attiva per questo metodo.',
+    'pl': 'Zawsze włączona dla tej metody.', 'tr': 'Bu yöntemde her zaman etkin.',
+    'zh': '此方式始终启用。', 'ja': 'この方式では常に有効。', 'ko': '이 방식에서는 항상 활성화됩니다.',
+}
+KEYS += (AUTO_EXPOSURE_KEY,)
+TEXTS = {language: texts + (AUTO_EXPOSURE_TEXTS[language],) for language, texts in TEXTS.items()}
 for language, texts in TEXTS.items():
     assert len(texts) == len(KEYS), language
     # Register without constructing a cached language table before the launcher's

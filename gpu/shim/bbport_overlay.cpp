@@ -598,9 +598,22 @@ void Menu() {
         } else {
             Hint("FSR 4 INT8 uses the v07 model from the AMD FidelityFX SDK. Higher quality than FSR 3.1, with more GPU work. Changing presets rebuilds the model and may pause briefly. Assets: tools/fetch_fsr4_assets.sh.");
         }
-        Checkbox("FSR 4: auto exposure", s.fsr4_auto_exposure);
+        bool fixed_exposure = false;
+#ifdef _WIN32
+        fixed_exposure = BbSettings::WindowsAutoExposureFixed(s.upscaler, s.fsr411_backend);
+#endif
+        if (fixed_exposure) {
+            // Show the active automatic behavior without overwriting the preference
+            // retained for the providers where exposure remains configurable.
+            bool automatic = true;
+            ImGui::BeginDisabled();
+            ImGui::Checkbox("FSR 4: auto exposure", &automatic);
+            ImGui::EndDisabled();
+            ImGui::TextDisabled("%s", Fsr41Ui::Text(Fsr41Ui::AutoExposureAutomatic));
+        } else Checkbox("FSR 4: auto exposure", s.fsr4_auto_exposure);
         Checkbox("FSR 4: invert jitter", s.fsr4_invert_jitter);
-        Hint("Ghosting diagnostics: FSR 4 uses exposure to normalize color and decide when to discard history. These options apply immediately.");
+        if (!fixed_exposure)
+            Hint("Ghosting diagnostics: FSR 4 uses exposure to normalize color and decide when to discard history. These options apply immediately.");
     }
     const bool upscaler_on = s.upscaler != BbSettings::UpscalerOff;
     const bool taa = s.upscaler == BbSettings::UpscalerTaa;

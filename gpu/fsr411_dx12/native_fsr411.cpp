@@ -54,18 +54,22 @@ uint32_t ApiFormat(DXGI_FORMAT format) {
     case DXGI_FORMAT_R16G16_FLOAT: return FFX_API_SURFACE_FORMAT_R16G16_FLOAT;
     case DXGI_FORMAT_R32_FLOAT: return FFX_API_SURFACE_FORMAT_R32_FLOAT;
     case DXGI_FORMAT_R16_UNORM: return FFX_API_SURFACE_FORMAT_R16_UNORM;
-    default: throw std::runtime_error("unsupported FSR 4.1.1 input format");
+    default: throw std::runtime_error("unsupported AMD FSR input format " + std::to_string(uint32_t(format)));
     }
 }
 }
 
 struct NativeFsr411::Impl {
+    const char* VersionLabel() const noexcept {
+        return config.model_version == ((4u << 22) | (1u << 12) | 2u) ? "4.1.2" : "4.1.1";
+    }
     NativeFsr411Config config;
     HMODULE module{};
     ffxFunctions ffx{};
     ffxContext context{};
     const FsrSdk24::Api* sdk24{};
     FsrSdk24::Version sdk_selected{};
+    // Public SDK contract: Create descriptor pointers remain live until DestroyContext.
     ffxCreateBackendDX12Desc sdk_backend{};
     ffxOverrideVersion sdk_override{};
     ffxCreateContextDescUpscaleVersion sdk_version{};
@@ -136,7 +140,7 @@ struct NativeFsr411::Impl {
         if (fence->GetCompletedValue() >= value) return;
         Check(fence->SetEventOnCompletion(value, event), "Set D3D12 fence event");
         if (WaitForSingleObject(event, 30000) != WAIT_OBJECT_0)
-            throw std::runtime_error("FSR 4.1.1 D3D12 GPU wait timed out");
+            throw std::runtime_error(std::string("FSR ")+VersionLabel()+" D3D12 GPU wait timed out");
         Check(device->GetDeviceRemovedReason(), "D3D12 device");
     }
     void Submit(bool synchronous = true, uint64_t input_value = 0) {
@@ -183,7 +187,7 @@ struct NativeFsr411::Impl {
         }
         DXGI_ADAPTER_DESC1 adapter_desc{};
         adapter->GetDesc1(&adapter_desc);
-        std::printf("FSR 4.1.1 native: DXGI adapter %ls\n", adapter_desc.Description);
+        std::printf("FSR %s native: DXGI adapter %ls\n", VersionLabel(), adapter_desc.Description);
         Check(D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&device)), "Create D3D12 device");
         D3D12_COMMAND_QUEUE_DESC q{};
         q.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
@@ -260,7 +264,7 @@ struct NativeFsr411::Impl {
         }
         const auto rc = ffx.CreateContext(&context, &create_desc->header, nullptr);
         if (rc != FFX_API_RETURN_OK)
-            throw std::runtime_error("FSR 4.1.1 context creation returned " + std::to_string(rc));
+            throw std::runtime_error(std::string("FSR ")+VersionLabel()+" context creation returned " + std::to_string(rc));
         ffxQueryGetProviderVersion provider{};
         provider.header.type = FFX_API_QUERY_DESC_TYPE_GET_PROVIDER_VERSION;
         if (!driver412 && (ffx.Query(&context, &provider.header) != FFX_API_RETURN_OK || !provider.versionName ||
@@ -361,7 +365,7 @@ struct NativeFsr411::Impl {
         d.flags = config.hdr ? 0 : FFX_UPSCALE_FLAG_NON_LINEAR_COLOR_SRGB;
         const auto rc = ffx.Dispatch(&context, &d.header);
         if (rc != FFX_API_RETURN_OK)
-            throw std::runtime_error("FSR 4.1.1 dispatch returned " + std::to_string(rc));
+            throw std::runtime_error(std::string("FSR ")+VersionLabel()+" dispatch returned " + std::to_string(rc));
         if (Shared(3)) {
             Transition(list, shared, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_COMMON);
             Transition(list, textures[3], D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
@@ -386,7 +390,7 @@ struct NativeFsr411::Impl {
             Transition(list, textures[i], D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
                        Shared(i) ? D3D12_RESOURCE_STATE_COMMON : D3D12_RESOURCE_STATE_COPY_DEST);
         Submit(!input_value, input_value);
-        if (!dispatched) std::printf("FSR 4.1.1 native: first AMD 4.1.1 dispatch submitted (%s)\n", input_value ? "GPU fences" : "CPU waits");
+        if (!dispatched) std::printf("FSR %s native: first AMD dispatch submitted (%s)\n", VersionLabel(), input_value ? "GPU fences" : "CPU waits");
         dispatched = true;
     }
 };
