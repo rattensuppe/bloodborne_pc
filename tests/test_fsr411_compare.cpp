@@ -23,6 +23,7 @@
 #include "bbport_settings.h"
 #include "video_core/texture_cache/image.h"
 #include <vk_mem_alloc.h>
+#include "fsr24_shader_capture.h"
 
 using namespace Vulkan;
 extern "C" void runtime_restart() { std::abort(); }
@@ -63,6 +64,9 @@ int main(int argc, char** argv) {
             throw std::runtime_error("expected DX12 upscaling interop without ML-FG interop");
         VULKAN_HPP_DEFAULT_DISPATCHER.init(instance.GetInstance());
         VULKAN_HPP_DEFAULT_DISPATCHER.init(instance.GetDevice());
+        if (const char* capture = std::getenv("BB_TEST_SDK_SHADER_CAPTURE")) {
+            Fsr24ShaderCapture::Enable(capture);
+        }
         const auto device = instance.GetDevice();
         Scheduler scheduler(instance);
         if (std::getenv("BB_TEST_VALIDATION_SENTINEL")) {
