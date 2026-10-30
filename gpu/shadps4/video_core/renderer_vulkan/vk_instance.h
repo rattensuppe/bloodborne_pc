@@ -311,6 +311,7 @@ public:
     int Fsr411NativeStatus() const { return native_fsr411_status; }
     int FsrDx12InteropStatus() const { return fsr_dx12_interop_status; }
     int Fsr4VkStatus() const { return fsr4vk_status; }
+    bool IsFsr412VulkanDeviceReady() const { return fsr412_vulkan_device_ready; }
     bool IsFg401InteropSupported() const { return fg401_interop; }
     bool IsFsr4VkSupported() const { return fsr4vk; }
     bool IsRobustBufferAccessEnabled() const { return features.robustBufferAccess; }
@@ -620,6 +621,7 @@ private:
     bool native_fsr411_async{};
     bool native_fsr411{}; // Windows: AMD's DX12 runtime through shared GPU memory
     int native_fsr411_status{5}, fsr_dx12_interop_status{5}, fsr4vk_status{5};
+    bool fsr412_vulkan_device_ready{};
     bool supports_memory_budget{};
     bool supports_block_texel_view{};
     u64 total_memory_budget{};

@@ -176,6 +176,19 @@ FALLBACK_TEXTS = {
 }
 KEYS += FALLBACK_KEYS
 TEXTS = {language: texts + FALLBACK_TEXTS[language] for language, texts in TEXTS.items()}
+RESTART = 9
+STATUS_KEYS += ('Restart required',)
+COLORS += ('#d9a441',)
+RESTART_TEXTS = {
+    'en': 'Restart required', 'de': 'Neustart erforderlich',
+    'ru': 'Требуется перезапуск', 'ar': 'إعادة التشغيل مطلوبة',
+    'es': 'Reinicio necesario', 'pt': 'Reinício necessário',
+    'fr': 'Redémarrage requis', 'it': 'Riavvio necessario',
+    'pl': 'Wymagane ponowne uruchomienie', 'tr': 'Yeniden başlatma gerekli',
+    'zh': '需要重启', 'ja': '再起動が必要', 'ko': '재시작 필요',
+}
+KEYS += ('Restart required',)
+TEXTS = {language: texts + (RESTART_TEXTS[language],) for language, texts in TEXTS.items()}
 for language, texts in TEXTS.items():
     assert len(texts) == len(KEYS), language
     # Register without constructing a cached language table before the launcher's
@@ -193,7 +206,7 @@ def code(status):
         return GPU if 'AMD GPU required' in detail or 'unsupported by selected GPU' in detail else CAPABILITY
     return {'driver': DRIVER, 'provider': CAPABILITY, 'files': FILES, 'download': FILES,
             'interop': INTEROP, 'adapter': INTEROP, 'disabled': DISABLED,
-            'checking': CHECKING}.get(reason, CHECK)
+            'checking': CHECKING, 'restart': RESTART}.get(reason, CHECK)
 
 
 def route_index(upscaler, backend):

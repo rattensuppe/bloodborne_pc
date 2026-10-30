@@ -35,6 +35,8 @@ struct Fsr412Driver::Impl {
     Impl(const Instance&i,Scheduler&s):instance(i),scheduler(s){}
     ~Impl(){if(context){scheduler.Finish();api->functions.DestroyContext(&context,nullptr);}}
     void Create(const Fsr4Upscaler::Frame& f){
+        if (!instance.IsFsr412VulkanDeviceReady())
+            throw std::runtime_error("SDK 2.4 Vulkan device features unavailable; restart the game after restoring SDK files");
         api = &FsrSdk24::Runtime(false);
         backend = {}; backend.header.type = FFX_API_CREATE_CONTEXT_DESC_TYPE_BACKEND_VK;
         backend.deviceContext = {VkDevice(instance.GetDevice()), VkPhysicalDevice(instance.GetPhysicalDevice()), VULKAN_HPP_DEFAULT_DISPATCHER.vkGetDeviceProcAddr};
@@ -262,6 +264,8 @@ const std::string&Fsr412Driver::Error()const{return impl->error;}
 bool Fsr412Driver::Available(const Instance& instance, int* status) {
     const auto result = [status](int code) { if (status) *status=code; return code==0; };
     if (instance.GetVendorID() != 0x1002) return result(1);
+    if (FsrSdk24::VulkanRuntimePresent() && !instance.IsFsr412VulkanDeviceReady())
+        return result(9); // Files repaired after logical-device creation: restart required.
     try {
         VkDeviceContext backend{VkDevice(instance.GetDevice()), VkPhysicalDevice(instance.GetPhysicalDevice()), VULKAN_HPP_DEFAULT_DISPATCHER.vkGetDeviceProcAddr};
         FsrSdk24::Select(FsrSdk24::Runtime(false), &backend);

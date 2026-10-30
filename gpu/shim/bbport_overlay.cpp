@@ -430,7 +430,7 @@ void Fsr41Settings() {
             const bool ready=s.FsrMethodSupported(route.version,route.backend);
             const bool selected=s.upscaler==route.version && s.fsr411_backend==route.backend;
             int status=ready ? 0 : s.fsr41_status[route.version==BbSettings::UpscalerFsr412][route.backend].load();
-            if(status<0 || status>8 || (!ready && status==0)) status=5;
+            if(status<0 || status>9 || (!ready && status==0)) status=5;
             ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0);
             if(selected) ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0,IM_COL32(45,42,34,255));
             ImGui::BeginDisabled(!ready);
@@ -458,7 +458,7 @@ void Fsr41Settings() {
                 status==1 ? ImVec4(.88f,.47f,.44f,1) :
                 status==5 || status==6 || status==8 ? ImVec4(.54f,.55f,.56f,1) : ImVec4(.85f,.64f,.25f,1);
             ImGui::PushTextWrapPos();
-            ImGui::TextColored(color,"%s",Fsr41Ui::Text(Fsr41Ui::Supported+status));
+            ImGui::TextColored(color,"%s",Fsr41Ui::Status(status));
             ImGui::PopTextWrapPos();
         }
         ImGui::EndTable();
