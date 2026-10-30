@@ -2,9 +2,12 @@ from paths import ROOT
 import importlib.util
 from pathlib import Path
 import struct
+import sys
 import tempfile
 import unittest
+from unittest import mock
 
+sys.path.insert(0, str(ROOT / 'launcher'))  # bbport_textfile
 spec = importlib.util.spec_from_file_location('bbport_respec', ROOT / 'launcher/bbport_respec.py')
 respec = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(respec)
@@ -77,6 +80,14 @@ class RespecTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'no character'):
             respec.respec(self.folder, 10, START)  # userdata0010: the system data
         self.assertFalse((self.user / 'respec-backups').exists())  # nothing written
+
+    def test_a_write_cut_off_leaves_the_character_as_it_was(self):
+        """The save was written in place: a full drive halfway left a file cut off, and the character lost."""
+        before = {p.name: p.read_bytes() for p in self.folder.iterdir()}
+        with mock.patch.object(respec.textfile.os, 'replace', side_effect=OSError(28, 'No space left on device')):
+            with self.assertRaises(OSError):
+                respec.respec(self.folder, 0, {**START, 'vitality': 15, 'strength': 10, 'bloodtinge': 7}, copy=False)
+        self.assertEqual({p.name: p.read_bytes() for p in self.folder.iterdir()}, before)  # no .tmp beside them
 
     def test_the_saves_from_before_in_the_backups(self):
         """The launcher's way: a backup on the Saves page ("Before a respec"), no respec-backups folder."""

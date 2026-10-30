@@ -1,6 +1,6 @@
 # Bloodborne for Windows
 
-> **SDK 2.4 prototype — Windows 1.9.6**
+> **SDK 2.4 prototype — Windows 1.9.7 source**
 > This branch combines the RCAS/output and motion-cache optimizations with
 > [SDK-based FSR 4.1.2 upscaling](docs/FSR24_UPSCALING.md) and
 > [ML-FG 4.0.2](docs/SDK24_ML_FG.md). FSR 4.1.1 and ML-FG 4.0.1 remain selectable.
@@ -9,9 +9,12 @@
 > 56 isolated GPU functional cases passed. SDK Vulkan has
 > [open shader-validation findings](docs/FSR24_UPSCALING.md#local-validation-findings-october-30-2026);
 > gameplay image quality and performance need a fresh comparison.
-> **[Download prototype.3 ZIP](https://github.com/rattensuppe/bloodborne_pc/releases/download/v1.9.6-sdk24-prototype.3/Bloodborne-Windows-1.9.6-SDK24-FSR412-FGML402-prototype.3.zip)** · [Release notes](https://github.com/rattensuppe/bloodborne_pc/releases/tag/v1.9.6-sdk24-prototype.3)
+> **[Published Windows 1.9.6 prototype.3 ZIP](https://github.com/rattensuppe/bloodborne_pc/releases/download/v1.9.6-sdk24-prototype.3/Bloodborne-Windows-1.9.6-SDK24-FSR412-FGML402-prototype.3.zip)** · [Release notes](https://github.com/rattensuppe/bloodborne_pc/releases/tag/v1.9.6-sdk24-prototype.3)
 > The Windows 1.9.6 package contains source
 > [`3449119`](https://github.com/rattensuppe/bloodborne_pc/commit/3449119f07446085ce763a40f51cbfbfe8867861).
+> The source includes the RX 6000 bounded-SSBO fix. Windows 1.9.7 profiles recommend
+> disabling additional sharpening with FSR 4; explicit settings and the optimized
+> sharpening path remain available.
 
 <a href="https://trendshift.io/repositories/306163?utm_source=trendshift-badge&amp;utm_medium=badge&amp;utm_campaign=badge-trendshift-306163" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/306163/daily?language=C%2B%2B" alt="Supermedo%2Funcharted_pc | Trendshift" width="250" height="55"/></a>
 
@@ -21,7 +24,7 @@ The original PlayStation 4 game runs directly on your PC: its own x86-64 code ru
 and the graphics are translated to Vulkan. No emulator window, no setup scripts: unpack the zip,
 start `Bloodborne.exe`, pick your game folder and press **PLAY**.
 
-**[Download the latest version](https://github.com/Supermedo/bloodborne_pc/releases/latest)** · **[Join the Discord](https://discord.gg/yTMG8c4Bqm)**  **[Join X,com](https://x.com/SuperMedoPorts)**
+**[Download the latest version](https://github.com/Supermedo/bloodborne_pc/releases/latest)** · **[Join the Discord](https://discord.gg/HXBaehzTBx)**  **[Join X,com](https://x.com/SuperMedoPorts)**
 Check my other ports 
 https://nativeretro.com/
 
@@ -33,8 +36,8 @@ https://nativeretro.com/
 ## Features
 
 - **Online play (beta):** messages, bloodstains and wandering ghosts from other hunters through
-  [The Hunter's Dream](https://thehuntersdream.com), and bells and summons through a shadNet
-  server (shadPS4's public one by default).
+  [SuperMedo Server](https://bbport.de/server/), and bells and summons through a shadNet
+  server (SupermMedos's public one by default).
 - **Launcher with every setting in one window**, in 13 languages: English, Arabic, Russian,
   Spanish, Portuguese, French, German, Italian, Polish, Turkish, Chinese, Japanese, Korean.
 - **Guided first start:** five steps check your game files (a clean 1.09 `eboot.bin`, a complete
@@ -109,7 +112,7 @@ Nothing else to install: everything the game needs is in the zip.
 **DLC.** The Game of the Year edition (CUSA03173) already has The Old Hunters. With a base-game
 dump, also dump your add-ons: each is a folder named like `SPEXPANSIONDLC03` with only
 `sce_sys` inside, since their data ships with the 1.09 update. Put them in one folder and choose
-it as **DLC folder** on **Game & effects**, or copy them to `user\addcont\<title id>\` (the
+it as **DLC folder** on **Game files** (expert view), or copy them to `user\addcont\<title id>\` (the
 layout shadPS4 and bbport use).
 
 In the game, **Insert** (or **L3+R3** on a controller) opens the settings menu. The game's own
@@ -126,7 +129,7 @@ made for shadPS4 can be copied over it), including mouse look: see [docs/INPUT.m
 ## Playing online (beta)
 
 1. Register a shadNet account at [shadnet.shadps4.net](https://shadnet.shadps4.net).
-2. In the launcher, open **Online co-op**, tick **Play online** and enter your account name
+2. In the launcher, open **Online play**, tick **Play online** and enter your account name
    (not your email) and password.
 3. Press **Test connection**: all three lines should say "reachable". Then press **PLAY** and
    choose online at the title screen. The Hunter's Dream welcome message means you are online.
@@ -137,7 +140,7 @@ put its address in **Server address**.
 
 Playing with bbhost players on The Hunter's Dream's co-op pool is off in this port until it
 works properly with their server. Please don't ask The Hunter's Dream for help with bbport: use
-our [Discord server](https://discord.gg/yTMG8c4Bqm) instead.
+our [Discord server](https://discord.gg/WtYT4fXhEN) instead.
 
 ## Known issues
 
@@ -152,7 +155,8 @@ our [Discord server](https://discord.gg/yTMG8c4Bqm) instead.
 
 ## Problems and feedback
 
-Ask on the [Discord server](https://discord.gg/yTMG8c4Bqm), or open an [issue](https://github.com/Supermedo/bloodborne_pc/issues) and attach
+Ask in [Help & Support](https://forum.bbport.de/t/help-support) on the community forum or on the
+[Discord server](https://discord.gg/WtYT4fXhEN), or open an [issue](https://github.com/Supermedo/bloodborne_pc/issues) and attach
 `user\last_run.log` from the game folder, with your graphics card and what happened.
 If the game shows only a black screen, try **Advanced → Clear shader cache** first.
 Crashes on AMD RDNA2 cards, slow FSR 4 and online errors are collected in

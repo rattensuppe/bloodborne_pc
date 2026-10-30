@@ -29,7 +29,37 @@ def servers_notice():
              'in, or make a free account, on the Online page.')
 
 
+def hunters_dream_notice():
+    return _("The Hunter's Dream is no longer offered: the port plays on SuperMedo Server only. If you played there, "
+             'you now play on SuperMedo Server. Sign in, or make a free account, on the Online page.')
+
+
 NOTES = {
+    '1.9.7': (
+        hunters_dream_notice,
+        [('Online', [
+            "The Hunter's Dream is no longer offered: SuperMedo Server is the port's server. Players who chose The "
+            "Hunter's Dream move to SuperMedo Server by themselves.",
+        ]), ('Fixes', [
+            'Updates install safely: the new version is put in place in one step and undone when Windows holds a '
+            'file, so an update can no longer leave a launcher that does not start ("Failed to start embedded '
+            'python interpreter").',
+            'Restart Game in PC Settings keeps you online: the game came back signed out before.',
+            'Graphics for your PC: no sharpening on top of FSR 4 (it left flaws along edges), and a new graphics '
+            'card gets its own upscaler (DLSS on a GeForce RTX). The frame rate you chose stays.',
+            'Saves and settings are written in one piece, so a crash or a full disk cannot cut them in half.',
+            'Starting from the desktop shortcut or Steam without an online account plays offline instead of '
+            'failing.',
+        ]), ('Checks before you play', [
+            'The launcher tells you when Windows sees a graphics card that Vulkan does not, when the game folder '
+            'is in OneDrive, when a driver is too old, when a runtime for AMD\'s FSR 4 is missing, and when the '
+            'firewall blocks the game.',
+            'A changed eboot.bin is swapped for a clean copy found on your PC, and Help can check every game file.',
+        ]), ('Launcher', [
+            'Achievements can be brought over from another installation.',
+            'Help asks on our forum now: Help & Support on forum.bbport.de. The Discord invite works again.',
+            'Search finds more of what players ask for, and the side bar fits small windows.',
+        ])]),
     '1.9.6': (
         None,
         [('Fixes', [

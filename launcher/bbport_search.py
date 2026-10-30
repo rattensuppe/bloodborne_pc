@@ -6,7 +6,13 @@ moment; settings of the expert view are found in the simple view too (and say so
 
 Every row, switch and folder field registers itself while the pages are built (index_entry);
 the pages, the Help topics and a few cards are added in search_ready(). Words in WORDS add the
-players' words to a setting (by its key), a page or a Help topic, in German and English.
+players' words to a setting (by its key), a page or a Help topic, in German and English. The side
+bar's expert view switch and website button are found too and marked where they are; a row shown
+only for another choice (index_only) is found with a note and leads to that choice.
+
+Players type questions ("where is clear shader cache", "how do i update"): the words around what
+they mean are left out (STOP_WORDS), and when no entry has every word, the entries with the most of
+them are shown instead of nothing.
 """
 import re
 import unicodedata
@@ -31,9 +37,9 @@ WORDS = {
     'exclusive_fullscreen': 'exklusiv exclusive display mode bildwiederholrate refresh',
     'hdr': 'hdr helligkeit brightness',
     'vram_warning': 'vram videospeicher grafikspeicher warnung warning popup banner meldung hinweis',
-    'fps_mode': 'fps bildrate framerate frame rate 30 60 120 unbegrenzt unlock flussig ruckelt lag',
-    'frame_cap': 'begrenzen begrenzung maximal max limiter fps grenze limit cap 120 144 165 240',
-    'frames_ahead': 'latenz input lag ruckelt stutter',
+    'fps_mode': 'fps bildrate framerate frame rate 30 60 120 unbegrenzt unlock uncap uncapped flussig ruckelt lag',
+    'frame_cap': 'begrenzen begrenzung maximal max limiter fps grenze limit cap 30 60 120 144 165 240',
+    'frames_ahead': 'latenz input lag ruckelt stutter stuttering stutters lagging laggy',
     'present_mode': 'vsync tearing mailbox fifo',
     'output_res': 'auflosung resolution 4k 1440p 1080p 2160p 720p scharf unscharf pixelig eigene custom '
                   'benutzerdefiniert monitor',
@@ -67,26 +73,33 @@ WORDS = {
     'cache_dir': 'cache shader shaders logs temp ordner folder onedrive cloud lokal local zwei pcs two pcs',
     'characters': 'charakter character level stufe waffen weapons bosse bosses besiegt getötet beaten killed '
                   'attribute stats vitalität spielzeit play time tode deaths früher earlier stand',
-    'user_dir': 'spielstandordner folder speicherort spielstande saves speicherstand ordner',
+    'user_dir': 'spielstandordner folder speicherort spielstande saves save speicherstand ordner location',
     'skip_intro': 'intro logos video uberspringen skip',
     'mute_unfocused': 'ton stumm sound mute hintergrund lautstarke volume audio',
     'cheat_no_death': 'unsterblich unverwundbar nie sterben god mode godmode immortal invincible',
     'button:shortcut': 'desktop verknupfung verknuepfung shortcut icon symbol',
     'button:steam': 'steam bibliothek library non-steam deck',
     'button:port_folder': 'ordner port folder installation explorer',
-    'button:updates': 'update updates aktualisieren neue version',
-    'button:report': 'bericht report support zip discord fehler',
-    'button:discord': 'discord community gemeinschaft server einladung invite hilfe forum chat',
+    'button:updates': 'update updates aktualisieren neue neueste version launcher latest newest',
+    'button:report': 'bericht report support zip discord fehler bug bugs melden',
+    'button:game_files': 'spieldateien prufen pruefen verify integrity game files beschadigt kaputt damaged broken '
+                         'dump checksum',
+    'button:discord': 'discord community gemeinschaft server einladung invite chat',
+    'button:forum': 'forum support frage question fragen ask thema topic beitrag post bbport.de',
     'button:benchmark': 'benchmark test messen route kathedrale cathedral fps tester',
     'button:shader_cache': 'shader cache leeren loschen clear schwarz schwarzer bildschirm black screen '
                            'grafikfehler treiber driver',
-    'button:versions': 'version versionen andere altere alte downgrade upgrade zuruck installieren',
+    'button:versions': 'version versionen andere altere alte fruhere older old previous rollback downgrade upgrade '
+                       'zuruck installieren',
     'button:respec': 'respec umverteilen neu verteilen attribute attributpunkte punkte stats skillung',
     'button:fsr4': 'fsr4 fsr 4 herunterladen download dateien fehlen assets',
     'button:fsr4vk': 'fsr4vk fsr 4.1 fsr411 herunterladen download reparieren vulkan',
-    'online': 'online koop coop multiplayer freunde glocke beschworen invasion',
-    'online_pool': 'server online shadnet hunters dream thd bbhost spielen mit play with',
-    'mods_enabled': 'mods mod remaster texturen',
+    'online': 'online koop coop co-op multiplayer seamless freunde friends friend glocke bell beschworen summon '
+              'summoning invasion passwort password',
+    'online_pool': 'server online shadnet supermedo hunters dream thd bbhost spielen mit play with koop coop co-op '
+                   'seamless freunde friends friend summon bell passwort password',
+    # "install" on the page only: alone it is the port's install guide (the side bar's website button)
+    'mods_enabled': 'mods mod remaster texturen add hinzufugen',
     'translucent_window': 'transparent durchsichtig transparenz glas acrylic opacity deckkraft see through '
                           'unreadable unlesbar',
     'ui_language': 'sprache language launcher',
@@ -101,14 +114,35 @@ WORDS = {
     'goal': 'ziel goal flussig ausgewogen leise smooth balanced quiet laptop akku',
     'play_with': 'spiele mit play with eingabe input gerat device controller gamepad tastatur keyboard maus mouse '
                  'mauskamera kb m+k wasd',
-    'auto_backup': 'sicherung sichern backup automatisch spielstand spielstande',
-    'button:backup': 'sicherung sichern backup jetzt spielstand spielstande zuruckholen wiederherstellen restore',
+    'auto_backup': 'sicherung sichern backup automatisch spielstand',
+    # The backups' entries (and auto_backup above) have "save" and "spielstand" without their plurals: "where
+    # are my saves" and "wo sind meine spielstände" are the saves folder and the Saves page. Restoring has its
+    # own entry: "restore save" finds it, not Back up now. ("rollback" is Other versions'.)
+    'button:backup': 'sicherung sichern backup jetzt spielstand save',
+    'button:restore': 'restore wiederherstellen zuruckholen zuruck backup backups sicherung save spielstand',
+    'button:add_backup': 'backup sicherung datei file hinzufugen add zip',
+    'button:import': 'import importieren ubernehmen transfer save spielstand charakter character shadps4 awaken '
+                     'bbhost ps4 export',
+    'button:trophies': 'erfolge trophaen trophies achievements ubernehmen importieren import transfer alte old '
+                       'installation neuer new pc windows ssd zusammenfuhren merge platin verloren lost',
     'online_npid': 'npid online id konto account shadnet',
     'online_password': 'passwort password kennwort',
     'online_server': 'server adresse address shadnet ip',
     'online_webapi': 'webapi server',
     'online_community': 'spielserver community server nachrichten blutflecken geister messages',
     'thd_online_id': 'konto account discord anmelden hunters dream',
+    'supermedo_npid': 'konto account supermedo npid',
+    # the Online page's buttons ("log in" is joined to "login" in query_words); "melde" and "logge" for "wie melde
+    # ich mich an", whose "an" is a stop word ("melden" alone is a report)
+    'button:signin_supermedo': 'sign signin login einloggen anmelden anmeldung melde logge discord supermedo account '
+                               'konto connexion connecter iniciar sesion entrar accedi zaloguj войти вход',
+    'button:signin_thd': 'sign signin login einloggen anmelden anmeldung melde logge discord hunters dream thd account '
+                         'konto code connexion connecter iniciar sesion entrar accedi zaloguj войти вход',
+    'button:signout': 'logout signout abmelden ausloggen account konto wechseln switch deconnexion выйти',
+    'button:create_account': 'account konto registrieren registrierung register signup erstellen anlegen neu new '
+                             'create supermedo email compte cuenta conta аккаунт',
+    'button:test_connection': 'verbindung connection testen test prufen check ping erreichbar reachable offline '
+                              'verbindungstest connexion conexion',
     'extra_env': 'umgebungsvariablen environment variablen env',
     'mouse:layout': 'dark souls ds3 wasd layout tastenbelegung keyboard tastatur maus',
     'mouse:stick': 'maus mouse steuert kamera bewegung stick',
@@ -117,23 +151,40 @@ WORDS = {
     'mouse:speed': 'empfindlichkeit sensitivity maus mouse stick kamera schnell langsam',
     'mouse:speed_offset': 'drehgeschwindigkeit turn speed maus mouse stick',
     'mouse:sensitivity_y': 'vertikal vertical maus mouse hoch runter oben unten',
+    'mouse:enabled': 'maus mouse look mouselook mausblick umsehen zielen aim f7 einschalten aktivieren enable',
+    'mouse:invert_x': 'invert inverted inverse invertieren umkehren umgekehrt x-achse x-axis',
+    'mouse:invert_y': 'invert inverted inverse invertieren umkehren umgekehrt y-achse y-axis',
+    'button:reset_controller': 'reset zurucksetzen default defaults standard ursprunglich original',
     'auto_graphics': 'automatisch automatic empfohlen recommended einstellungen settings',
     'gpu_override': 'grafikkarte gpu graphics card erkannt',
     'page:controls': 'tasten tastatur maus controller gamepad belegung tastenbelegung steuerung keyboard mouse keys '
-                     'bindings keybindings keybinds xbox dualsense',
+                     'bindings keybindings keybinds keybind remap rebind belegen xbox dualsense',
     'page:saves': 'spielstand spielstande save saves import shadps4 bbhost awaken backup sicherung charakter',
     'page:help': 'hilfe help problem fehler absturz crash',
-    'page:language': 'sprache ton sound audio stimmen sprachausgabe untertitel language voices lautstarke stumm',
+    # Launcher customization (the page key stays 'language'): the launcher's own language, look and shortcuts;
+    # the game's text, voices and sound are on Gameplay
+    'page:language': 'launcher anpassen customization customize aussehen look sprache language transparent tray '
+                     'verknupfung shortcut desktop steam discord',
+    'page:gameplay': 'sprache language textsprache untertitel subtitles stimmen voices sprachausgabe synchro ton '
+                     'sound audio lautstarke volume stumm mute intro tweaks anderungen spielername',
     'action:setup': 'einrichtung ersteinrichtung setup assistent guide wizard erster start first start neu '
-                    'wiederholen repeat again',
+                    'wiederholen repeat again reset zurucksetzen',
+    # the side bar's own buttons
+    'button:expert': 'experte expertenansicht expertenmodus expert ansicht view modus mode einfach simple mehr more '
+                     'alle all optionen options einstellungen settings',
+    'button:site': 'website webseite homepage seite site faq guide anleitung install installation installieren',
+    # Help's last card and the Picture page
+    'button:copy_summary': 'kopieren copy zusammenfassung summary diagnose diagnostics zwischenablage clipboard specs',
+    'button:show_log': 'log logs protokoll ausgabe output',
+    'button:undo': 'ruckgangig zuruck revert vorher before previous empfehlung recommended',
     'page:trophies': 'erfolge trophaen trophies achievements platin',
-    'page:online': 'online koop coop multiplayer freunde hunters dream shadnet anmelden discord',
-    'page:mods': 'reihenfolge order ziehen drag drop mods mod remaster patches',
+    'page:online': 'online koop coop multiplayer freunde friends friend hunters dream shadnet anmelden discord',
+    'page:mods': 'reihenfolge order ziehen drag drop mods mod remaster patches add install hinzufugen installieren',
     'page:system': 'pc hardware grafikkarte prozessor anforderungen requirements system',
     'page:picture': 'grafik bild leistung fps ziel flussig ausgewogen leise laptop akku',
     'page:graphics': 'grafik graphics alle einstellungen',
     'page:cheats': 'cheats unsterblich god mode tricks debug',
-    'page:advanced': 'erweitert update verknupfung steam diagnose',
+    'page:advanced': 'erweitert update updates aktualisieren versionen diagnose diagnostics',
     'page:log': 'log protokoll ausgabe',
     'page:game': 'spieldateien spielordner ordner eboot dlc game files dump',
     'topic:page_file': 'absturz crash code 3 stürzt schliesst startet nicht speicher auslagerungsdatei ram guest memory',
@@ -147,7 +198,7 @@ WORDS = {
     'topic:location': 'onedrive programme program files ordner',
     'topic:vram': 'vram grafikspeicher ruckelt texturen gesichter memory',
     'topic:driver': 'treiber driver device lost absturz grafikkarte',
-    'topic:shader_cache': 'ruckeln ruckelt stutter erste minuten shader',
+    'topic:shader_cache': 'ruckeln ruckelt stutter stuttering stutters lagging laggy erste minuten shader',
     'topic:save_lost': 'spielstand weg kaputt beschadigt charakter verschwunden verloren fortschritt save lost '
                        'corrupted damaged gone missing laden leer sicherung zuruckholen',
     # symptoms, and the device only as a word's start: a plain "controller" finds the Controls page first
@@ -159,12 +210,58 @@ WORDS = {
 }
 # With the game tests on (bbport_launcher_win.GAME_TESTS): their words, added to their pages.
 GAME_TEST_WORDS = {'page:system': 'benchmark test messen stabilitat beta tests', 'page:picture': 'messen benchmark'}
+# The words of a question around what is meant ("where is", "how do i", "wie kann ich"): every word
+# has to be found, and these are in almost no entry, so a question found nothing; counted as found,
+# they would find what starts with them ("im" in "Import", "mich" in a hint). ("die" stays: the
+# English one is a word players mean; "mit" too: "spielen mit".)
+STOP_WORDS = set('where is are how do does did i my me to the a an can what when why which it of in on for and '
+                 'please pls wo ist sind wie mein meine meinen ich kann man was wann warum und der das den dem ein '
+                 'eine es gibt im am zu zum zur beim vom mich mir dich'.split())
+# Two words players write for one, joined before the stop words go ("in" is one; "log" alone is the Log
+# page), and the launcher's own "sign-in" written by players.
+JOINED = {'log in': 'login', 'logged in': 'login', 'log out': 'logout', 'log-in': 'login', 'log-out': 'logout',
+          'sign-in': 'signin', 'sign-out': 'signout'}
 
 
 def fold(text):
     """Lower case without accents (ä→a, ß→ss): what the player types matches either way."""
     text = str(text).casefold().replace('ß', 'ss')
     return ''.join(c for c in unicodedata.normalize('NFKD', text) if not unicodedata.combining(c))
+
+
+def query_words(query):
+    """The words of a query that say what is meant: without a question's marks, the stop words left
+    out while others remain, a size like 2560x1440 read as "resolution"."""
+    text = ' '.join(w.strip('?!.,;:"') for w in fold(query).split())
+    for phrase, word in JOINED.items():
+        text = re.sub(rf'\b{phrase}\b', word, text)
+    words = ['resolution' if re.fullmatch(r'\d{3,5}x\d{3,5}', w) else w for w in text.split()]
+    return [w for w in words if w not in STOP_WORDS] or words
+
+
+def word_points(word, title, hint, extra):
+    """How well one word finds an entry (its folded title, hint and players' words); None if not at all."""
+    penalty = 0
+    if word not in title and word not in extra and word not in hint:
+        stem = near(word, title + ' ' + extra + ' ' + hint)
+        if not stem:
+            return None
+        word, penalty = stem, 1  # a near form counts a little less than the word itself
+    if f' {word} ' in f' {extra} ':
+        points = 7  # one of the players' own words for it: what they mean, in any language
+    elif f' {word}' in f' {title}':
+        points = 6
+    elif word in title:
+        points = 4
+    elif f' {word}' in f' {extra}':
+        points = 3
+    elif word in extra:  # inside a longer word ("scharfe" in "tiefenscharfe"): a little less
+        points = 2
+    elif word in hint:
+        points = 1
+    else:
+        return None
+    return points - penalty
 
 
 
@@ -224,6 +321,23 @@ class SearchMixin:
             self.search_settings.append({'kind': 'setting', 'widget': widget, 'mark': mark or widget,
                                         'title': str(title), 'hint': str(hint or ''), 'key': key, 'reveal': reveal})
 
+    def index_only(self, widgets, note, key):
+        """The settings in `widgets` show only for another choice (another online pool, another
+        upscaler): they stay findable, the result says `note` ("only with …"), and the jump marks the
+        setting `key`, where that choice is made. The choice itself stays as the player set it."""
+        names = {str(widget) for widget in widgets}
+        for entry in getattr(self, 'search_settings', []):
+            widget = entry['widget']
+            while widget is not None and str(widget) not in names:
+                widget = widget.master
+            if widget is not None:
+                entry['only'] = (note, key)
+
+    def hidden_for_now(self, entry):
+        """A setting its page does not show now (a part hidden for another choice, without a reveal)."""
+        return entry['kind'] == 'setting' and not entry.get('reveal') and not shown(
+            entry.get('widget'), getattr(self, 'pages', {}).get(entry['page']))
+
     def search_ready(self):
         """After every page is built: which page each setting is on, then the pages and the Help topics."""
         import bbport_help
@@ -231,6 +345,8 @@ class SearchMixin:
         titles['log'] = _('Log', 'Журнал')
         self.page_titles = titles
         pages = {str(frame): name for name, frame in self.pages.items()}
+        if getattr(self, 'side', None) is not None:
+            pages[str(self.side)] = 'side'  # the side bar's own buttons: the expert view, the website
         entries = []
         for entry in getattr(self, 'search_settings', []):
             widget, page = entry['widget'], None
@@ -239,6 +355,8 @@ class SearchMixin:
                 widget = widget.master
             if page:
                 entry['page'] = page
+                if page == 'side':
+                    entry['kind'] = 'side'
                 entries.append(entry)
         for name, title in titles.items():
             entries.append({'kind': 'page', 'page': name, 'title': title, 'hint': '', 'key': f'page:{name}'})
@@ -256,50 +374,34 @@ class SearchMixin:
         self.search_entries = entries
 
     def search(self, query, limit=7):
-        """The best entries for a query: every word must be found; the title counts most."""
-        words = ['resolution' if re.fullmatch(r'\d{3,5}x\d{3,5}', w) else w for w in fold(query).split() if w]
+        """The best entries for a query: those with every word, the title counting most; when none has
+        every word, those with the most of them (a question with a word the launcher does not use)."""
+        words = query_words(query)
         if not words:
             return []
         whole = ' '.join(fold(query).split())
         scored = []
         for entry in self.search_entries:
             title, hint, extra = entry['haystack']
-            score = 0
-            for word in words:
-                penalty = 0
-                if word not in title and word not in extra and word not in hint:
-                    stem = near(word, title + ' ' + extra + ' ' + hint)
-                    if stem:  # a near form counts a little less than the word itself
-                        word, penalty = stem, 1
-                score -= penalty
-                in_title = f' {word}' in f' {title}'
-                if f' {word} ' in f' {extra} ':
-                    score += 7  # one of the players' own words for it: what they mean, in any language
-                elif in_title:
-                    score += 6
-                elif word in title:
-                    score += 4
-                elif f' {word}' in f' {extra}':
-                    score += 3
-                elif word in extra:  # inside a longer word ("scharfe" in "tiefenscharfe"): a little less
-                    score += 2
-                elif word in hint:
-                    score += 1
-                else:
-                    score = 0
-                    break
-            if score and entry['kind'] == 'setting' and not entry.get('reveal') and not shown(
-                    entry.get('widget'), getattr(self, 'pages', {}).get(entry['page'])):
-                score = 0
-            if score and whole == ' '.join(title.split()):
+            points = [p for p in (word_points(word, title, hint, extra) for word in words) if p is not None]
+            score = sum(points)
+            if not score:
+                continue
+            later = self.hidden_for_now(entry)  # shown for another choice: after what the page shows now
+            if later and not entry.get('only'):
+                continue
+            if whole == ' '.join(title.split()):
                 score += 3  # the whole title typed: that one, before longer titles with the same words
-            if score:
-                bonus = {'setting': 0.5, 'topic': 0.6, 'page': 0.3, 'action': 0.6}[entry['kind']]  # symptoms: the fix first
-                expert = entry['page'] in L.EXPERT_PAGES
-                scored.append((score + bonus - (0.2 if expert and self.app.get('ui_mode') != 'expert' else 0), entry))
-        scored.sort(key=lambda item: -item[0])
+            # symptoms: the fix first
+            bonus = {'setting': 0.5, 'topic': 0.6, 'page': 0.3, 'action': 0.6, 'side': 0.5}[entry['kind']]
+            expert = entry['page'] in L.EXPERT_PAGES
+            scored.append((len(points), later,
+                           score + bonus - (0.2 if expert and self.app.get('ui_mode') != 'expert' else 0), entry))
+        if any(found == len(words) for found, _later, _score, _entry in scored):
+            scored = [item for item in scored if item[0] == len(words)]
+        scored.sort(key=lambda item: (-item[0], item[1], -item[2]))
         seen, out = set(), []
-        for _score, entry in scored:
+        for _found, _later, _score, entry in scored:
             ident = (entry['kind'], entry['page'], entry['title'])
             if ident not in seen:
                 seen.add(ident)
@@ -370,10 +472,14 @@ class SearchMixin:
             where = _('Help') + ' · ' + _('problem')
         elif entry['kind'] == 'page':
             where = _('Page')
+        elif entry['kind'] == 'side':
+            where = _('Side bar')
         else:
             where = page
         if entry['page'] in L.EXPERT_PAGES and self.app.get('ui_mode') != 'expert':
             where += ' · ' + _('expert view')
+        if entry.get('only') and self.hidden_for_now(entry):
+            where += ' · ' + entry['only'][0]
         return where
 
     def search_show(self, results):
@@ -402,7 +508,7 @@ class SearchMixin:
                              anchor='w', justify='left', wraplength=px(330))
             title.pack(anchor='w', fill='x')
             where = tk.Label(row, text=self.search_where(entry), bg=theme.CARD, fg=theme.MUTED, font=(theme.BODY, 8),
-                             anchor='w')
+                             anchor='w', justify='left', wraplength=px(330))  # with "only with …" it can be long
             where.pack(anchor='w')
             for widget in (row, title, where):
                 widget.bind('<Button-1>', lambda _e, i=index: (setattr(self, 'search_pick', i), self.search_go()))
@@ -454,6 +560,13 @@ class SearchMixin:
         if entry['kind'] == 'action':
             getattr(self, entry['run'])()
             return
+        if entry['kind'] == 'side':  # always in view: only marked
+            self.root.after(60, lambda: self.flash(entry['mark'], entry['widget']))
+            return
+        if entry.get('only') and self.hidden_for_now(entry):
+            # shown for another choice: to where that choice is made, not changing it for the player
+            entry = next((e for e in self.search_entries if e.get('key') == entry['only'][1] and
+                          e['page'] == entry['page'] and not self.hidden_for_now(e)), entry)
         self.show(entry['page'])  # an expert page turns the expert view on (Launcher.show)
         if entry['kind'] == 'setting':
             if entry.get('reveal') and not shown(entry['widget'], self.pages.get(entry['page'])):

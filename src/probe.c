@@ -442,12 +442,36 @@ void runtime_restart(void) {
     puts("Runtime: restarting through run.py");
     if (!command || !*command) { fputs("runtime_restart: BB_RESTART_COMMAND is not set\n",stderr); _exit(1); }
     char *line=_strdup(command);
-    /* Same output handles: a launcher reading the game's log keeps reading the new launch. */
-    STARTUPINFOA startup={.cb=sizeof(startup),.dwFlags=STARTF_USESTDHANDLES,
+    /* Same output handles: a launcher reading the game's log keeps reading the new launch. Only
+     * those are inherited: the new launch (run.py, alive for the whole next game) inheriting this
+     * process's sockets kept its shadNet connection open, and the server refused the new game's
+     * login as already logged in (offline after "Restart game"). */
+    STARTUPINFOEXA startup={.StartupInfo={.cb=sizeof(startup),.dwFlags=STARTF_USESTDHANDLES,
                           .hStdInput=GetStdHandle(STD_INPUT_HANDLE),.hStdOutput=GetStdHandle(STD_OUTPUT_HANDLE),
-                          .hStdError=GetStdHandle(STD_ERROR_HANDLE)};
+                          .hStdError=GetStdHandle(STD_ERROR_HANDLE)}};
+    HANDLE inherit[3]; DWORD count=0;
+    HANDLE standard[3]={startup.StartupInfo.hStdInput,startup.StartupInfo.hStdOutput,startup.StartupInfo.hStdError};
+    for (int i=0;i<3;i++) {
+        HANDLE handle=standard[i];
+        if (!handle || handle==INVALID_HANDLE_VALUE) continue;
+        int seen=0;
+        for (DWORD j=0;j<count;j++) seen|=inherit[j]==handle;
+        if (!seen && SetHandleInformation(handle,HANDLE_FLAG_INHERIT,HANDLE_FLAG_INHERIT)) inherit[count++]=handle;
+    }
+    SIZE_T size=0;
+    InitializeProcThreadAttributeList(NULL,1,0,&size);
+    LPPROC_THREAD_ATTRIBUTE_LIST attributes=count?(LPPROC_THREAD_ATTRIBUTE_LIST)HeapAlloc(GetProcessHeap(),0,size):NULL;
+    if (attributes && (!InitializeProcThreadAttributeList(attributes,1,0,&size) ||
+                       !UpdateProcThreadAttribute(attributes,0,PROC_THREAD_ATTRIBUTE_HANDLE_LIST,inherit,
+                                                  count*sizeof(HANDLE),NULL,NULL))) {
+        HeapFree(GetProcessHeap(),0,attributes); attributes=NULL;
+    }
+    startup.lpAttributeList=attributes;
     PROCESS_INFORMATION process;
-    if (!line || !CreateProcessA(NULL,line,NULL,NULL,TRUE,0,NULL,NULL,&startup,&process)) {
+    /* Without the list (no output handles, or the list failed): nothing is inherited at all rather
+     * than everything; the launch still starts, only without the old log pipe. */
+    if (!line || !CreateProcessA(NULL,line,NULL,NULL,attributes!=NULL,attributes?EXTENDED_STARTUPINFO_PRESENT:0,
+                                 NULL,NULL,&startup.StartupInfo,&process)) {
         fprintf(stderr,"runtime_restart: CreateProcess failed (%lu)\n",GetLastError()); _exit(1);
     }
     CloseHandle(process.hThread); CloseHandle(process.hProcess);

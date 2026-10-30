@@ -28,21 +28,26 @@ class ReadinessTests(unittest.TestCase):
             self.assertEqual(len(texts),len(family.KEYS))
 
     def test_automatic_recommendations_use_the_same_verified_route_order(self):
+        """An FSR 4 recommendation becomes the first supported FSR 4.1 method; any other stays (R84: fsr4vk also
+        runs on a GeForce RTX, whose recommendation is DLSS)."""
         import bbport_setup as setup
         ui=types.SimpleNamespace(rating=object(), app={}, display_size=lambda:(1920,1080),
             current_settings=lambda:{}, var=lambda *_:types.SimpleNamespace(get=lambda:'balanced'),
-            fsr411_support=None)
-        for mask in range(16):
-            states=[dict(supported=bool(mask&(1<<i))) for i in range(4)]
-            with patch.object(setup.hardware,'outputs',return_value={'1080p':'1920x1080'}), \
-                 patch.object(setup.hardware,'recommended_class',return_value='1080p'), \
-                 patch.object(setup.hardware,'profile',return_value=[('ini','upscaler','fsr3','quality')]), \
-                 patch.object(family,'method_statuses',return_value=states):
-                _res,_output,entries=setup.SetupMixin.recommended(ui)
-            values={key:value for _store,key,value,_why in entries}
-            selected=next((i for i in range(4) if states[i]['supported']),None)
-            if selected is None:self.assertEqual(values['upscaler'],'fsr3')
-            else:self.assertEqual((values['upscaler'],values['fsr411_backend']),family.ROUTES[selected][:2])
+            fsr411_support=None, set_by_hand=lambda *_a, **_k: False)
+        for upscaler in ('fsr4', 'fsr3', 'dlss', 'off'):
+            for mask in range(16):
+                states=[dict(supported=bool(mask&(1<<i))) for i in range(4)]
+                with patch.object(setup.hardware,'outputs',return_value={'1080p':'1920x1080'}), \
+                     patch.object(setup.hardware,'recommended_class',return_value='1080p'), \
+                     patch.object(setup.hardware,'profile',return_value=[('ini','upscaler',upscaler,'quality')]), \
+                     patch.object(family,'method_statuses',return_value=states):
+                    _res,_output,entries=setup.SetupMixin.recommended(ui)
+                values={key:value for _store,key,value,_why in entries}
+                selected=next((i for i in range(4) if states[i]['supported']),None)
+                if selected is None or upscaler != 'fsr4':
+                    self.assertEqual(values['upscaler'],upscaler)
+                    self.assertNotIn('fsr411_backend',values)
+                else:self.assertEqual((values['upscaler'],values['fsr411_backend']),family.ROUTES[selected][:2])
 
     def test_ranked_routes_and_remembered_selection_over_all_masks(self):
         for mask in range(16):
@@ -73,6 +78,22 @@ class ReadinessTests(unittest.TestCase):
                 values,_=launcher.load_ini()
                 self.assertEqual((values['upscaler'],values['fsr411_backend']),('fsr412','vk'))
                 self.assertEqual(path.read_bytes(),before)
+
+    def test_a_new_ini_leaves_sharpening_to_the_profile(self):
+        """R81: the FSR 4.1 method a new bbport.ini starts with is only a first value (fsr4vk is supported on a
+        GeForce RTX too, whose profile brings DLSS). Sharpening keeps its default here: the profile applied for a
+        new ini turns it off with FSR 4 only (test_launcher_auto_profile)."""
+        with tempfile.TemporaryDirectory() as temp, \
+             patch.object(launcher, 'ini_path', return_value=Path(temp)/'bbport.ini'), \
+             patch.object(family, 'query', return_value={}), \
+             patch.object(launcher.bbport_fsr411, 'default_backend', return_value='vk'):
+            path = Path(temp)/'bbport.ini'
+            for states, upscaler in (([dict(supported=True)]+[dict(supported=False)]*3, 'fsr412'),
+                                     ([dict(supported=False)]*4, 'fsr3')):
+                path.unlink(missing_ok=True)
+                with patch.object(family, 'method_statuses', return_value=states):
+                    values, _ = launcher.load_ini()
+                self.assertEqual((values['upscaler'], values['sharpen']), (upscaler, '1'))
 
     def test_direct_run_removes_legacy_overrides_without_driver_discovery(self):
         spec=importlib.util.spec_from_file_location('run_readiness',ROOT/'run.py')

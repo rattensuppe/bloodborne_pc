@@ -19,7 +19,9 @@ from pathlib import Path
 import bbport_theme as theme
 
 L = None  # bbport_launcher_win, set by bind()
-DISCORD = 'https://discord.gg/yTMG8c4Bqm'  # the community Discord (bbport.de), its help forum
+DISCORD = 'https://discord.gg/WtYT4fXhEN'  # the community Discord (bbport.de); the old invite expired
+# Help & Support on the community forum: help is asked there since 28 October 2026, not in the Discord any more.
+FORUM_HELP = 'https://forum.bbport.de/t/help-support'
 EBOOT_SIZE = 93_825_704  # the clean 1.09 eboot.bin as the update PKG unpacks it
 # The 1.09 image with Lance McDonald's 60 fps patch built in (run.py LANCE_60FPS_IMAGE).
 LANCE_60FPS_IMAGE = 'bbc91f4dff6bc3118b039464289e39878a8fdfc802a07fab9d5fe84d935a676f'
@@ -64,15 +66,17 @@ TOPICS = {
          'Mods must not bring their own eboot.bin: the check at the top of this page names any that do.']),
     'eboot_truncated': (
         'eboot.bin is cut off',
-        'It broke while unpacking (the log says "prepare failed: out of bounds").',
+        'It is shorter than the clean file: unpacking or copying it stopped early (the log then says "prepare '
+        'failed: out of bounds").',
         ['Put the base game and the 1.09 update into two new, empty folders again.',
          'Check the size: eboot.bin of the update is exactly 93,825,704 bytes (89.4 MB).',
          'Copy everything from the update folder into the base game folder and replace the files.']),
     'eboot_unreadable': (
         'eboot.bin cannot be read',
-        'It is not the original file (a PS4 SELF file): another tool has converted it, or it is not from '
-        'Bloodborne.',
-        ['Use the eboot.bin of an unmodified 1.09 update (exactly 93,825,704 bytes).']),
+        'It is not the original file (a PS4 SELF file), or it is damaged: another tool has converted it, a copy '
+        'went wrong, or it is not from Bloodborne.',
+        ['Use the eboot.bin of an unmodified 1.09 update (exactly 93,825,704 bytes). Copy it again even if yours '
+         'has that size: the size alone does not show damage.']),
     'program_files': (
         'A program file of the game is not the original',
         'eboot.bin or a file in sce_module was converted by another tool or comes from another release (the log '
@@ -112,7 +116,8 @@ TOPICS = {
         'page file together. When Windows refuses, the game closes at once with code 3 (the log says "cannot '
         'create … MiB of guest memory").',
         ['Press Win + R, type sysdm.cpl, press Enter.',
-         'Advanced > Performance: Settings… > Advanced > Virtual memory: Change…',
+         'In the System Properties window that opens: the Advanced tab > Performance: Settings…, there the '
+         'Advanced tab > Virtual memory: Change…',
          'Tick Automatically manage paging file size for all drives. Still crashing: untick it, select a drive '
          'with free space, Custom size: initial 16384, maximum 32768, then Set.',
          'OK, then restart the PC: the change works only after a restart.',
@@ -142,7 +147,7 @@ TOPICS = {
         'The graphics card\'s memory runs full',
         'Cards with 6 GB or less, or the log says ErrorOutOfDeviceMemory or "memory pressure": textures no '
         'longer fit, the game stutters, shows broken faces or crashes.',
-        ['Graphics: preset Balanced or Performance (DLSS on GeForce RTX cards).',
+        ['All graphics (expert view): Quality preset Balanced or Performance (DLSS on GeForce RTX cards).',
          'Model detail (LOD) "As in the game", object motion vectors off.',
          'Close your browser and other programs while playing.']),
     'driver': (
@@ -153,6 +158,47 @@ TOPICS = {
          'Restart the PC after installing it.',
          'Overclocked graphics card or memory: try the standard clocks.',
          'Close overlays such as MSI Afterburner and RivaTuner (RTSS): they hook into the graphics driver.']),
+    'gpu_unseen': (
+        'The game does not use your graphics card',
+        "Windows has the card, but its Vulkan driver does not answer or is too old for the port: the game then runs "
+        "on the processor's graphics, much slower, or finds no card at all. Usually a driver update went wrong, or "
+        'one driver was installed over another.',
+        ['NVIDIA: download the current driver from nvidia.com, start it, choose Custom (Advanced) and tick Perform '
+         'a clean installation.',
+         'AMD: start the current AMD Software (Adrenalin) installer and choose Factory Reset.',
+         'Restart the PC after installing it.',
+         'Still the same: remove the driver with Display Driver Uninstaller (DDU) in Safe Mode, then install it '
+         'again.',
+         'VK_ICD_FILENAMES or VK_DRIVER_FILES in the Windows environment variables: delete them. Vulkan then loads '
+         'only the drivers they name.']),
+    'vc_runtime': (
+        'The Microsoft Visual C++ Redistributable is missing',
+        "AMD's FSR 4 and frame generation files for DirectX 12 need it. Without it Windows cannot load them, and "
+        'the launcher offers them as unavailable.',
+        ['Download it from Microsoft (the button below), run it and let it install.',
+         'Then close the launcher and start it again.']),
+    'game_location': (
+        'The game folder is in a synced folder',
+        'OneDrive, Dropbox and Google Drive keep files online only until they are opened, and lock them while '
+        'they sync: the game then hangs while loading or shows only a black screen.',
+        ['Move the whole game folder (the one with eboot.bin) to a plain folder like C:\\Games\\CUSA03173.',
+         'Then choose it again (the button below).']),
+    'game_files': (
+        'Game files are damaged',
+        'Files of the game folder are not those of the clean 1.09: a copy or an unpack that went wrong, or a mod '
+        'copied into the game folder. The game can then hang while loading, lose parts of the map, or crash in '
+        'one place.',
+        ['Unpack the base game and the 1.09 update into a new, empty folder again, and copy the update over the '
+         'base game.',
+         'Or copy only the files the check names from that new unpack into your game folder.',
+         'Mods belong on the Mods page, not in the game folder.']),
+    'firewall': (
+        'Windows Firewall blocks the game',
+        'Windows asked whether bb-probe.exe may use the network, and the answer was Cancel: it now blocks the '
+        "game's incoming connections, and summons or joining others can fail.",
+        ['Click the button below: Windows Defender Firewall with Advanced Security opens.',
+         'Inbound Rules: delete the rules named bb-probe.exe that have a red sign (right-click > Delete).',
+         'Start the game online, and when Windows asks again, click Allow.']),
     'black_screen': (
         'Only a black screen',
         'The game starts but shows nothing, or the picture breaks after a driver update: its shader cache no longer '
@@ -190,8 +236,10 @@ TOPICS = {
         "shadPS4's public shadNet server checks which program connects and doesn't accept this port's version at the "
         'moment. The game then plays offline. Your account and your settings are fine.',
         ['Online play: Play with SuperMedo Server, then Sign in with Discord.',
-         "Or your own server (Seamless co-op, a friend's): choose Own server there, with the address from the "
-         'person who runs it.']),
+         # The page offers an own server only when Seamless co-op opened the launcher (started_by_bbsc).
+         "Seamless co-op or a friend's server: open this launcher from Seamless co-op (OPEN BBPORT LAUNCHER + "
+         "BBSC), then choose Own server under Play with. For a friend's server, enter the address from the person "
+         'who runs it under Server address.']),
     'steam_layout': (
         'Steam turns the controller into a mouse and keyboard',
         "With Steam open, its Desktop Layout sends mouse movement and key presses for a controller it manages, on "
@@ -207,8 +255,9 @@ TOPICS = {
         ['Click More info, then Run anyway.']),
 }
 TOPIC_ORDER = ['eboot_modified', 'eboot_truncated', 'eboot_unreadable', 'program_files', 'version', 'update_only',
-               'empty_files', 'page_file', 'antivirus', 'location', 'save_lost', 'controller', 'black_screen', 'vram',
-               'driver', 'shader_cache', 'smartscreen']
+               'empty_files', 'game_files', 'page_file', 'antivirus', 'location', 'game_location', 'save_lost',
+               'controller', 'black_screen', 'vram', 'gpu_unseen', 'driver', 'vc_runtime', 'shader_cache',
+               'firewall', 'smartscreen']
 # Buttons under a topic's steps: (text, launcher method). They do the step for the player.
 TOPIC_ACTIONS = {'black_screen': [('Clear the shader cache', 'clear_cache')],
                  'page_file': [('Open the memory settings', 'open_memory_settings')],
@@ -217,9 +266,14 @@ TOPIC_ACTIONS = {'black_screen': [('Clear the shader cache', 'clear_cache')],
                  'other_install': [("Use this installation's own folders", 'use_own_folders')],
                  'eboot_modified': [('Open the game folder', 'open_game_folder')],
                  'eboot_truncated': [('Open the game folder', 'open_game_folder')],
+                 'eboot_unreadable': [('Open the game folder', 'open_game_folder')],
                  'update_only': [('Choose the game folder', 'choose_game_page')],
                  'save_lost': [('Open the backups', 'open_backups')],
                  'controller': [('Open the controller test', 'open_controller_test')],
+                 'vc_runtime': [('Download it from Microsoft', 'open_vc_redist')],
+                 'game_location': [('Choose the game folder', 'choose_game_page')],
+                 'game_files': [('Check the game files', 'check_game_files')],
+                 'firewall': [('Open the firewall settings', 'open_firewall_settings')],
                  'shadnet_rejected': [('Open Online play', 'open_online_page')]}
 TOPIC_ORDER += [key for key in TOPICS if key not in TOPIC_ORDER]  # topics added later: at the end
 
@@ -236,6 +290,7 @@ LOG_HINTS = [
     (r'is not the original file', 'program_files'),
     (r'ErrorOutOfDeviceMemory|Texture cache: memory pressure', 'vram'),
     (r'ErrorDeviceLost|device lost', 'driver'),
+    (r'Vulkan: the drivers it loads are limited by', 'gpu_unseen'),  # run.py: VK_ICD_FILENAMES and the like
     (r"Server rejected this client|doesn't accept your shadPS4 build", 'shadnet_rejected'),
     (r"Input: mouse motion from Steam's Desktop Layout", 'steam_layout'),
     (r'Fault: .* at (?:amdvlk|amdxc|nvoglv|nvvk|nvwgf|igvk|igxe|igd)\w*\.dll', 'driver'),
@@ -253,6 +308,20 @@ NOTICE_INTROS = {'shadnet_rejected': 'Online play was off this time. Its log nam
 def hints_in_log(text):
     """The topics whose messages the log has, in the order of LOG_HINTS."""
     return [topic for pattern, topic in LOG_HINTS if re.search(pattern, text or '')]
+
+
+def hints_for_game(text, game_dir):
+    """hints_in_log for the game in game_dir. Any eboot.bin whose program does not build makes the log say "out of
+    bounds": one of the clean file's size is then damaged, not cut off (eboot_state), and its topic must not send
+    the player to check a size that is right (R78)."""
+    topics = hints_in_log(text)
+    try:
+        full = bool(game_dir) and (Path(game_dir) / 'eboot.bin').stat().st_size >= EBOOT_SIZE
+    except OSError:
+        full = False
+    if full:
+        topics = ['eboot_unreadable' if topic == 'eboot_truncated' else topic for topic in topics]
+    return list(dict.fromkeys(topics))
 
 
 # The folders of the launcher's settings that belong to an installation: (setting, its name on its page).
@@ -299,12 +368,15 @@ def other_installations(settings, port_dir, data_dir):
 # ---- the checks ----------------------------------------------------------------------------------
 def eboot_state(folder):
     """'clean', 'lance' (Lance McDonald's 60 fps patch), 'modified' (another build, or changed),
-    'truncated', 'unreadable' or 'missing'; with the file size."""
+    'truncated' (shorter than the clean file), 'unreadable' or 'missing'; with the file size."""
     path = Path(folder or '.') / 'eboot.bin'
     try:
         data = path.read_bytes()
     except OSError:
         return 'missing', 0
+    # Only a file shorter than the clean one is cut off: a full-size one that does not read is damaged or
+    # converted, and "cut off (93,825,704 bytes, the clean one has 93,825,704)" told players nothing (R78).
+    broken = 'truncated' if len(data) < EBOOT_SIZE else 'unreadable'
     try:
         from prepare import parse_self, span
         from patches import PATCH_GROUPS, eboot_bytes, matching_groups_of
@@ -313,7 +385,7 @@ def eboot_state(folder):
         # another format (another file, or an ELF that isn't the PS4's: a plain one is read)
         if 'expected PS4 SELF' in str(error) or 'ELF' in str(error) or 'program headers' in str(error):
             return 'unreadable', len(data)
-        return ('truncated' if 'out of bounds' in str(error) or len(data) < EBOOT_SIZE else 'unreadable'), len(data)
+        return broken, len(data)
     except (ImportError, KeyError, IndexError, OSError):
         return 'unreadable', len(data)
     try:
@@ -326,15 +398,33 @@ def eboot_state(folder):
         # Every patch group's original bytes (patches.py fingerprints each group on its own).
         clean = matching_groups_of(lambda start, end: eboot_bytes(elf, start, end)) == set(PATCH_GROUPS)
     except (ValueError, KeyError, IndexError, OSError):
-        return 'truncated', len(data)
+        return broken, len(data)
     return ('clean' if clean else 'modified'), len(data)
 
 
+def restore_eboot(game):
+    """scripts/clean_eboot.py's restore: (source, backup) when eboot.bin was put back from a clean copy on this PC,
+    with a line for the next start's log; None otherwise. A repair never stops the check."""
+    try:
+        import clean_eboot
+        import bbport_textfile
+        restored = clean_eboot.restore(game)
+    except Exception:
+        return None
+    if restored:
+        bbport_textfile.REPAIRS.append(clean_eboot.note(restored))
+    return restored
+
+
+ONLINE_ONLY = 0x400000 | 0x40000 | 0x1000  # FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS, _RECALL_ON_OPEN, _OFFLINE
+
+
 def scan_game(folder, limit=60000):
-    """{'files', 'bytes', 'empty': [first few empty files], 'shaders': bool} of a game folder."""
+    """{'files', 'bytes', 'empty': [first few empty files], 'online_only': number of files a cloud program
+    (OneDrive) keeps online only, 'first_online': the first of them, 'shaders': bool} of a game folder."""
     root = Path(folder)
-    files = size = 0
-    empty = []
+    files = size = online = 0
+    empty, first_online = [], None
     stack = [root]
     while stack and files < limit:
         try:
@@ -347,14 +437,78 @@ def scan_game(folder, limit=60000):
                     stack.append(entry.path)
                 elif entry.is_file(follow_symlinks=False):
                     files += 1
-                    length = entry.stat().st_size
-                    size += length
-                    if not length and len(empty) < 5:
+                    stat = entry.stat()
+                    size += stat.st_size
+                    if not stat.st_size and len(empty) < 5:
                         empty.append(os.path.relpath(entry.path, root))
+                    if getattr(stat, 'st_file_attributes', 0) & ONLINE_ONLY:
+                        online += 1
+                        first_online = first_online or os.path.relpath(entry.path, root)
             except OSError:
                 pass
-    return {'files': files, 'bytes': size, 'empty': empty,
+    return {'files': files, 'bytes': size, 'empty': empty, 'online_only': online, 'first_online': first_online,
             'shaders': (root / 'dvdroot_ps4' / 'shader' / 'gxshader.shaderbnd.dcx').is_file()}
+
+
+def synced_game(game_dir):
+    """Whether the game folder lies in OneDrive or another cloud sync folder (bbport_launcher_win.synced_folder)."""
+    synced = getattr(L, 'synced_folder', None)
+    return bool(game_dir) and ('onedrive' in str(game_dir).lower() or bool(synced and synced(game_dir)))
+
+
+# The Microsoft Visual C++ runtime that AMD's DirectX 12 FSR 4 and frame generation files load (their imports; the
+# port's own programs need only Windows' universal C runtime).
+VC_RUNTIME = ('msvcp140.dll', 'vcruntime140.dll', 'vcruntime140_1.dll')
+VC_REDIST = 'https://aka.ms/vs/17/release/vc_redist.x64.exe'  # Microsoft's own link to the x64 installer
+
+
+def missing_runtime(port_dir, system=None):
+    """The VC_RUNTIME files that are neither in Windows' System32 nor beside the game's program (bin)."""
+    system = Path(system or Path(os.environ.get('SystemRoot', r'C:\Windows')) / 'System32')
+    return [name for name in VC_RUNTIME
+            if not (system / name).is_file() and not (Path(port_dir or '.') / 'bin' / name).is_file()]
+
+
+def runtime_failed(*results):
+    """Whether any of the AMD feature checks' answers (bbport_fsr41, bbport_fg401) says its files could not be
+    loaded (reason 'runtime'), however deep it sits in them."""
+    stack = list(results)
+    while stack:
+        item = stack.pop()
+        if isinstance(item, dict):
+            if item.get('reason') == 'runtime':
+                return True
+            stack += item.values()
+        elif isinstance(item, (list, tuple)):
+            stack += item
+    return False
+
+
+FIREWALL_RULES = r'SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\FirewallRules'
+
+
+def firewall_blocks(program, rules=None):
+    """Whether an active Windows Firewall rule blocks the program's incoming connections (what Cancel at Windows'
+    "allow this app" question leaves). rules: the rule strings, read from the registry (no admin needed) when
+    None; 'v2.10|Action=Block|Active=TRUE|Dir=In|…|App=C:\\…\\bb-probe.exe|…'."""
+    if rules is None:
+        try:
+            import winreg
+            with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, FIREWALL_RULES) as key:
+                rules = [str(winreg.EnumValue(key, i)[1]) for i in range(winreg.QueryInfoKey(key)[1])]
+        except (OSError, ImportError):
+            return False
+    wanted = os.path.normcase(os.path.abspath(str(program)))
+    for rule in rules:
+        fields = {}
+        for part in rule.split('|'):
+            name, _sep, value = part.partition('=')
+            fields.setdefault(name.lower(), value)
+        if fields.get('action', '').lower() == 'block' and fields.get('active', '').upper() == 'TRUE' and \
+                fields.get('dir', '').lower() == 'in' and fields.get('app') and \
+                os.path.normcase(os.path.abspath(os.path.expandvars(fields['app']))) == wanted:
+            return True
+    return False
 
 
 def mods_with_eboot(mods_dir):
@@ -456,9 +610,20 @@ def run_checks(game_dir, mods_dir, port_dir, output_res, cached=None):
                                       'sce_sys and dvdroot_ps4 directly inside (Game & language).')))
     else:
         stat = (game / 'eboot.bin').stat()
-        # '2|': checked per patch group; an older launcher's answer is not reused.
-        key = f'2|{(game / "eboot.bin").resolve()}|{stat.st_size}|{int(stat.st_mtime)}'
+        # '3|': a full-size file that does not read is unreadable, not cut off (R78); an older launcher's answer
+        # ('2|': checked per patch group) is not reused.
+        key = f'3|{(game / "eboot.bin").resolve()}|{stat.st_size}|{int(stat.st_mtime)}'
         state = cached.get('state') if cached and cached.get('key') == key else eboot_state(game)[0]
+        # Not the clean one: the clean copy back when it is still on this PC (scripts/clean_eboot.py), silently,
+        # the other one kept beside it.
+        restored = restore_eboot(game) if state != 'clean' else None
+        if restored:
+            source, backup = restored
+            checks.append(('ok', None, _('eboot.bin was not the clean 1.09 file: the clean copy from {0} is used '
+                                         'now, the other one is kept as {1}.').format(source.parent, backup.name)))
+            stat = (game / 'eboot.bin').stat()
+            key = f'3|{(game / "eboot.bin").resolve()}|{stat.st_size}|{int(stat.st_mtime)}'
+            state = eboot_state(game)[0]
         eboot = {'key': key, 'state': state}
         size = number(stat.st_size)
         values = {}
@@ -497,6 +662,14 @@ def run_checks(game_dir, mods_dir, port_dir, output_res, cached=None):
         else:
             checks.append(('ok', None, _('The game folder is complete ({} files, {} GB).').format(
                 number(scan['files']), number(scan['bytes'] / 1024 ** 3, 1))))
+        # OneDrive and the like: files kept online only hang the game while it loads them.
+        if scan.get('online_only'):
+            checks.append(('bad', 'game_location', _('{0} files of the game are kept online only by OneDrive or '
+                                                     'another cloud program, for example {1}: the game hangs when '
+                                                     'it loads them.').format(number(scan['online_only']),
+                                                                              scan['first_online'])))
+        elif synced_game(game):
+            checks.append(('warn', 'game_location', _('The game folder is in a synced folder: {}.').format(game)))
     problem = system_problem(game) if game and (game / 'eboot.bin').is_file() else None
     if problem:
         checks.append(('bad', None, problem))
@@ -520,6 +693,9 @@ def run_checks(game_dir, mods_dir, port_dir, output_res, cached=None):
         checks.append(('ok', None, _("The port's files all belong to version {}.").format(version)))
     if location_problem(port_dir):
         checks.append(('warn', 'location', _('The port is in {}.').format(port_dir)))
+    if port_dir and firewall_blocks(Path(port_dir) / 'bin' / 'bb-probe.exe'):
+        checks.append(('warn', 'firewall', _("Windows Firewall blocks the game's incoming connections: co-op can "
+                                             'fail.')))
     return checks, eboot
 
 
@@ -557,45 +733,87 @@ class HelpMixin:
         self.help_button.pack(side='right')
         self.help_list = tk.Frame(card, bg=theme.CARD)
         self.help_list.pack(fill='x', pady=(px(10), 0))
+        # Every game file against the clean 1.09's checksums: minutes, so only on a click.
+        files = tk.Frame(card, bg=theme.CARD)
+        files.pack(fill='x', pady=(px(10), 0))
+        self.files_button = ttk.Button(files, text=_('Check the game files'), style='Card.TButton',
+                                       command=self.check_game_files)
+        self.files_button.pack(side='left')
+        self.index_entry(self.files_button, _('Check the game files'), key='button:game_files')
+        self.files_note = tk.Label(files, text=_('Compares every file with the clean 1.09 (a few minutes).'),
+                                   bg=theme.CARD, fg=theme.MUTED, font=(theme.BODY, 9), justify='left', anchor='w')
+        self.wrap_within(self.files_note, 560).pack(side='left', fill='x', expand=True, padx=(px(12), 0))
+        # The upkeep players asked for in the simple view too, beside the game files (Advanced has it as well): the
+        # shader cache, the updates, another version. Their search entries lead here, a page of both views.
+        cache = tk.Frame(card, bg=theme.CARD)
+        cache.pack(fill='x', pady=(px(8), 0))
+        button = ttk.Button(cache, text=_('Clear the shader cache'), style='Card.TButton', command=self.clear_cache)
+        button.pack(side='left')
+        hint = _('For a black screen, or a broken picture after a driver update. The next start stutters for a few '
+                 'minutes.')
+        self.wrap_within(tk.Label(cache, text=hint, bg=theme.CARD, fg=theme.MUTED, font=(theme.BODY, 9),
+                                  justify='left', anchor='w'), 560).pack(side='left', fill='x', expand=True,
+                                                                         padx=(px(12), 0))
+        self.index_entry(button, _('Clear the shader cache'), hint, key='button:shader_cache')
+        versions = tk.Frame(card, bg=theme.CARD)
+        versions.pack(fill='x', pady=(px(8), 0))
+        button = ttk.Button(versions, text=_('Check for updates', 'Проверить обновления'), style='Card.TButton',
+                            command=self.check_update_now)
+        button.pack(side='left')
+        self.index_entry(button, _('Check for updates', 'Проверить обновления'), key='button:updates')
+        button = ttk.Button(versions, text=_('Other versions…', 'Другие версии…'), style='Card.TButton',
+                            command=self.choose_version)
+        button.pack(side='left', padx=(px(8), 0))
+        self.index_entry(button, _('Other versions…', 'Другие версии…'), key='button:versions')
+        tk.Label(versions, text=_('Installed: v{}', 'Установлена: v{}').format(L.VERSION_TEXT),
+                 bg=theme.CARD, fg=theme.MUTED, font=(theme.BODY, 9)).pack(side='left', padx=(px(12), 0))
         self.link_row(f, _('Set everything up again, step by step.'), None, _('Repeat the setup'), self.open_setup)
         # What's new again, whenever: the Play page's line goes once it was seen (bbport_news).
         news = self.link_row(f, _('What changed in this version, and what to know.'), None, _("What's new", 'Что нового'),
                              self.open_news)
         self.index_entry(news, _("What's new", 'Что нового'), key='button:news')
 
-        self.section(f, _('Problems and their fixes'))
-        self.help_topics = {}
-        for key in TOPIC_ORDER:
-            self.help_topics[key] = self.topic_card(f, key)
-        self.section(f, _('Still stuck?'))
+        # Asking for help above the problems: below their 26 cards nobody found the report (the Report button beside
+        # Play makes the same zip).
+        self.section(f, _('Ask for help'))
         last = ttk.Frame(f, style='Card.TFrame', padding=(px(22), px(16)))
         last.grid(row=self.next_row(f), column=0, columnspan=2, sticky='we', pady=(px(4), 0))
         self.piracy_notice(last, theme.CARD, wrap=700).pack(fill='x', pady=(0, px(12)))
-        tk.Label(last, text=_('Ask in the help forum of the community Discord. Save a report and attach it: it has '
-                              'the log, your settings and this PC\'s details (no passwords), so a helper sees the '
-                              'cause at once.'), bg=theme.CARD, fg=theme.TEXT, font=(theme.BODY, 10), justify='left',
-                 wraplength=px(720)).pack(anchor='w')
+        self.wrap_within(tk.Label(last, text=_(
+            'Ask in Help & Support on forum.bbport.de: start a new topic. Save a report and attach it: it has the log, '
+            "your settings and this PC's details (no passwords), so a helper sees the cause at once."), bg=theme.CARD,
+            fg=theme.TEXT, font=(theme.BODY, 10), justify='left', anchor='w'), 720).pack(fill='x')
         row = tk.Frame(last, bg=theme.CARD)
         row.pack(anchor='w', pady=(px(10), 0))
         button = ttk.Button(row, text=_('Save a report'), style='Card.Accent.TButton', command=self.save_report)
         button.pack(side='left')
         self.report_button = button
         self.index_entry(button, _('Save a report'), key='button:report')
-        ttk.Button(row, text=_('Copy a summary'), style='Card.TButton', command=self.copy_diagnostics).pack(
-            side='left', padx=(px(8), 0))
-        discord = ttk.Button(row, text=_('Open the Discord'), style='Card.TButton',
+        button = ttk.Button(row, text=_('Copy a summary'), style='Card.TButton', command=self.copy_diagnostics)
+        button.pack(side='left', padx=(px(8), 0))
+        self.index_entry(button, _('Copy a summary'), key='button:copy_summary')
+        # Where the report goes, beside it; the Discord (the community, no longer its help) in the row below.
+        forum = ttk.Button(row, text=_('Open the forum'), style='Card.TButton', command=self.open_forum)
+        forum.pack(side='left', padx=(px(8), 0))
+        self.index_entry(forum, _('Open the forum'), key='button:forum')
+        more = tk.Frame(last, bg=theme.CARD)
+        more.pack(anchor='w', pady=(px(8), 0))
+        button = ttk.Button(more, text=_('Show the log'), style='Card.TButton', command=lambda: self.show('log'))
+        button.pack(side='left')
+        self.index_entry(button, _('Show the log'), key='button:show_log')  # the Log page is an expert one
+        # Repeat the setup is the link above (it was here a second time).
+        discord = ttk.Button(more, text=_('Open the Discord'), style='Card.TButton',
                              command=lambda: webbrowser.open(DISCORD))
         discord.pack(side='left', padx=(px(8), 0))
         self.index_entry(discord, _('Open the Discord'), key='button:discord')
-        more = tk.Frame(last, bg=theme.CARD)
-        more.pack(anchor='w', pady=(px(8), 0))
-        ttk.Button(more, text=_('Show the log'), style='Card.TButton', command=lambda: self.show('log')).pack(
-            side='left')
-        ttk.Button(more, text=_('Repeat the setup'), style='Card.TButton', command=self.open_setup).pack(
-            side='left', padx=(px(8), 0))
         self.report_note = tk.Label(last, text='', bg=theme.CARD, fg=theme.MUTED, font=(theme.BODY, 9),
-                                    justify='left', wraplength=px(720))
-        self.report_note.pack(anchor='w', pady=(px(6), 0))
+                                    justify='left', anchor='w')
+        self.wrap_within(self.report_note, 720).pack(fill='x', pady=(px(6), 0))
+
+        self.section(f, _('Problems and their fixes'))
+        self.help_topics = {}
+        for key in TOPIC_ORDER:
+            self.help_topics[key] = self.topic_card(f, key)
         self.help_results = []
         self.root.after(1500, self.help_check)
 
@@ -612,15 +830,15 @@ class HelpMixin:
         tk.Label(top, text=_(title), bg=theme.CARD, fg=theme.TEXT_STRONG, font=(theme.BODY_SEMI, 10),
                  anchor='w').pack(side='left', fill='x', expand=True)
         body = tk.Frame(card, bg=theme.CARD)
-        tk.Label(body, text=_(why), bg=theme.CARD, fg=theme.MUTED, font=(theme.BODY, 9), justify='left',
-                 wraplength=px(700)).pack(anchor='w', pady=(0, px(6)))
+        self.wrap_within(tk.Label(body, text=_(why), bg=theme.CARD, fg=theme.MUTED, font=(theme.BODY, 9),
+                                  justify='left', anchor='w'), 700).pack(fill='x', pady=(0, px(6)))
         for number, step in enumerate(steps, 1):
             line = tk.Frame(body, bg=theme.CARD)
             line.pack(fill='x', pady=px(2))
             tk.Label(line, text=f'{number}.', bg=theme.CARD, fg=theme.GOLD_LIGHT, font=(theme.BODY_SEMI, 10),
                      width=3, anchor='ne').pack(side='left', anchor='n')
-            tk.Label(line, text=_(step), bg=theme.CARD, fg=theme.TEXT, font=(theme.BODY, 10), justify='left',
-                     anchor='w', wraplength=px(660)).pack(side='left', fill='x', expand=True)
+            self.wrap_within(tk.Label(line, text=_(step), bg=theme.CARD, fg=theme.TEXT, font=(theme.BODY, 10),
+                                      justify='left', anchor='w'), 660).pack(side='left', fill='x', expand=True)
 
         actions = TOPIC_ACTIONS.get(key, [])
         if actions:
@@ -692,6 +910,10 @@ class HelpMixin:
             self.app['eboot_check'] = eboot
         gpu = self.gpu_check()
         checks = checks + ([gpu] if gpu else [])
+        if self.runtime_problem():
+            checks.append(('warn', 'vc_runtime', _("AMD's FSR 4 files could not be loaded: the Microsoft Visual C++ "
+                                                   'Redistributable is missing ({}).').format(
+                ', '.join(missing_runtime(L.PORT_DIR if L else None)))))
         self.help_results = checks
         for child in self.help_list.winfo_children():
             child.destroy()
@@ -702,7 +924,60 @@ class HelpMixin:
                 self.link_to_topic(line, topic).pack(side='right', anchor='n')
         self.refresh_status()
 
+    def runtime_problem(self):
+        """Whether AMD's DirectX 12 FSR 4 or frame generation files could not be loaded (their checks' reason
+        'runtime') while the Visual C++ runtime they need is missing: then that is why."""
+        return runtime_failed(getattr(self, 'fsr411_support', None), getattr(self, 'fg401_support', None)) and \
+            bool(missing_runtime(L.PORT_DIR if L else None))
+
     # the topics' buttons
+    def open_vc_redist(self):
+        webbrowser.open(VC_REDIST)
+
+    def open_firewall_settings(self):
+        os.startfile('wf.msc')  # Windows Defender Firewall with Advanced Security
+
+    def check_game_files(self):
+        """Help's button: every game file against the clean 1.09's checksums (scripts/game_files.py), in the
+        background, a few minutes for 29 GB; the result as lines under the installation check."""
+        if getattr(self, 'files_running', False):
+            return
+        game = self.var('game_dir', 'app').get()
+        self.show('help')
+        if not game or not (Path(game) / 'dvdroot_ps4').is_dir():
+            self.files_note.configure(text=_('No game folder chosen yet.'))
+            return
+        self.files_running = True
+        self.files_button.configure(state='disabled')
+        self.files_note.configure(text=_('Checking the game files… {}%').format(0))
+
+        def progress(done, total):
+            percent = int(done * 100 / max(1, total))
+            if percent != getattr(self, 'files_percent', -1):
+                self.files_percent = percent
+                self.ui_calls.put(lambda p=percent: self.files_note.configure(
+                    text=_('Checking the game files… {}%').format(p)))
+
+        def work():
+            try:
+                import game_files
+                result = game_files.check(game, progress)
+                bad = result['differ'] + result['missing']
+                text = (_('All {} game files are those of the clean 1.09.').format(number(result['checked']))
+                        if not bad else
+                        _('{0} of {1} game files differ from the clean 1.09 or are missing, for example: {2}. See '
+                          '"Game files are damaged" below.').format(number(len(bad)), number(result['checked']),
+                                                                   ', '.join(bad[:3])))
+            except Exception as error:  # a check must never take the launcher down
+                text, bad = _('The check stopped: {}').format(error), None
+
+            def done():
+                self.files_running = False
+                self.files_button.configure(state='normal')
+                self.files_note.configure(text=text, fg=theme.MUTED if not bad else theme.AMBER)
+            self.ui_calls.put(done)
+        threading.Thread(target=work, daemon=True).start()
+
     def open_memory_settings(self):
         import subprocess
         subprocess.Popen(['SystemPropertiesAdvanced.exe'])  # Advanced > Performance > Virtual memory
@@ -764,8 +1039,45 @@ class HelpMixin:
             return None
         if verdict.get('ok'):
             device = verdict.get('device') or {}
+            if self.unused_card():
+                return ('warn', 'gpu_unseen', self.gpu_unseen())
             return ('ok', None, _('Graphics card {0}: Vulkan {1} and everything else the port needs.').format(device.get('name', '?'), device.get('api', '?')))
-        return ('bad', 'driver', self.gpu_problem())
+        return ('bad', 'gpu_unseen' if verdict.get('unseen') else 'driver', self.gpu_problem())
+
+    def unused_card(self):
+        """The better card the game does not use (scripts/vulkan_check.py): one Vulkan does not see ('unseen'), or
+        one its driver holds back ('held_back'); None."""
+        verdict = getattr(self, 'vulkan', None) or {}
+        held = verdict.get('held_back') or []
+        return (verdict.get('unseen') or [None])[0] or (held[0]['name'] if held else None)
+
+    def gpu_unseen(self):
+        """Why the game does not use the better card (unused_card), while it would run on a lesser one or on none,
+        as a sentence; None when there is none."""
+        verdict = getattr(self, 'vulkan', None) or {}
+        unseen, device = verdict.get('unseen') or [], verdict.get('device') or {}
+        held = verdict.get('held_back') or []
+        if not unseen and held and verdict.get('ok'):
+            return _('{0} is not used: its driver lacks {1}, so the game runs on {2}, much slower. Install the '
+                     'current driver for {0} (clean installation), then restart the PC.').format(
+                held[0]['name'], ', '.join(held[0].get('missing', [])), device.get('name', '?'))
+        if not unseen:
+            return None
+        if verdict.get('ok'):
+            return _('Windows has {0}, but its Vulkan driver does not answer, so the game runs on {1}, much slower. '
+                     'Install the driver for {0} anew (clean installation), then restart the PC.').format(
+                unseen[0], device.get('name', '?'))
+        return _('Windows has {0}, but its Vulkan driver does not answer. Install the driver for {0} anew (clean '
+                 'installation), then restart the PC.').format(unseen[0])
+
+    def gpu_unused_line(self):
+        """The Play page's line for unused_card, '' without one."""
+        card = self.unused_card()
+        if not card:
+            return ''
+        if (getattr(self, 'vulkan', None) or {}).get('unseen'):
+            return '⚠ ' + _('{} is not used: its Vulkan driver does not answer (Help)').format(card)
+        return '⚠ ' + _('{} is not used: its driver is too old for the port (Help)').format(card)
 
     def gpu_problem(self):
         """Why the game's renderer would not start on this PC, or None: scripts/vulkan_check.py asks the
@@ -773,6 +1085,8 @@ class HelpMixin:
         features) on the card the game would use. No list of card names: the driver's own answer."""
         verdict = getattr(self, 'vulkan', None) or {}
         problem, device = verdict.get('problem'), verdict.get('device') or {}
+        if problem in ('devices', 'device') and verdict.get('unseen'):
+            return self.gpu_unseen()  # the card that would run it is there: its driver is the fix
         if problem == 'loader':
             return _('No working Vulkan driver was found (vulkan-1.dll is missing or broken). Install the current '
                      'driver for your graphics card.')
@@ -802,6 +1116,15 @@ class HelpMixin:
             if not self.messagebox.askyesno('Bloodborne', text, icon='warning'):
                 return False
             self.app['gpu_warned'] = card
+        # A better card the game does not use (not seen, or held back by its driver) while it runs on a slower one:
+        # asked once per card as well.
+        unused = self.unused_card()
+        if unused and not problem and self.app.get('gpu_warned') != unused:
+            if not self.messagebox.askyesno('Bloodborne', self.gpu_unseen() + '\n\n' + _('Start anyway?'),
+                                            icon='warning'):
+                self.open_topic('gpu_unseen')
+                return False
+            self.app['gpu_warned'] = unused
         problem = memory_problem(self.var('output_res', 'ini').get())
         if problem:
             free, need, off = problem
@@ -842,7 +1165,7 @@ class HelpMixin:
             text = log.read_text(encoding='utf-8', errors='replace')[-400_000:]
         except OSError:
             text = ''
-        topics = hints_in_log(text)
+        topics = hints_for_game(text, self.app.get('game_dir'))
         if not topics:
             if always:
                 self.messagebox.showinfo('Bloodborne', _('The game ended with an error (code {}). Help has the checks, '
@@ -855,13 +1178,17 @@ class HelpMixin:
                                     '\n\n' + _('Show the fix?')):
             self.open_topic(topics[0])
 
+    def open_forum(self):
+        """Help & Support on the community forum, where a report goes in a new topic."""
+        webbrowser.open(FORUM_HELP)
+
     def save_report(self, button=None, note=None):
-        """The BB Report Tool's zip, the one the Discord helpers ask for: run without its window into
-        <bbport>/reports, then shown selected in Explorer with its summary in the clipboard for the #help
-        post. Without the tool (a build from the sources): the launcher's own zip on the desktop. `button` and
-        `note`: where it was asked for (Help's, or the Report button beside Play and the status line). The tool
-        gets this port folder and the log this launcher wrote (<saves folder>/last_run.log): on its own it took
-        the newest log of any installation it found."""
+        """The BB Report Tool's zip, the one the helpers ask for: run without its window into
+        <bbport>/reports, then shown selected in Explorer with its summary in the clipboard for a new topic in
+        the forum's Help & Support. Without the tool (a build from the sources): the launcher's own zip on the
+        desktop. `button` and `note`: where it was asked for (Help's, or the Report button beside Play and the
+        status line). The tool gets this port folder and the log this launcher wrote (<saves folder>/last_run.log):
+        on its own it took the newest log of any installation it found."""
         import subprocess
         import time
         button, note = button or self.report_button, note or self.report_note
@@ -889,10 +1216,13 @@ class HelpMixin:
                 subprocess.run(['powershell', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command',
                                 'Invoke-Expression ([IO.File]::ReadAllText($env:BBTOOL))'], env=env,
                                stdin=subprocess.DEVNULL, capture_output=True, timeout=300, creationflags=L.NO_WINDOW)
-            except (OSError, subprocess.TimeoutExpired) as failure:
-                error = failure
-            made = sorted((p for p in folder.glob('BB-Report-*.zip') if p.stat().st_mtime >= started - 2),
-                          key=lambda p: p.stat().st_mtime)
+            except Exception as failure:  # whatever stopped the tool: its zip may be there all the same
+                error = L.error_text(failure)
+            try:
+                made = sorted((p for p in folder.glob('BB-Report-*.zip') if p.stat().st_mtime >= started - 2),
+                              key=lambda p: p.stat().st_mtime)
+            except Exception:  # a zip gone while it was listed: the button must come back all the same
+                made = []
             self.ui_calls.put(lambda: self.report_done(made[-1] if made else None, error, button, note))
         threading.Thread(target=work, daemon=True).start()
 
@@ -912,7 +1242,8 @@ class HelpMixin:
                 summary = z.read('report.txt').decode('utf-8-sig', errors='replace').strip()
             self.root.clipboard_clear()
             self.root.clipboard_append(summary)
-            text += '\n' + _('Its summary is in the clipboard: paste it into your #help post, then attach the zip.')
+            text += '\n' + _('Its summary is in the clipboard: post it in a new topic in Help & Support on '
+                             'forum.bbport.de (Help > "Open the forum"), then attach the zip.')
         except (OSError, KeyError, zipfile.BadZipFile):
             pass
         note.configure(text=text, fg=theme.GOLD_LIGHT)

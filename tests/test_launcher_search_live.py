@@ -4,11 +4,13 @@ among the first three, and a jump shows it on its page."""
 from paths import ROOT
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(ROOT / 'launcher'))
 sys.path.insert(0, str(ROOT / 'scripts'))
+from test_launcher_search_questions import MORE_QUESTIONS, QUESTIONS  # noqa: E402  (the players' questions)
 
 # Settings without a row of their own: internal state, or a part of another setting's row.
 INTERNAL = {'setup_done', 'auto_hw', 'bench_goal', 'test_compare', 'test_mode', 'test_scenario', 'thd_token',
@@ -52,7 +54,7 @@ QUERIES = [
     ('tastatur und maus', {'play_with'}), ('spiele mit', {'play_with'}), ('mauskamera', {'play_with'}),
     ('keyboard', {'play_with', 'mouse:layout'}),
     ('charakter weg', {'topic:save_lost'}),
-]
+] + QUESTIONS + MORE_QUESTIONS  # in English too, on the German pages: the players' words carry them
 
 
 @unittest.skipUnless(sys.platform == 'win32', 'the launcher window is Windows only')
@@ -126,7 +128,41 @@ class LiveSearchTests(unittest.TestCase):
     def test_the_players_words(self):
         for query, keys in QUERIES:
             with self.subTest(query):
-                self.assertTrue(keys & {self.key(e) for e in self.app.search(query)[:3]})
+                found = [self.key(e) for e in self.app.search(query)[:3]]
+                self.assertTrue(keys & set(found), f'{query!r} found {found}')
+
+    def test_a_row_of_another_pool_is_found_and_leads_to_the_pool(self):
+        """The Hunter's Dream's sign-in while SuperMedo Server is chosen: found with its note, and the jump
+        shows "Play with" without switching the pool."""
+        pool = self.app.var('online_pool', 'app')
+        if pool.get() != 'supermedo' or not self.L.HUNTERS_DREAM_POOL:
+            self.skipTest("SuperMedo Server is not chosen, or The Hunter's Dream is off")
+        entry = next(e for e in self.app.search_entries if e.get('key') == 'button:signin_thd')
+        self.assertTrue(self.app.hidden_for_now(entry))
+        self.assertIn(entry, self.app.search('sign in hunters dream'))
+        self.assertIn(self.L._("only with The Hunter's Dream"), self.app.search_where(entry))
+        self.app.jump(entry)
+        self.root.update()
+        self.assertEqual(self.app.current_page, 'online')
+        self.assertEqual(pool.get(), 'supermedo')
+        choice = next(e for e in self.app.search_entries if e.get('key') == 'online_pool')
+        self.assertTrue(choice['widget'].winfo_ismapped())
+
+    def test_the_side_bar_buttons_are_marked_where_they_are(self):
+        page, mode = self.app.current_page, self.app.app['ui_mode']
+        for key in ('button:expert', 'button:site'):
+            with self.subTest(key):
+                entry = next(e for e in self.app.search_entries if e.get('key') == key)
+                self.assertEqual((entry['kind'], self.app.search_where(entry)), ('side', self.L._('Side bar')))
+                self.app.flash_parts = []
+                self.app.jump(entry)
+                end = time.time() + 1
+                while time.time() < end and not self.app.flash_parts:
+                    self.root.update()
+                    time.sleep(0.02)
+                self.assertTrue(self.app.flash_parts)
+                self.assertIs(self.app.flash_parts[0].master, self.app.side)
+        self.assertEqual((self.app.current_page, self.app.app['ui_mode']), (page, mode))  # nothing switched
 
     def test_a_jump_shows_the_setting(self):
         for entry in self.settings:

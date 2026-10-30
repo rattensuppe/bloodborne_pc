@@ -2,11 +2,13 @@
 weapons and beaten bosses from a slot file, named with the game's own texts; on made-up slots,
 backups and text archives."""
 from paths import ROOT
+import os
 import shutil
 import struct
 import sys
 import tempfile
 import unittest
+from unittest import mock
 import zlib
 from pathlib import Path
 
@@ -211,6 +213,24 @@ class RestoreCharacterTests(unittest.TestCase):
         with self.assertRaises(OSError):
             saves.restore_character(self.archive, 'userdata0002', self.user)
         self.assertEqual((self.folder / 'userdata0002').read_bytes(), self.now[2])
+
+    def test_the_slot_goes_back_when_the_profile_cannot_follow(self):
+        """The slot and the profile were replaced one after the other: a profile that would not move left the
+        slot of one state and the Load Game menu's block of another."""
+        def state():
+            return {p.name: zlib.crc32(p.read_bytes()) for p in self.folder.iterdir()}
+        before = state()
+        real = os.replace
+
+        def replace(source, target):
+            if Path(target).name == 'userdata0010' and 'save_import' in Path(source).parts:
+                raise OSError(28, 'No space left on device')
+            return real(source, target)
+        with mock.patch.object(saves.os, 'replace', side_effect=replace):
+            with self.assertRaises(OSError):
+                saves.restore_character(self.archive, 'userdata0002', self.user)
+        self.assertEqual(state(), before)
+        self.assertFalse((self.user / saves.REPLACED_DIR).exists())
 
 
 class BackupTests(unittest.TestCase):

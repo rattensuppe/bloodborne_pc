@@ -242,7 +242,7 @@ class Placer:
             while not self.stopped.wait(0.25):
                 try:
                     self.step()
-                except (OSError, ValueError, ImportError):
+                except Exception:  # one failed look (a ctypes.ArgumentError, a window gone) must not end the placing
                     pass
 
     def step(self):

@@ -47,6 +47,64 @@ class Fake(search.SearchMixin):
         self.search_entries = entries
 
 
+class Widget:
+    """A widget as the search sees it: its master, and whether it is laid out (winfo_manager)."""
+    def __init__(self, manager, master=None):
+        self.manager, self.master = manager, master
+
+    def winfo_manager(self):
+        return self.manager
+
+
+class Root:
+    def __init__(self):
+        self.later = []
+
+    def after(self, _ms, call):
+        self.later.append(call)
+
+    def update_idletasks(self):
+        pass
+
+
+class Online(Fake):
+    """The Online page with SuperMedo Server chosen: The Hunter's Dream's part is hidden; the jump records
+    where it goes."""
+    def __init__(self):
+        super().__init__()
+        self.page = Widget('pack')
+        self.pages, self.page_titles = {'online': self.page}, {'online': 'Online play'}
+        self.vars = {'online_pool': 'supermedo'}
+        self.thd = Widget('', self.page)  # The Hunter's Dream's rows, hidden
+        self.pool = Widget('grid', self.page)
+        self.signin, self.test = Widget('grid', self.thd), Widget('grid', self.page)
+        self.search_settings = [
+            {'kind': 'setting', 'widget': self.pool, 'mark': self.pool, 'title': 'Play with', 'hint': '',
+             'key': 'online_pool'},
+            {'kind': 'setting', 'widget': self.signin, 'mark': self.signin, 'title': 'Sign in with Discord',
+             'hint': '', 'key': 'button:signin_thd'},
+            {'kind': 'setting', 'widget': self.test, 'mark': self.test, 'title': 'Test connection', 'hint': '',
+             'key': 'button:test_connection'}]
+        for entry in self.search_settings:
+            entry.update(page='online', haystack=(search.fold(entry['title']), '',
+                                                  search.fold(search.WORDS[entry['key']])))
+        self.search_entries += self.search_settings
+        self.root, self.shown_pages, self.marked, self.scrolled = Root(), [], [], []
+
+    def show(self, page):
+        self.shown_pages.append(page)
+
+    def scroll_to(self, widget, above=None):
+        self.scrolled.append(widget)
+
+    def flash(self, mark, widget=None):
+        self.marked.append(mark)
+
+    @staticmethod
+    def px(value):
+        return value
+
+
 class SearchTests(unittest.TestCase):
     def setUp(self):
         search.bind(Launcher)
@@ -71,9 +129,100 @@ class SearchTests(unittest.TestCase):
         self.assertEqual(search.fold('Größe'), 'grosse')
         self.assertEqual(self.first('STÜRZT'), self.first('sturzt'))
 
-    def test_every_word_must_match(self):
-        self.assertIsNone(self.first('vollbild xyzzy'))
+    def test_entries_with_every_word_first(self):
+        found = [e['key'] for e in Fake().search('frame rate')]
+        self.assertEqual(found, ['fps_mode'])  # not the entries with only one of the words
         self.assertEqual(Fake().search(''), [])
+
+    def test_without_an_entry_with_every_word_the_most_of_them(self):
+        """A question with a word no entry has found nothing ("Nothing found")."""
+        self.assertEqual(self.first('vollbild xyzzy'), 'fullscreen')
+        self.assertIsNone(self.first('xyzzy'))
+        fake = Fake()
+        self.assertEqual(fake.search('controls vollbild fenster xyzzy')[0]['key'], 'fullscreen')  # two of the words
+        self.assertEqual({e['key'] for e in fake.search('controls saves xyzzy')[:2]}, {'page:controls', 'page:saves'})
+
+    def test_the_words_around_a_question_are_left_out(self):
+        self.assertEqual(search.query_words('Where is clear shader cache?'), ['clear', 'shader', 'cache'])
+        self.assertEqual(search.query_words('how do I update'), ['update'])
+        self.assertEqual(search.query_words('Wo ist mein Spielstand?'), ['spielstand'])
+        self.assertEqual(search.query_words('the'), ['the'])  # nothing else: it stays
+        self.assertEqual(search.query_words('log in'), ['login'])  # not "log" alone (the Log page)
+        self.assertEqual(search.query_words('2560x1440'), ['resolution'])
+        self.assertEqual(search.query_words('?'), [])
+        self.assertEqual(self.first('where is fullscreen'), 'fullscreen')
+        self.assertEqual(self.first('wie kann ich vollbild'), 'fullscreen')
+
+    def test_the_german_small_words_and_the_sign_in_spellings(self):
+        """"im" found "Import", "mich" a hint; "sign-in" (the launcher's own spelling) found nothing."""
+        self.assertEqual(search.query_words('Absturz im Spiel'), ['absturz', 'spiel'])
+        self.assertEqual(search.query_words('wie melde ich mich an'), ['melde'])
+        self.assertEqual(search.query_words('spielen mit freunden'), ['spielen', 'mit', 'freunden'])  # "Play with"
+        for query, word in (('sign-in', 'signin'), ('Log-in?', 'login'), ('sign-out', 'signout'),
+                            ('log-out', 'logout'), ('logged in', 'login')):
+            self.assertEqual(search.query_words(query), [word], query)
+        self.assertEqual(self.first('absturz im spiel'), 'page_file')
+
+    def test_a_setting_for_another_choice_is_found_with_a_note(self):
+        """A row of the online pool not chosen: found, after what the page shows, and the result says
+        which pool it needs. Without such a note a hidden row stays out."""
+        fake = Fake()
+        page = Widget('pack')
+        fake.pages, fake.page_titles = {'online': page}, {'online': 'Online play'}
+        for title, key, widget, only in (
+                ('Sign in with Discord', 'button:signin_supermedo', Widget('grid', page), None),
+                ('Sign in with Discord', 'button:signin_thd', Widget('', page),
+                 ("only with The Hunter's Dream", 'online_pool')),
+                ('Account', 'thd_online_id', Widget('', page), None)):
+            fake.search_entries.append({'kind': 'setting', 'page': 'online', 'title': title, 'hint': '', 'key': key,
+                                        'widget': widget, 'only': only,
+                                        'haystack': (search.fold(title), '', search.fold(search.WORDS[key]))})
+        found = [e['key'] for e in fake.search('discord thd')]
+        self.assertEqual(found[0], 'button:signin_thd')
+        self.assertEqual(fake.search_where(fake.search('discord thd')[0]),
+                         "Online play · only with The Hunter's Dream")
+        self.assertEqual(fake.search('sign in')[0]['key'], 'button:signin_supermedo')  # the shown one first
+        self.assertNotIn('thd_online_id', [e['key'] for e in fake.search('account')])  # hidden, no note: out
+        side = {'kind': 'side', 'page': 'side', 'title': 'Expert view', 'hint': '', 'key': 'button:expert'}
+        self.assertEqual(fake.search_where(side), 'Side bar')
+
+    def test_index_only_marks_what_is_below_the_widgets(self):
+        online = Online()
+        online.index_only([online.thd], "only with The Hunter's Dream", 'online_pool')
+        only = {e['key']: e.get('only') for e in online.search_settings}
+        self.assertEqual(only['button:signin_thd'], ("only with The Hunter's Dream", 'online_pool'))
+        self.assertIsNone(only['online_pool'])  # beside the hidden part, not in it
+        self.assertIsNone(only['button:test_connection'])
+
+    def test_the_jump_to_another_choice_marks_where_it_is_made(self):
+        """A row of the pool not chosen: the jump marks "Play with" and leaves the pool as the player chose it;
+        once that pool is chosen, the row itself."""
+        online = Online()
+        online.index_only([online.thd], "only with The Hunter's Dream", 'online_pool')
+        entry = next(e for e in online.search_entries if e.get('key') == 'button:signin_thd')
+        online.jump(entry)
+        for call in online.root.later:
+            call()
+        self.assertEqual(online.shown_pages, ['online'])
+        self.assertEqual(online.marked, [online.pool])
+        self.assertEqual(online.scrolled, [online.pool])
+        self.assertEqual(online.vars, {'online_pool': 'supermedo'})
+        online.thd.manager = 'grid'  # The Hunter's Dream chosen: its rows show
+        online.root.later, online.marked = [], []
+        online.jump(entry)
+        for call in online.root.later:
+            call()
+        self.assertEqual(online.marked, [online.signin])
+
+    def test_a_side_bar_button_is_only_marked(self):
+        online = Online()
+        button = Widget('pack')
+        entry = {'kind': 'side', 'page': 'side', 'widget': button, 'mark': button, 'title': 'Expert view',
+                 'key': 'button:expert'}
+        online.jump(entry)
+        for call in online.root.later:
+            call()
+        self.assertEqual((online.shown_pages, online.marked), ([], [button]))  # the expert view stays as it is
 
     def test_symptoms_find_the_fix_first(self):
         self.assertIn(self.first('ruckelt'), ('shader_cache', 'vram'))  # Help topics before the settings
@@ -99,12 +248,6 @@ class SearchTests(unittest.TestCase):
         self.assertEqual(fake.search('updates')[0]['key'], 'button:updates')
 
     def test_hidden_widgets_are_left_out(self):
-        class Widget:
-            def __init__(self, manager, master=None):
-                self.manager, self.master = manager, master
-
-            def winfo_manager(self):
-                return self.manager
         page = Widget('pack')
         self.assertTrue(search.shown(Widget('grid', Widget('pack', page)), page))
         self.assertFalse(search.shown(Widget('grid', Widget('', page)), page))  # its frame is hidden

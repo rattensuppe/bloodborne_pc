@@ -34,6 +34,9 @@ RYZEN = 'AMD Ryzen 7 5800X 8-Core Processor'
 LAPTOP_GEFORCE = 'NVIDIA GeForce RTX 4060 Laptop GPU, discrete, 8188 MiB'
 LAPTOP_RADEON = 'AMD Radeon 780M Graphics, integrated or other, 4096 MiB'
 LAPTOP_CPU = 'AMD Ryzen 7 7840HS w/ Radeon 780M Graphics'
+# The FSR 4.1 methods' support (bbport_fsr41.ROUTES): only fsr4vk, which runs on a GeForce RTX too; AMD Vulkan.
+FSR4VK_ONLY = [dict(supported=False)] * 3 + [dict(supported=True)]
+FSR412_VULKAN = [dict(supported=True)] + [dict(supported=False)] * 3
 
 
 class Status:
@@ -249,6 +252,90 @@ class AutoProfileTests(unittest.TestCase):
         self.saved(ui)
         self.assertEqual(self.start(GEFORCE).automatic, 0)
 
+    # ---- a goal after a new card (R84), sharpening with FSR 4 (R81) -------------------------------------
+    def test_a_goal_after_a_new_card_gives_it_its_upscaler(self):
+        """R84: set up while only the processor's Radeon showed (no driver for the GeForce yet), an upscaler of
+        the player's own on it; the GeForce, once its driver is in, is offered its settings, and the goal chosen
+        then brought FSR, the FSR 4.1 method fsr4vk runs on a GeForce too. Now DLSS, also with "Adjust them
+        automatically" off (the new card is not remembered then)."""
+        laptop = {'cpu': LAPTOP_CPU, 'ram': 16, 'display': (1920, 1080)}
+        for automatic in (True, False):
+            (self.folder / 'settings.json').unlink(missing_ok=True)
+            self.ini.write_text('fsr411_backend=vk\n', encoding='utf-8')
+            with patch.object(launcher.bbport_fsr41, 'method_statuses', return_value=FSR4VK_ONLY):
+                self.set_up(LAPTOP_RADEON, **laptop)
+                ui = self.start(LAPTOP_RADEON, **laptop)
+                ui.var('upscaler', 'ini').set('taa')  # chosen by hand for the Radeon
+                ui.var('auto_graphics', 'app').set(automatic)
+                self.saved(ui)
+                ui = self.start(LAPTOP_GEFORCE, **laptop)
+                self.assertEqual(ui.automatic, 0)
+                if automatic:
+                    self.assertIn('Your own graphics settings were kept', ui.status.text)
+                self.assertEqual(self.recommended(ui)['upscaler'], 'dlss')
+                ui.set_goal('smooth')
+                self.assertEqual(self.saved(ui)['upscaler'], 'dlss', automatic)
+                self.assertNotIn('fsr411_backend', self.recommended(ui))
+
+    def test_a_laptops_sleeping_card_keeps_the_players_upscaler(self):
+        """Chosen by hand on the GeForce; a start that shows only the processor's Radeon (the GeForce asleep) is
+        no new card, and a goal chosen then keeps it."""
+        laptop = {'cpu': LAPTOP_CPU, 'ram': 16, 'display': (1920, 1080)}
+        self.set_up(LAPTOP_GEFORCE, **laptop)
+        ui = self.start(LAPTOP_GEFORCE, **laptop)
+        ui.var('upscaler', 'ini').set('taa')
+        self.saved(ui)
+        ui = self.start(LAPTOP_RADEON, **laptop)
+        ui.set_goal('quiet')
+        self.assertEqual(self.saved(ui)['upscaler'], 'taa')
+        ui = self.start(LAPTOP_GEFORCE, **laptop)
+        ui.set_goal('smooth')
+        self.assertEqual(self.saved(ui)['upscaler'], 'taa')
+
+    def test_a_new_installation_on_a_geforce_keeps_sharpening(self):
+        """R81: a new bbport.ini starts on the FSR 4.1 method fsr4vk where it is supported, a GeForce RTX too; the
+        profile then brings DLSS, and sharpening stays on as for every upscaler but FSR 4."""
+        with patch.object(launcher.bbport_fsr41, 'method_statuses', return_value=FSR4VK_ONLY):
+            self.assertEqual(launcher.load_ini()[0]['upscaler'], 'fsr411')
+            after_setup = self.set_up(GEFORCE)
+        self.assertEqual((after_setup['upscaler'], after_setup['sharpen']), ('dlss', True))
+        with patch.object(launcher.bbport_fsr41, 'method_statuses', return_value=FSR412_VULKAN):
+            self.ini.write_text('fsr411_backend=vk\n', encoding='utf-8')
+            after_setup = self.set_up(RADEON)
+        self.assertEqual((after_setup['upscaler'], after_setup['sharpen']), ('fsr412', False))
+
+    def test_an_upscaler_chosen_for_this_card_stays_with_a_goal(self):
+        self.set_up(GEFORCE)
+        ui = self.start(GEFORCE)
+        ui.var('upscaler', 'ini').set('fsr3')  # the player's own, after the settings were made
+        self.saved(ui)
+        ui = self.start(GEFORCE)
+        ui.set_goal('quiet')
+        now = self.saved(ui)
+        self.assertEqual((now['upscaler'], now['fps_mode']), ('fsr3', '60'))  # the goal's own settings still came
+        ui.set_goal('smooth')  # chosen after an automatic choice: still the player's
+        self.assertEqual(self.saved(ui)['upscaler'], 'fsr3')
+        ui.undo_profile()  # nothing says what was applied any more: the goal brings the card's upscaler
+        ui.set_goal('smooth')
+        self.assertEqual(self.saved(ui)['upscaler'], 'dlss')
+
+    def test_sharpening_goes_off_with_fsr_4_and_the_players_own_stays(self):
+        """R81: RCAS on top of FSR 4.1.2 left flaws along edges; FSR 4 sharpens by itself."""
+        with patch.object(launcher.bbport_fsr41, 'method_statuses', return_value=FSR412_VULKAN):
+            self.set_up(RADEON)
+            ui = self.start(RADEON)
+            self.assertEqual((ui.var('upscaler', 'ini').get(), ui.var('sharpen', 'ini').get()), ('fsr412', False))
+            ui.var('sharpen', 'ini').set(True)  # the player's taste
+            self.saved(ui)
+            ui = self.start(RADEON)
+            self.assertNotIn('sharpen', self.recommended(ui))
+            self.assertEqual(ui.differences(), [])
+            ui.set_goal('balanced')
+            self.assertTrue(self.saved(ui)['sharpen'])
+        ui = self.start(GEFORCE, cpu='AMD Ryzen 9 7950X 16-Core Processor')  # new hardware: DLSS, no sharpening
+        self.assertNotIn('sharpen', self.recommended(ui))
+        self.assertTrue(self.saved(ui)['sharpen'])
+
 
 class SignatureTests(unittest.TestCase):
     def test_the_signature_is_the_hardware_only(self):
@@ -296,6 +383,16 @@ class TextTests(unittest.TestCase):
         for language in [code for code, _name in bbport_lang.LANGUAGE_NAMES if code not in ('', 'en')]:
             with self.subTest(language=language):
                 self.assertTrue(bbport_lang.table(language).get(note))
+
+    def test_a_card_not_detected_is_not_called_missing_from_the_list(self):
+        """Your PC and the guide said "Your graphics card (?) is not in the list of the hardware check" when the
+        detection named no card at all."""
+        import bbport_setup
+        self.assertEqual(bbport_setup.gpu_unknown(''), 'Your graphics card was not detected. Pick it or the closest '
+                                                       'model:')
+        self.assertEqual(bbport_setup.gpu_unknown('Moore Threads MTT S80'),
+                         'Your graphics card (Moore Threads MTT S80) is not in the list of the hardware check. Pick '
+                         'it or the closest model:')
 
 
 if __name__ == '__main__':

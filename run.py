@@ -21,6 +21,18 @@ import time
 PORT = Path(__file__).resolve().parent
 
 
+# The Vulkan loader's variables that decide which graphics drivers it loads: one set in Windows' environment
+# variables hides every other card from the game (the launcher's Help: "The game does not use your graphics card").
+VULKAN_DRIVER_VARIABLES = ('VK_ICD_FILENAMES', 'VK_DRIVER_FILES', 'VK_ADD_DRIVER_FILES', 'VK_LOADER_DRIVERS_SELECT',
+                           'VK_LOADER_DRIVERS_DISABLE')
+
+
+def vulkan_driver_note(env):
+    """A line for the log when one of them is set, None without."""
+    found = [f'{name}={env[name]}' for name in VULKAN_DRIVER_VARIABLES if env.get(name)]
+    return f'Vulkan: the drivers it loads are limited by {"; ".join(found)}' if found else None
+
+
 # Co-op: the community service that answers Bloodborne's own game-server requests
 # (messages, bloodstains, sign-in); summon requests go to the shadNet server instead.
 COMMUNITY_SERVER = 'https://game.supermedo.com'
@@ -316,6 +328,17 @@ def refresh_shared_graphics(env, config):
             env.pop('BB_FPS_LIMIT', None)
 
 
+def frame_pacing(env, fps):
+    """The vblank rate for the frame rate mode (BB_VBLANK_HZ: 0 is the unlocked mode's 480 Hz with a frame limit
+    at the display refresh), chosen here at every start. The in-game restart inherits the previous start's
+    environment, and a value kept from it held a frame rate changed in the game's menu at the old pacing: 30 FPS
+    after Unlocked kept the 480 Hz vblank and the frame limit at the display refresh, Unlocked after 30 kept 60 Hz
+    (R88). An explicit one (set before the first start, for measurements) is used as given."""
+    if env.get('BB_AUTO_VBLANK') == '1' or not env.get('BB_VBLANK_HZ'):
+        env['BB_VBLANK_HZ'] = {'uncap': '0', '90': '90'}.get(fps, '60')
+        env['BB_AUTO_VBLANK'] = '1'
+
+
 def find_executable(name):
     """bin/ (packaged), else out/ (built with build.sh)."""
     for candidate in (PORT / 'bin' / name, PORT / 'out' / name):
@@ -436,20 +459,27 @@ def coop_user_dir(env, user_dir, game):
 def backup_saves(user_dir, keep=SAVE_BACKUPS_KEPT, now=None):
     """BB_SAVE_BACKUPS=1 (launcher: Play page, "Back up saves at start"): a copy of the saves
     in <user>/save-backups/<time>/savedata before the game starts, the newest `keep` kept.
-    A failed copy is reported and the game starts anyway. Returns the copy, or None."""
+    A failed copy is reported, its part removed, and the game starts anyway. Returns the copy, or None."""
     saves = Path(user_dir) / 'savedata'
     if not saves.is_dir() or not any(saves.rglob('userdata*')):
         return None
     root = Path(user_dir) / 'save-backups'
     target = root / time.strftime('%Y%m%d-%H%M%S', time.localtime(now)) / 'savedata'
+    made = not target.parent.exists()
     try:
         if not target.exists():
             shutil.copytree(saves, target)
+    except OSError as error:
+        # A copy cut off (a full drive, a file held) counted among the kept ones and pushed a whole one out.
+        if made:
+            shutil.rmtree(target.parent, ignore_errors=True)
+        print(f'Save backup: {error}; the game starts without one')
+        return None
+    try:
         for old in sorted(p for p in root.iterdir() if p.is_dir())[:-keep]:
             shutil.rmtree(old, ignore_errors=True)
     except OSError as error:
-        print(f'Save backup: {error}; the game starts without one')
-        return None
+        print(f'Save backup: the oldest copies stay ({error})')
     print(f'Save backup: {target.parent}')
     return target
 
@@ -546,6 +576,9 @@ def main():
     # Internal-driver overrides belonged to the old prototype, not the public SDK.
     env.pop('BB_TEST_AMD_VK_RUNTIME', None)
     env.pop('BB_TEST_AMD_DX_RUNTIME', None)
+    note = vulkan_driver_note(env)
+    if note:
+        print(note)
     data = Path(env.get('BB_DATA_DIR', PORT))
     out = data / 'out'
     out.mkdir(parents=True, exist_ok=True)
@@ -585,10 +618,22 @@ def main():
         fail(f'The game folder {game} has no {" / ".join(missing)}: the game was not unpacked completely. '
              'Unpack the base game into a new, empty folder again and copy the 1.09 update over it.')
     if env.get('BB_SKIP_GAME_CHECK') != '1':
+        from clean_eboot import CLEAN_IMAGE, note as eboot_note, restore as restore_eboot
         try:
-            prepatched = image_sha256(game) == LANCE_60FPS_IMAGE
+            digest = image_sha256(game)
         except (OSError, ValueError, KeyError, IndexError):
-            prepatched = False  # prepare.py reports unreadable executables itself
+            digest = None  # prepare.py reports unreadable executables itself
+        # Not the clean 1.09 eboot.bin (a 60 fps one, a patched one, one cut off): the clean one comes back when it
+        # is still on this PC (clean_eboot.py), the other one is kept beside it.
+        if digest != CLEAN_IMAGE:
+            try:
+                restored = restore_eboot(game)
+            except Exception:  # a repair: never in the way of a start
+                restored = None
+            if restored:
+                print(eboot_note(restored))
+                digest = CLEAN_IMAGE
+        prepatched = digest == LANCE_60FPS_IMAGE
         if prepatched:
             fail("This eboot.bin has Lance McDonald's 60 fps patch applied to it, which crashes the "
                  'game when the gestures menu opens (the port has its own 60 fps): copy eboot.bin '
@@ -794,8 +839,7 @@ def main():
                    '--output-res', env.get('BB_OUTPUT_RES', ''),
                    '--patches-dir', env.get('BB_PATCHES_DIR', data / 'patches'),
                    '--patches-config', env.get('BB_PATCHES_CONFIG', data / 'patches.json'))
-        if not env.get('BB_VBLANK_HZ'):
-            env['BB_VBLANK_HZ'] = {'uncap': '0', '90': '90'}.get(fps, '60')
+        frame_pacing(env, fps)
 
         # The in-game restart starts this script again once this process is gone.
         # GPU caches (shaders, pipelines) beside the saves; read before main(), so set here.

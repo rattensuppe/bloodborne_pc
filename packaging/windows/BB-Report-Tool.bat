@@ -22,7 +22,7 @@ exit /b
 # ------------------------------------------------------------------------------------------
 $ErrorActionPreference = 'SilentlyContinue'
 [Threading.Thread]::CurrentThread.CurrentCulture = [Globalization.CultureInfo]::InvariantCulture
-$ToolVersion = '1.7.8'
+$ToolVersion = '1.7.9'
 Add-Type -AssemblyName System.Windows.Forms
 
 $secrets = New-Object System.Collections.ArrayList
@@ -49,7 +49,7 @@ function Val($value) { if ("$value" -ne '') { "$value" } else { 'default' } }
 
 Write-Host ''
 Write-Host "  BB Report Tool $ToolVersion - Bloodborne PC Port" -ForegroundColor Yellow
-Write-Host '  Collecting info for your #help post. Nothing is sent anywhere.'
+Write-Host '  Collecting info for your post in Help & Support on forum.bbport.de. Nothing is sent anywhere.'
 Write-Host ''
 
 # --- Port folder --------------------------------------------------------------------------
@@ -591,6 +591,24 @@ if (-not $clientRejected -and $logText -and $logText -match 'Login rejected erro
         '8' { 'wrong password: enter it again under Online co-op' }
         default { 'check the account under Online co-op' } }
     Hint "Online login error code ${code}: $what." 1 }
+# Online on, but the launcher has no account for the chosen server (since 1.9.5: SuperMedo Server's own account, or
+# The Hunter's Dream's Discord sign-in). The game is then signed out and says it can't connect to the Bloodborne
+# network; in the log its online check (sceNpPollAsync) is never followed by the sign-in (NpAuth). 30.10.2026.
+$pool195 = $false
+try { $pool195 = $portVersion -match '^\d' -and [version]$portVersion -ge [version]'1.9.5' } catch { }
+if ((Setting 'online') -eq $true -and $pool195) {
+    $huntersDream = "$(Setting 'online_pool')" -eq 'huntersdream'
+    $signedIn = if ($huntersDream) { [bool]"$(Setting 'thd_token')" } else { "$(Setting 'supermedo_npid')" -and "$(Setting 'supermedo_pass')" }
+    if (-not $signedIn) {
+        $server = if ($huntersDream) { "The Hunter's Dream" } else { 'SuperMedo Server' }
+        $seen = if ((LogHas 'sceNpPollAsync') -and -not (LogHas 'GetAuthorizationCode')) { ' The log shows it: the game never signed in.' } else { '' }
+        Hint "Online is on, but the launcher is not signed in to ${server}, so the game can't play online: it says it can't connect to the Bloodborne network (1.9.7 and newer start it offline instead).$seen On the launcher's Online play page sign in (Sign in with Discord, or New SuperMedo account), then start the game again." 1 }
+}
+# The server closing the co-op connection (SuperMedo Server, 29.10.2026): the port reconnects at once, but a summon
+# in between fails.
+$drops = if ($logText) { ([regex]::Matches($logText, 'Reader header recv failed')).Count } else { 0 }
+if ($drops -ge 3) {
+    Hint "Online: the server closed the co-op connection $drops times during this game (the port reconnected each time). Summons that fail now and then come from that: it is on the server's side, not this PC - nothing to change here." 2 }
 $onlineServer = "$(Setting 'online_server')".Trim()
 if ((Setting 'online') -eq $true -and "$(Setting 'online_pool')" -ne 'huntersdream' -and $onlineServer -match '^(127\.0\.0\.1|localhost)(:|$)') {
     Hint "Online co-op: the shadNet server is set to $onlineServer - that's the local address of bbbridge (The Hunter's Dream), not shadNet. On the Online co-op page set Server address to srv.shadps4.net:31313 (or empty it) and empty WebAPI address." 2 }
@@ -766,6 +784,6 @@ if ($logNote -like 'log is from a later start*') {
     Write-Host '  The crash info from Windows is in the report. Best: make it crash again, then run this tool right away.' -ForegroundColor Yellow
 }
 Write-Host '  Done!' -ForegroundColor Green
-Write-Host '  1. The summary is in your clipboard: paste it into your #help post (Ctrl+V).'
+Write-Host '  1. The summary is in your clipboard: paste it into a new topic in Help & Support on forum.bbport.de (Ctrl+V).'
 Write-Host "  2. Attach this file to the post: $zip"
 if (-not $env:BBTOOL_OUT) { Start-Process explorer.exe "/select,`"$zip`"" }

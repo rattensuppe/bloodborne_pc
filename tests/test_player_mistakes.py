@@ -491,6 +491,38 @@ class HandEditedFileTests(unittest.TestCase):
             self.assertEqual(L.play_without_window(settings), 0)
         self.assertEqual((self.folder / 'user' / 'last_run.log').read_text(encoding='utf-8'), 'Settings: repaired\n')
 
+    def start_without_window(self, **online):
+        """play_without_window with these online settings: the game's environment and the log's first lines."""
+        with mock.patch.object(L, 'game_underway', return_value=False), mock.patch.object(L, 'attach_stdio'), \
+                mock.patch.object(L, 'load_ini', return_value=(dict(L.INI_DEFAULTS), [])), \
+                mock.patch.object(L.display, 'Placer'), mock.patch.object(L.trophies, 'Tracker'), \
+                mock.patch.object(L, 'game_environment', side_effect=lambda s, g=None: {'online': s.get('online')}), \
+                mock.patch.object(L.subprocess, 'Popen') as popen:
+            popen.return_value.stdout.readline.return_value = b''
+            popen.return_value.wait.return_value = 0
+            settings = dict(L.APP_DEFAULTS, user_dir=str(self.folder / 'user'), auto_backup=False, **online)
+            self.assertEqual(L.play_without_window(settings), 0)
+        return popen.call_args.kwargs['env'], (self.folder / 'user' / 'last_run.log').read_text(encoding='utf-8')
+
+    def test_a_shortcut_start_without_an_account_plays_offline(self):
+        # Steam or Play Bloodborne.exe, online on and no SuperMedo account (a player's report, 30.10.2026): the
+        # game was signed out and said it couldn't connect. Now it starts offline and the log says why.
+        env, log = self.start_without_window(online=True, online_pool='supermedo', supermedo_npid='', supermedo_pass='')
+        self.assertFalse(env['online'])
+        self.assertIn("Online: not signed in to SuperMedo Server, so this start plays offline; sign in on the "
+                      "launcher's Online play page to play online", log)
+        env, log = self.start_without_window(online=True, online_pool='huntersdream', thd_token='')
+        self.assertFalse(env['online'])
+        self.assertIn("not signed in to The Hunter's Dream", log)
+
+    def test_a_shortcut_start_with_an_account_stays_online(self):
+        env, log = self.start_without_window(online=True, online_pool='supermedo', supermedo_npid='hunter',
+                                             supermedo_pass='secret')
+        self.assertTrue(env['online'])
+        self.assertNotIn('not signed in', log)
+        env, log = self.start_without_window(online=False, online_pool='supermedo')
+        self.assertNotIn('not signed in', log)
+
 
 class OwnOutputSizeTests(unittest.TestCase):
     """1920x1200, 2560x1600, 1366x768: the game's menu knows ten sizes, and its first save wrote 1920x1080."""

@@ -56,8 +56,9 @@ Online play (beta)
   Press "Test connection", then PLAY and choose online at the title screen.
 - Messages, bloodstains and ghosts come from The Hunter's Dream (https://thehuntersdream.com).
   Everyone in a session needs game version 1.09 and the same co-op pool.
-- Please don't ask The Hunter's Dream for help with bbport: use our Discord server
-  (https://discord.gg/yTMG8c4Bqm) instead.
+- Please don't ask The Hunter's Dream for help with bbport: ask in Help & Support on our forum
+  (https://forum.bbport.de/t/help-support) or on our Discord server
+  (https://discord.gg/WtYT4fXhEN) instead.
 
 Cheats
 - The "Cheats" page (expert view) has cheats (never die, enemies do not see or hear you,
@@ -72,7 +73,8 @@ Problems
 - Black screen at start: Help -> "Only a black screen" -> "Clear the shader cache", then start
   again (the first minutes stutter while the cache is rebuilt).
 - Help -> "Save a report" makes the zip the helpers ask for (the log, the settings without
-  passwords, this PC): attach it to any bug report.
+  passwords, this PC): attach it to any bug report. Ask for help in a new topic in Help &
+  Support on https://forum.bbport.de/t/help-support (Help -> "Open the forum").
 
 Upscaling
 - FSR 4.1.1 (experimental): choose FSR 4.1.1 in Upscaler, then AMD DX12 or

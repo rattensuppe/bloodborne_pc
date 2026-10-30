@@ -364,48 +364,53 @@ class Monitor(threading.Thread):
         cpus = os.cpu_count() or 1
         try:
             while not self.stop_event.wait(1.0):
-                self.read_log()
-                if not self.pid:
-                    pids = game_pids()
-                    if pids:
-                        self.pid = pids[-1]
-                        handle = kernel32.OpenProcess(0x1000 | 0x0010, False, self.pid)  # query limited + vm read
-                if not self.pid:
-                    continue
-                if not self.hwnd:
-                    self.hwnd = game_window(self.pid)
-                sample = {'t': self.now()}
-                if handle:
-                    counters = PROCESS_MEMORY_COUNTERS_EX()
-                    counters.cb = ctypes.sizeof(counters)
-                    if psapi.GetProcessMemoryInfo(handle, ctypes.byref(counters), counters.cb):
-                        sample['ram_gb'] = counters.PrivateUsage / 1024 ** 3
-                        sample['working_set_gb'] = counters.WorkingSetSize / 1024 ** 3
-                    times = [wintypes.FILETIME() for _i in range(4)]
-                    if kernel32.GetProcessTimes(handle, *[ctypes.byref(t) for t in times]):
-                        busy = sum((t.dwHighDateTime << 32 | t.dwLowDateTime) for t in times[2:]) / 1e7
-                        if last_cpu:
-                            sample['cpu'] = min(100.0, (busy - last_cpu[0]) / max(0.01, time.time() - last_cpu[1])
-                                                / cpus * 100)
-                        last_cpu = (busy, time.time())
-                vram, load = gpu.sample(self.pid)
-                if vram is not None:
-                    sample['vram_gb'], sample['gpu'] = vram, load
                 try:
-                    from bbport_help import memory_status
-                    status = memory_status()
-                    if status:
-                        sample['free_gb'] = status[0]
-                except ImportError:
+                    self.read_log()
+                    if not self.pid:
+                        pids = game_pids()
+                        if pids:
+                            self.pid = pids[-1]
+                            handle = kernel32.OpenProcess(0x1000 | 0x0010, False, self.pid)  # query limited + vm read
+                    if not self.pid:
+                        continue
+                    if not self.hwnd:
+                        self.hwnd = game_window(self.pid)
+                    sample = {'t': self.now()}
+                    if handle:
+                        counters = PROCESS_MEMORY_COUNTERS_EX()
+                        counters.cb = ctypes.sizeof(counters)
+                        if psapi.GetProcessMemoryInfo(handle, ctypes.byref(counters), counters.cb):
+                            sample['ram_gb'] = counters.PrivateUsage / 1024 ** 3
+                            sample['working_set_gb'] = counters.WorkingSetSize / 1024 ** 3
+                        times = [wintypes.FILETIME() for _i in range(4)]
+                        if kernel32.GetProcessTimes(handle, *[ctypes.byref(t) for t in times]):
+                            busy = sum((t.dwHighDateTime << 32 | t.dwLowDateTime) for t in times[2:]) / 1e7
+                            if last_cpu:
+                                sample['cpu'] = min(100.0, (busy - last_cpu[0]) / max(0.01, time.time() - last_cpu[1])
+                                                    / cpus * 100)
+                            last_cpu = (busy, time.time())
+                    vram, load = gpu.sample(self.pid)
+                    if vram is not None:
+                        sample['vram_gb'], sample['gpu'] = vram, load
+                    try:
+                        from bbport_help import memory_status
+                        status = memory_status()
+                        if status:
+                            sample['free_gb'] = status[0]
+                    except ImportError:
+                        pass
+                    hung = bool(self.hwnd and user32.IsHungAppWindow(self.hwnd))
+                    sample['hung'] = hung
+                    if hung and not self.hung_since:
+                        self.hung_since = sample['t']
+                    elif not hung:
+                        self.hung_since = None
+                    with self.lock:
+                        self.telemetry.append(sample)
+                except Exception:
+                    # One failed sample, and the next comes: a monitor that stopped read no more frame statistics,
+                    # and the test took the game for frozen (frozen).
                     pass
-                hung = bool(self.hwnd and user32.IsHungAppWindow(self.hwnd))
-                sample['hung'] = hung
-                if hung and not self.hung_since:
-                    self.hung_since = sample['t']
-                elif not hung:
-                    self.hung_since = None
-                with self.lock:
-                    self.telemetry.append(sample)
             self.read_log()
         finally:
             gpu.close()

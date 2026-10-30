@@ -97,6 +97,13 @@ class RatingTests(unittest.TestCase):
         self.assertEqual(rate('amd-rx-9070-xt', 'AMD FX(tm)-8350 Eight-Core Processor', 32).tier, 0)
         self.assertEqual(rate('amd-rx-9070-xt', 'AMD Ryzen 7 5800X 8-Core Processor', 8).limit, 'ram')
 
+    def test_the_hints_name_no_old_version(self):
+        """Your PC's Intel hints said "(known issue in 1.9.2)" in every later version."""
+        intel = rate('intel-arc-b580', 'AMD Ryzen 7 5800X 8-Core Processor', 32)
+        self.assertTrue([note for note in intel.notes if note.startswith('Intel graphics')])
+        for text in intel.notes + hardware.DRIVER_NOTES + hardware.HARD_LIMITS:
+            self.assertNotRegex(text, r'\b1\.9\.\d', text)
+
 
 def rate_detected(vulkan_name, vram, cpu, ram):
     """The rating the launcher shows for what it detects: the card's Vulkan name and memory."""
@@ -200,11 +207,22 @@ class ProfileTests(unittest.TestCase):
 
     def test_taste_is_left_alone(self):
         settings = profile(rate('amd-rx-9070-xt', 'AMD Ryzen 7 5800X 8-Core Processor', 32))
-        for key in ('effect_chromatic_aberration', 'effect_dof', 'effect_motion_blur', 'sharpen', 'sharpness'):
+        for key in ('effect_chromatic_aberration', 'effect_dof', 'effect_motion_blur', 'sharpness'):
             self.assertNotIn(key, settings)
         self.assertNotIn('effect_ssr', settings)  # off only where the card has no room for it
         weaker = rate('nvidia-rtx-4060', 'AMD Ryzen 5 5600X', 16)
         self.assertFalse(profile(weaker, current={'effect_ssr': True})['effect_ssr'])
+
+    def test_sharpening_goes_off_with_fsr_4_only(self):
+        """R81: RCAS on top of FSR 4, which sharpens by itself, left flaws along edges (FSR 4.1.2)."""
+        cpu = 'AMD Ryzen 7 5800X 8-Core Processor'
+        for card in ('amd-rx-9070-xt', 'amd-rx-7800-xt'):
+            settings = profile(rate(card, cpu, 32))
+            self.assertEqual((settings['upscaler'], settings['sharpen']), ('fsr4', False), card)
+        for card in ('nvidia-rtx-4070', 'amd-rx-6800-xt', 'nvidia-gtx-1650', 'intel-arc-a770-16-gb'):
+            settings = profile(rate(card, cpu, 32), (1920, 1080))
+            self.assertNotIn('sharpen', settings, (card, settings['upscaler']))
+        self.assertEqual(hardware.FSR4_FAMILY, ('fsr4', 'fsr411', 'fsr412'))
 
     def test_frame_generation_off_only_where_it_cannot_work(self):
         weak = rate('nvidia-gtx-1650', 'Intel(R) Core(TM) i5-9400F CPU @ 2.90GHz', 16)

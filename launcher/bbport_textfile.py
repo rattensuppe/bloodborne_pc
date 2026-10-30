@@ -5,7 +5,9 @@ hand meant them, and written whole or not at all.
 Players open bbport.ini and input.ini in Notepad or another editor: some save them in ANSI (an umlaut in a
 comment is then no UTF-8), with a BOM, or with a decimal comma (sharpness=0,5). Each of these kept the launcher
 from opening. A file that needed repairing is rewritten clean, its old bytes kept beside it as <name>.bad, and
-REPAIRS gets a line for the log of the next start (bbport_launcher_win writes them there).
+REPAIRS gets a line for the log of the next start (bbport_launcher_win writes them there). The other files the
+launcher writes (mods.json, patches.json, a respec's save, Steam's shortcuts.vdf) go through write() and
+write_bytes() too.
 """
 import os
 import shutil
@@ -30,11 +32,21 @@ def write(path, text):
     """The whole text or nothing: a temporary file beside it, then os.replace, so a full drive or a crash
     halfway leaves the old file as it was. A file another program has open for a moment (an antivirus, the
     game reading it) is tried again over about a second."""
+    _write(path, text, 'w', 'utf-8')
+
+
+def write_bytes(path, data):
+    """write() for a file that is no text (a character's save, Steam's shortcuts.vdf): the same temporary file
+    and os.replace, the bytes as they are."""
+    _write(path, data, 'wb', None)
+
+
+def _write(path, content, mode, encoding):
     path = Path(path)
     temp = path.with_name(path.name + '.tmp')
     try:
-        with open(temp, 'w', encoding='utf-8') as stream:
-            stream.write(text)
+        with open(temp, mode, encoding=encoding) as stream:
+            stream.write(content)
             stream.flush()
             os.fsync(stream.fileno())
         for attempt in range(1, REPLACE_TRIES + 1):

@@ -25,6 +25,8 @@ import sys
 import time
 from pathlib import Path
 
+import bbport_textfile as textfile
+
 ATTRIBUTES = ('vitality', 'endurance', 'strength', 'skill', 'bloodtinge', 'arcane')
 OFFSETS = (0x00, 0x08, 0x18, 0x20, 0x28, 0x30)  # from Vitality
 LEVEL, ECHOES, NAME = 0x50, 0x54, 0x68
@@ -122,7 +124,8 @@ def respec(folder, slot, new, now=None, copy=True):
                 struct.pack_into('<I', data, at + o, new[a])
 
     rewrite(data, blocks)
-    path.write_bytes(bytes(data))
+    # Whole or not at all (a full drive, a crash halfway): a save cut off loses the character.
+    textfile.write_bytes(path, bytes(data))
     # The game's backup files hold a copy of the character last saved: the same one only if
     # its name, level and attributes match.
     for other in sorted(folder.glob('backup*')):
@@ -130,5 +133,5 @@ def respec(folder, slot, new, now=None, copy=True):
         same = [at for at in find_blocks(copy) if read_block(copy, at) == old]
         if same:
             rewrite(copy, same)
-            other.write_bytes(bytes(copy))
+            textfile.write_bytes(other, bytes(copy))
     return backup

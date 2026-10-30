@@ -11,7 +11,6 @@ MISTAKE_KEYS = [
     'The game runs already (started from Steam, a shortcut or the in-game restart): its window was brought to the '
     'front.',
     'Something went wrong in the launcher: {}',
-    'The details are on the Log page. Help > "Save a report" makes the zip to attach when you ask for help.',
     'Your settings could not be saved, so the game cannot start with them.\n\nFile: {}\nFolder: {}\nWindows says: '
     '{}\n\nFree up space on that drive, or move the port to a folder you can write to (like C:\\Games\\BBPort).',
     'The game folder has no {}: the game was not unpacked completely. Unpack the base game into a new, empty folder '
@@ -33,8 +32,6 @@ MISTAKES = {
         'Das Spiel läuft bereits (gestartet über Steam, eine Verknüpfung oder den Neustart im Spiel): Sein Fenster '
         'wurde nach vorne geholt.',
         'Im Launcher ist ein Fehler aufgetreten: {}',
-        'Die Einzelheiten stehen auf der Seite Protokoll. Hilfe > „Bericht speichern“ erstellt die ZIP-Datei, die du '
-        'anhängst, wenn du um Hilfe bittest.',
         'Deine Einstellungen konnten nicht gespeichert werden, deshalb kann das Spiel nicht mit ihnen starten.\n\n'
         'Datei: {}\nOrdner: {}\nWindows meldet: {}\n\nSchaffe Platz auf diesem Laufwerk oder verschiebe den Port in '
         'einen Ordner, in den du schreiben darfst (etwa C:\\Games\\BBPort).',
@@ -55,8 +52,6 @@ MISTAKES = {
         'El juego ya está en marcha (iniciado desde Steam, un acceso directo o el reinicio dentro del juego): su '
         'ventana se ha traído al frente.',
         'Algo ha fallado en el lanzador: {}',
-        'Los detalles están en la página Registro. Ayuda > «Guardar un informe» crea el zip que debes adjuntar cuando '
-        'pidas ayuda.',
         'No se pudo guardar tu configuración, así que el juego no puede iniciarse con ella.\n\nArchivo: {}\n'
         'Carpeta: {}\nWindows dice: {}\n\nLibera espacio en esa unidad o mueve el port a una carpeta en la que puedas '
         'escribir (como C:\\Games\\BBPort).',
@@ -78,8 +73,6 @@ MISTAKES = {
         'O jogo já está rodando (iniciado pela Steam, por um atalho ou pelo reinício dentro do jogo): a janela dele '
         'foi trazida para a frente.',
         'Algo deu errado no launcher: {}',
-        'Os detalhes estão na página Registro. Ajuda > "Salvar um relatório" cria o zip para anexar quando você pedir '
-        'ajuda.',
         'Não foi possível salvar suas configurações, então o jogo não pode iniciar com elas.\n\nArquivo: {}\n'
         'Pasta: {}\nO Windows diz: {}\n\nLibere espaço nessa unidade ou mova o port para uma pasta em que você possa '
         'gravar (como C:\\Games\\BBPort).',
@@ -100,8 +93,6 @@ MISTAKES = {
         'Le jeu tourne déjà (lancé depuis Steam, un raccourci ou le redémarrage dans le jeu) : sa fenêtre a été '
         'ramenée au premier plan.',
         'Une erreur s’est produite dans le lanceur : {}',
-        'Les détails sont sur la page Journal. Aide > « Enregistrer un rapport » crée le zip à joindre quand vous '
-        'demandez de l’aide.',
         'Vos réglages n’ont pas pu être enregistrés, le jeu ne peut donc pas démarrer avec eux.\n\nFichier : {}\n'
         'Dossier : {}\nWindows indique : {}\n\nLibérez de la place sur ce lecteur, ou déplacez le port dans un '
         'dossier où vous pouvez écrire (comme C:\\Games\\BBPort).',
@@ -122,8 +113,6 @@ MISTAKES = {
         'Il gioco è già in esecuzione (avviato da Steam, da un collegamento o dal riavvio nel gioco): la sua finestra '
         'è stata portata in primo piano.',
         'Qualcosa è andato storto nel launcher: {}',
-        'I dettagli sono nella pagina Registro. Aiuto > "Salva un rapporto" crea lo zip da allegare quando chiedi '
-        'aiuto.',
         'Non è stato possibile salvare le impostazioni, quindi il gioco non può avviarsi con esse.\n\nFile: {}\n'
         'Cartella: {}\nWindows dice: {}\n\nLibera spazio su quell’unità o sposta il port in una cartella in cui puoi '
         'scrivere (come C:\\Games\\BBPort).',
@@ -144,8 +133,6 @@ MISTAKES = {
         'Gra już działa (uruchomiona ze Steama, ze skrótu lub po restarcie w grze): jej okno zostało przeniesione na '
         'wierzch.',
         'W launcherze wystąpił błąd: {}',
-        'Szczegóły są na stronie Dziennik. Pomoc > „Zapisz raport” tworzy plik zip, który należy dołączyć, prosząc o '
-        'pomoc.',
         'Nie udało się zapisać ustawień, więc gra nie może się z nimi uruchomić.\n\nPlik: {}\nFolder: {}\n'
         'Windows zgłasza: {}\n\nZwolnij miejsce na tym dysku albo przenieś port do folderu, w którym możesz zapisywać '
         '(np. C:\\Games\\BBPort).',
@@ -166,7 +153,6 @@ MISTAKES = {
         'Oyun zaten çalışıyor (Steam’den, bir kısayoldan ya da oyun içi yeniden başlatmayla açıldı): penceresi öne '
         'getirildi.',
         'Başlatıcıda bir sorun oluştu: {}',
-        'Ayrıntılar Günlük sayfasında. Yardım > "Rapor kaydet", yardım isterken ekleyeceğiniz zip dosyasını oluşturur.',
         'Ayarlarınız kaydedilemedi, bu yüzden oyun onlarla başlayamıyor.\n\nDosya: {}\nKlasör: {}\nWindows diyor ki: '
         '{}\n\nO sürücüde yer açın ya da portu yazabildiğiniz bir klasöre taşıyın (örneğin C:\\Games\\BBPort).',
         'Oyun klasöründe {} yok: oyun tam olarak çıkarılmamış. Ana oyunu yeni, boş bir klasöre yeniden çıkarın ve '
@@ -185,7 +171,6 @@ MISTAKES = {
     'ar': [
         'اللعبة تعمل بالفعل (بدأت من Steam أو من اختصار أو من إعادة التشغيل داخل اللعبة): تم إحضار نافذتها إلى الأمام.',
         'حدث خطأ في المشغّل: {}',
-        'التفاصيل في صفحة السجل. المساعدة > "حفظ تقرير" ينشئ ملف zip لإرفاقه عندما تطلب المساعدة.',
         'تعذّر حفظ إعداداتك، لذلك لا يمكن للعبة أن تبدأ بها.\n\nالملف: {}\nالمجلد: {}\nيقول Windows: {}\n\nأفرغ مساحة '
         'على ذلك القرص، أو انقل المنفذ إلى مجلد يمكنك الكتابة فيه (مثل C:\\Games\\BBPort).',
         'مجلد اللعبة لا يحتوي على {}: لم يُفك ضغط اللعبة بالكامل. فك ضغط اللعبة الأساسية من جديد في مجلد جديد وفارغ '
@@ -202,7 +187,6 @@ MISTAKES = {
     'zh': [
         '游戏已在运行（从 Steam、快捷方式或游戏内重启启动）：已将其窗口移到最前。',
         '启动器出错：{}',
-        '详细信息在“日志”页面。“帮助”>“保存报告”会生成求助时需要附上的 zip 文件。',
         '无法保存你的设置，因此游戏无法使用这些设置启动。\n\n文件：{}\n文件夹：{}\nWindows 提示：{}\n\n请在该驱动器上腾出空间，'
         '或将移植版移到你有写入权限的文件夹（例如 C:\\Games\\BBPort）。',
         '游戏文件夹中缺少 {}：游戏没有完整解包。请将本体游戏重新解包到一个新的空文件夹，再把 1.09 更新复制覆盖上去。',
@@ -217,7 +201,6 @@ MISTAKES = {
     'ja': [
         'ゲームはすでに起動しています（Steam、ショートカット、またはゲーム内の再起動から）：そのウィンドウを前面に表示しました。',
         'ランチャーでエラーが発生しました：{}',
-        '詳細はログのページにあります。ヘルプ >「レポートを保存」で、助けを求めるときに添付する zip が作成されます。',
         '設定を保存できなかったため、ゲームはその設定で起動できません。\n\nファイル：{}\nフォルダー：{}\nWindows の'
         'メッセージ：{}\n\nそのドライブの空き容量を増やすか、書き込みできるフォルダー（例：C:\\Games\\BBPort）に移植版を'
         '移動してください。',
@@ -237,7 +220,6 @@ MISTAKES = {
     'ko': [
         '게임이 이미 실행 중입니다(Steam, 바로 가기 또는 게임 내 재시작으로 시작됨): 게임 창을 앞으로 가져왔습니다.',
         '런처에 오류가 발생했습니다: {}',
-        '자세한 내용은 로그 페이지에 있습니다. 도움말 > "보고서 저장"은 도움을 요청할 때 첨부할 zip을 만듭니다.',
         '설정을 저장할 수 없어서 게임을 이 설정으로 시작할 수 없습니다.\n\n파일: {}\n폴더: {}\nWindows 메시지: {}\n\n'
         '해당 드라이브의 공간을 확보하거나, 쓰기 권한이 있는 폴더(예: C:\\Games\\BBPort)로 포트를 옮기세요.',
         '게임 폴더에 {}이(가) 없습니다: 게임 압축이 완전히 풀리지 않았습니다. 기본 게임을 새 빈 폴더에 다시 풀고 그 위에 '

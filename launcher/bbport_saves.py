@@ -15,9 +15,10 @@ folder and the metadata beside it differ (checked against their source, 2026-10)
 This port reads one folder only: <saves folder>/savedata/1/<the dump's INSTALL_DIR_SAVEDATA or
 TITLE_ID>/SPRJ0005, so a save is copied there whatever its folder was called. The game's files are
 copied through a staging folder, after the current saves were packed into
-<saves folder>/save_backups/; nothing is written to the source. Folders beside the save in
-<save title>/ count as saves to the game, so nothing else is ever put there. The achievements of a bbport
-saves folder (its trophies.log) come along with its characters: added to this one's, never removed.
+<saves folder>/save_backups/, and swapped in as one step (swap_in); nothing is written to the source.
+Folders beside the save in <save title>/ count as saves to the game, so nothing else is ever put there.
+The achievements of a bbport saves folder (its trophies.log) come along with its characters: added to
+this one's, never removed.
 """
 import datetime
 import glob
@@ -44,6 +45,16 @@ SKIP = {'dvdroot_ps4', 'sce_module', 'cache', 'shader', 'shader_cache', 'fsr4_sh
         # a benchmark's own character (an old build's benchmark/ folder, the game tests' scenarios in
         # assets, recorded routes): not a player's save
         'benchmark', 'recordings', 'assets'}
+# The save the route benchmark of the 1.9.3 test builds left in place of the player's, put aside when the
+# player's came back (bbport_launcher_win.restore_benchmark_backup): savedata.benchmark, or with the time after a
+# space when that is taken. Kept but never offered as a save.
+BENCHMARK_SAVE = 'savedata.benchmark'
+
+
+def benchmark_save(name):
+    """True for a (lower-case) folder name restore_benchmark_backup gives the test's save. Not for
+    savedata.benchmark-backup: that one holds the player's own save while a test runs or after it broke off."""
+    return name == BENCHMARK_SAVE or name.startswith(BENCHMARK_SAVE + ' ')
 
 
 # ---- where this port wants them --------------------------------------------------------------
@@ -231,7 +242,8 @@ def walk(roots, depth=9, limit=30000):
                 name = child.name.lower()
                 if name == SAVE_DIR.lower() and is_save_folder(child):
                     found.append(child)
-                elif name not in SKIP and not name.endswith('.sce_sys') and not name.startswith('sdimg_'):
+                elif name not in SKIP and not name.endswith('.sce_sys') and not name.startswith('sdimg_') and \
+                        not benchmark_save(name):
                     following.append(child)
             if seen > limit:
                 return found
@@ -292,9 +304,11 @@ def find_in(root, depth=6):
 
 
 # ---- put where the game does not read it ---------------------------------------------------------------
-# Copies of this port's own saves in its saves folder (the backups, a respec's copy, an import's staging):
-# never taken for a save the player put in the wrong place.
-OWN_COPIES = {'save_backups', 'save-backups', 'respec-backups', 'save_import', 'savedata.benchmark-backup'}
+# Copies of this port's own saves in its saves folder (the backups, a respec's copy, an import's staging, the
+# files an import or a restore replaced): never taken for a save the player put in the wrong place.
+REPLACED_DIR = 'save_replaced'
+OWN_COPIES = {'save_backups', 'save-backups', 'respec-backups', 'save_import', REPLACED_DIR,
+              'savedata.benchmark-backup'}
 
 
 def misplaced(user_dir, game_dir=''):
@@ -320,7 +334,8 @@ def misplaced(user_dir, game_dir=''):
                 name = child.name.lower()
                 if name.startswith('sdimg_'):
                     encrypted.append(child)
-                elif not child.is_dir() or name in SKIP or name in OWN_COPIES or name.endswith('.sce_sys'):
+                elif not child.is_dir() or name in SKIP or name in OWN_COPIES or name.endswith('.sce_sys') or \
+                        benchmark_save(name):
                     continue
                 elif is_save_folder(child):
                     try:
@@ -673,6 +688,98 @@ def retried(action, *args):
             time.sleep(LOCK_WAIT)
 
 
+# ---- putting files in place -----------------------------------------------------------------------
+# An import or a restore deleted the save's files first and then moved the new ones in: a file that would not move
+# (an antivirus, a sync tool holding it) left half of one save and half of another. Now the files in use are moved
+# aside first, into <saves folder>/save_replaced/<time>/ (renames on the same drive, outside savedata like the
+# staging folder), then the new ones in; any error puts everything back as it was. The files moved aside are
+# deleted only when every new one is in place (the backup made before holds them too).
+def aside_folder(user_dir):
+    """A new folder in save_replaced for one swap, never one an earlier swap left behind."""
+    root = Path(user_dir) / REPLACED_DIR
+    stamp = datetime.datetime.now().strftime('%Y-%m-%d %H.%M.%S')
+    folder, number = root / stamp, 1
+    while folder.exists():
+        number += 1
+        folder = root / f'{stamp} ({number})'
+    folder.mkdir(parents=True)
+    return folder
+
+
+def swap_in(user_dir, parts):
+    """Moves the files of each part (staging folder, save folder, every) into its save folder as one step. The
+    files they replace go aside first; with `every`, all the save folder's own files (userdata, backup) go,
+    also those the new save has not. Any error puts the files back as they were and is raised; when even that
+    fails, the error names what is not as it was (stuck_text)."""
+    aside = aside_folder(user_dir)
+    moved, placed = [], []  # (file in use, where it went aside), (new file in staging, where it went)
+    try:
+        for staging, folder, every in parts:
+            folder.mkdir(parents=True, exist_ok=True)
+            names = {path.name for path in staging.iterdir()}
+            kept = aside / staging.name
+            kept.mkdir()
+            for old in sorted(folder.iterdir()):
+                if old.is_file() and (old.name in names or (every and SAVE_FILES.match(old.name))):
+                    os.chmod(old, 0o666)  # a read-only file would stay in save_replaced
+                    retried(os.replace, old, kept / old.name)
+                    moved.append((old, kept / old.name))
+        for staging, folder, _every in parts:
+            for new in sorted(staging.iterdir()):
+                retried(os.replace, new, folder / new.name)
+                placed.append((new, folder / new.name))
+    except OSError as error:
+        left_new, left_old = put_back(moved, placed)
+        if not left_old:
+            remove_aside(aside)  # empty: every file from before is back
+        if left_new or left_old:
+            raise OSError(f'{error}; {stuck_text(left_new, left_old, aside)}') from error
+        raise
+    remove_aside(aside)
+
+
+def put_back(moved, placed):
+    """Undoes swap_in's moves so far: the new files back to staging, the files in use back in place. Returns
+    what is not as it was: ([new files left in a save folder], [files from before left in the aside folder])."""
+    left_new, left_old = [], []
+    for new, place in reversed(placed):
+        try:
+            retried(os.replace, place, new)
+        except OSError:
+            left_new.append(place)
+    for old, kept in reversed(moved):
+        try:
+            retried(os.replace, kept, old)
+        except OSError:
+            left_old.append(kept)
+            continue
+        if old in left_new:
+            left_new.remove(old)  # the new file that would not move out was replaced by the old one
+    return left_new, left_old
+
+
+def stuck_text(left_new, left_old, aside):
+    """What put_back could not undo, for the error: a new file left among the old ones (a slot of the other save
+    beside the old profile) is named with its folder; the aside folder only while it holds files from before."""
+    parts = []
+    for folder in sorted({path.parent for path in left_new}):
+        names = ', '.join(path.name for path in left_new if path.parent == folder)
+        parts.append(f'{names} of the new save stayed in {folder}')
+    if left_old:
+        names = ', '.join(str(path.relative_to(aside)) for path in left_old)
+        parts.append(f'the files from before that could not go back ({names}) are in {aside}')
+    return '; '.join(parts)
+
+
+def remove_aside(aside):
+    """The folder of one swap gone, and save_replaced with it when nothing else is in there."""
+    shutil.rmtree(aside, ignore_errors=True)
+    try:
+        aside.parent.rmdir()
+    except OSError:
+        pass
+
+
 def import_set(save, user_dir, game_dir=''):
     """Copies `save` over this port's save (after a backup) and returns the backup's path."""
     if not save.complete:
@@ -682,21 +789,15 @@ def import_set(save, user_dir, game_dir=''):
     archive = backup(user_dir, game_dir, reason='import', detail=save.source)
     staging = user_dir / 'save_import'  # outside savedata: the game takes every folder there for a save
     shutil.rmtree(staging, ignore_errors=True)
-    staging.mkdir(parents=True)
+    (staging / 'save').mkdir(parents=True)
     try:
         for path in save.files:
-            copy = staging / path.name
+            copy = staging / 'save' / path.name
             retried(shutil.copyfile, path, copy)
             os.chmod(copy, 0o666)
             if copy.stat().st_size != path.stat().st_size:
                 raise OSError(f'{path.name} was not copied completely')
-        target.mkdir(parents=True, exist_ok=True)
-        for old in target.iterdir():
-            if old.is_file() and SAVE_FILES.match(old.name):
-                os.chmod(old, 0o666)
-                retried(old.unlink)
-        for copy in staging.iterdir():
-            retried(os.replace, copy, target / copy.name)
+        swap_in(user_dir, [(staging / 'save', target, True)])
     finally:
         shutil.rmtree(staging, ignore_errors=True)
     meta = target.with_name(SAVE_DIR + '.sce_sys')
@@ -721,14 +822,21 @@ def import_set(save, user_dir, game_dir=''):
     return archive
 
 
+def saves_root(folder):
+    """The saves folder a save lies in (<saves folder>/savedata/1/<title>/SPRJ0005), or None outside one."""
+    parts = [part.lower() for part in Path(folder).parts]
+    if 'savedata' not in parts:
+        return None
+    return Path(*Path(folder).parts[:len(parts) - 1 - parts[::-1].index('savedata')])
+
+
 def bring_trophies(save, user_dir):
     """The achievements of the saves folder `save` lies in (another installation's trophies.log) added to this
     one's, so a character brought over keeps them; how many were new here. Saves from elsewhere (shadPS4,
     bbhost, a backup) have none."""
-    parts = [part.lower() for part in save.folder.parts]
-    if 'savedata' not in parts:
+    root = saves_root(save.folder)
+    if root is None:
         return 0
-    root = Path(*save.folder.parts[:len(parts) - 1 - parts[::-1].index('savedata')])
     source, target = root / trophies.LOG_NAME, Path(user_dir) / trophies.LOG_NAME
     try:
         if not source.is_file() or source.resolve() == target.resolve():
@@ -736,6 +844,131 @@ def bring_trophies(save, user_dir):
     except OSError:
         return 0
     return trophies.merge_log(source, target)
+
+
+# ---- achievements of other installations ----------------------------------------------------------------------
+# This port keeps them in <saves folder>/trophies.log; shadPS4 and its forks in the game's trophy list,
+# <data>/game_data/<title>/TrophyFiles/trophy00/Xml/TROP.XML (older ones) or <data>/home/<user>/trophy/<NP id>/Xml/
+# TROP.XML. They are found as scan() finds saves: the other versions' known folders, also those of the Windows
+# before a new installation (Windows.old), and the folders beside this port and the game. A shadPS4 installation
+# is one record, its Xml folder: it may keep the unlocks in each language's list (TROP_xx.XML) as well.
+TROPHY_LISTS = ('game_data/*/TrophyFiles/*/Xml', 'home/*/trophy/*/Xml')
+# Where shadPS4's data folder lies under a folder the player picks: the folder itself, in it (%APPDATA%), in a
+# user's or a drive's AppData, also the Windows before (Windows.old). On a drive that is deeper than the walk goes.
+TROPHY_DATA = ('', '*', 'Roaming/*', 'AppData/Roaming/*', 'Users/*/AppData/Roaming/*',
+               'Windows.old/Users/*/AppData/Roaming/*')
+# Not walked for them: Windows' and the programs' folders (on a drive the walk's limit goes to likely places, and
+# AppData's shadPS4 is found by TROPHY_DATA), Seamless co-op's saves (run.py COOP_SAVES: this port's own co-op
+# trophies, no other installation) and the game test's copy of the saves in %TEMP% (bbport_benchmark).
+TROPHY_SKIP = {'appdata', 'programdata', 'program files (x86)', '$recycle.bin', 'system volume information',
+               'recovery', 'perflogs', '$windows.~bt', '$windows.~ws', 'temp', 'seamless-coop', 'bbport-test'}
+
+
+def trophy_lists(folder, places=TROPHY_DATA):
+    """The Xml folders with shadPS4 trophy lists of the data folders in `places` under `folder`."""
+    base, found = glob.escape(str(folder)), set()
+    for place in places:
+        for pattern in TROPHY_LISTS:
+            for name in glob.glob(os.path.join(base, place, pattern)):
+                try:
+                    if any(trophies.TROPHY_LIST.match(entry) for entry in os.listdir(name)):
+                        found.add(Path(name))
+                except OSError:
+                    continue
+    return sorted(found)
+
+
+def trophy_label(path):
+    """Which installation a trophies.log or an Xml folder of trophy lists belongs to, from where it is."""
+    path = Path(path)
+    if path.name.lower() == trophies.LOG_NAME:
+        return label_for(path.parent / 'savedata' / '1' / DEFAULT_TITLE / SAVE_DIR)
+    parts = [part.lower() for part in path.parts]
+    for anchor in ('game_data', 'home'):
+        if anchor in parts:
+            root = Path(*path.parts[:len(parts) - 1 - parts[::-1].index(anchor)])
+            install = root.parent if root.name.lower() in ('user', 'data') else root  # a portable one: <install>/user
+            return 'shadPS4' if install.name.lower() == 'shadps4' else f'shadPS4 ({install.name})'
+    folder = next((q for q in path.parents if q.name.lower() not in ('xml', 'trophy00', 'trophyfiles')), path.parent)
+    return f'Backup ({folder.name})'
+
+
+def walk_trophies(roots, depth=9, limit=30000):
+    """trophies.log files and Xml folders of trophy lists under `roots`, skipping the big folders of dumps, ports
+    and Windows, as walk() does for saves. A shadPS4 data folder met on the way (a portable one) is looked into at
+    once: its lists lie five folders further down."""
+    found, seen = [], 0
+    level = [Path(r) for r in roots if r and Path(r).is_dir()]
+    for _ in range(depth + 1):
+        following = []
+        for folder in level:
+            try:
+                entries = list(os.scandir(folder))
+            except OSError:
+                continue
+            data = False
+            for entry in entries:
+                name = entry.name.lower()
+                try:
+                    if entry.is_dir():
+                        seen += 1
+                        data = data or name in ('game_data', 'home')
+                        if name not in SKIP and name not in OWN_COPIES and name not in TROPHY_SKIP and \
+                                not name.endswith('.sce_sys'):
+                            following.append(Path(entry.path))
+                    elif name == trophies.LOG_NAME:
+                        found.append(Path(entry.path))
+                    elif folder.name.lower() == 'xml' and trophies.TROPHY_LIST.match(entry.name) and \
+                            folder not in found:
+                        found.append(folder)  # a copy of one elsewhere
+                except OSError:
+                    continue
+            if data:
+                found += trophy_lists(folder, ('',))
+            if seen > limit:
+                return found
+        level = following
+    return found
+
+
+def trophy_records(port_dir, game_dir='', exclude=()):
+    """[(where, path)] of the trophy records of other installations on this PC (see above), without `exclude`
+    (this port's own trophies.log)."""
+    paths = []
+    for pattern in sources(port_dir, game_dir):
+        roots = [saves_root(folder) for folder in glob.glob(pattern)]
+        paths += [root / trophies.LOG_NAME for root in roots if root]
+    if os.environ.get('APPDATA'):
+        paths += trophy_lists(os.environ['APPDATA'], ('*',))
+    paths += trophy_lists(os.environ.get('SystemDrive', 'C:') + os.sep, ('Windows.old/Users/*/AppData/Roaming/*',))
+    paths += walk_trophies([Path(port_dir).parent] + ([Path(game_dir).parent] if game_dir else []))
+    return unique_records(paths, exclude)
+
+
+def trophy_records_in(root, exclude=()):
+    """[(where, path)] of the trophy records at or under a folder the player picked (an old port folder, a shadPS4
+    folder, the drive of an old PC): shadPS4's known places first (TROPHY_DATA), then the walk."""
+    return unique_records(trophy_lists(root) + walk_trophies([root]), exclude)
+
+
+def unique_records(paths, exclude=()):
+    seen = set()
+    for path in exclude:
+        try:
+            seen.add(os.path.normcase(str(Path(path).resolve())))
+        except OSError:
+            pass
+    records = []
+    for path in paths:
+        try:
+            key = os.path.normcase(str(Path(path).resolve()))
+            if key in seen or not Path(path).exists():  # a trophies.log, or an Xml folder of trophy lists
+                continue
+        except OSError:
+            continue
+        seen.add(key)
+        records.append((trophy_label(path), Path(path)))
+    return records
 
 
 def restore(archive, user_dir, game_dir=''):
@@ -761,16 +994,9 @@ def restore(archive, user_dir, game_dir=''):
                     (staging / kind / name).write_bytes(data)
                     if (staging / kind / name).stat().st_size != len(data):
                         raise OSError(f'{name} was not written completely')
-        target.mkdir(parents=True, exist_ok=True)
-        for old in target.iterdir():
-            if old.is_file() and SAVE_FILES.match(old.name):
-                os.chmod(old, 0o666)
-                retried(old.unlink)
-        for copy in (staging / 'save').iterdir():
-            retried(os.replace, copy, target / copy.name)
-        meta.mkdir(exist_ok=True)  # the game's metadata writes fail silently without it
-        for copy in (staging / 'meta').iterdir():
-            retried(os.replace, copy, meta / copy.name)
+        # The metadata folder is made even when the backup has none: the game's metadata writes fail silently
+        # without it.
+        swap_in(user_dir, [(staging / 'save', target, True), (staging / 'meta', meta, False)])
     finally:
         shutil.rmtree(staging, ignore_errors=True)
     return before
@@ -820,15 +1046,15 @@ def restore_character(archive, slot, user_dir, game_dir=''):
     profile[start:start + PROFILE_SLOT_SIZE] = block
     staging = user_dir / 'save_import'  # outside savedata: the game takes every folder there for a save
     shutil.rmtree(staging, ignore_errors=True)
-    staging.mkdir(parents=True)
+    (staging / 'save').mkdir(parents=True)
     try:
         for name, data in ((slot, old_slot), (PROFILE, bytes(profile))):
-            (staging / name).write_bytes(data)
-            if (staging / name).stat().st_size != len(data):
+            (staging / 'save' / name).write_bytes(data)
+            if (staging / 'save' / name).stat().st_size != len(data):
                 raise OSError(f'{name} was not written completely')
-        for name in (slot, PROFILE):
-            os.chmod(target / name, 0o666)
-            os.replace(staging / name, target / name)
+        # The slot and the profile together: one without the other, and the Load Game menu shows another state
+        # of the character than its slot holds.
+        swap_in(user_dir, [(staging / 'save', target, False)])
     finally:
         shutil.rmtree(staging, ignore_errors=True)
     return before

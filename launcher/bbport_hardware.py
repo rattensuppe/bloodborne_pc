@@ -602,8 +602,7 @@ def assess(g, cpu, ram, tr=str):
             notes.append(tr('Settings for 4 GB cards: 720p/1080p, FSR 3.1 Performance, Model detail "As in the game", '
                             'Object motion vectors off, frame generation off, a 60 FPS cap.'))
         if g.vendor == 'intel':
-            notes.append(tr('Intel graphics: keep the upscaler off, stretched polygons can still appear with it on '
-                            '(known issue in 1.9.2).'))
+            notes.append(tr('Intel graphics: keep the upscaler off, stretched polygons can still appear with it on.'))
         if g.amd_driver_note:
             notes.append(tr('AMD driver 26.8.1: if the game crashes or shows broken graphics, clear the shader cache '
                             '(Help) or try another driver.'))
@@ -669,6 +668,9 @@ def low_end(rating):
 # (laptops, noise, power).
 GOALS = ('smooth', 'balanced', 'quiet')
 GOAL_FPS = {'smooth': 120, 'balanced': 60, 'quiet': 60}  # the performance test's frame rate goal
+# The upscalers of the FSR 4 family (4.0 and the 4.1 methods): they sharpen by themselves.
+FSR4_FAMILY = ('fsr4', 'fsr411', 'fsr412')
+SHARPEN_WITH_FSR4 = 'FSR 4 sharpens by itself: sharpening on top of it brings flaws along edges.'
 
 
 def step_preset(preset, steps):
@@ -681,7 +683,8 @@ def profile(rating, res, output, current=None, goal='smooth'):
     the requirements and the website's check, for the player's goal: [(store, key, value, why)].
 
     Taste stays the player's: chromatic aberration, depth of field, motion blur and sharpening are not touched,
-    screen-space reflections (not in the original) are only switched off when the card has no room
+    except sharpening with FSR 4, which sharpens by itself (RCAS on top of it left flaws along edges with
+    FSR 4.1.2), screen-space reflections (not in the original) are only switched off when the card has no room
     for them, and frame generation (input latency) is only switched off where it cannot work well.
     `current` ({key: value}) is what is set now, for those two."""
     # level: the frame rate to expect (frame rate cap, frame generation); picture: what the card can
@@ -708,6 +711,8 @@ def profile(rating, res, output, current=None, goal='smooth'):
     else:
         add('ini', 'upscaler', upscaler, {'dlss': 'DLSS on a GeForce RTX.', 'fsr4': 'FSR 4 on a Radeon RX 7000/9000.',
                                           'fsr3': 'FSR 3.1: FSR 4 is slow below the Radeon RX 7000/9000.'}[upscaler])
+        if upscaler == 'fsr4':
+            add('ini', 'sharpen', False, SHARPEN_WITH_FSR4)
     if four_gb:
         add('ini', 'preset', '3', 'The website\'s settings for 4 GB cards: Performance.')
     elif upscaler == 'off':
@@ -872,6 +877,5 @@ DRIVER_NOTES = ['DLSS needs a GeForce RTX 20 series or newer. DLSS Frame Generat
                 'FSR 4 is slow below Radeon RX 7000/9000; use FSR 3.1 there.',
                 'AMD driver 26.8.1: if an RX 6000/9000 crashes or shows broken graphics, clear the shader cache '
                 '(Help), or try another driver.',
-                'Intel graphics: stretched polygons can still appear with an upscaler on (known issue in 1.9.2), '
-                'so turn it off.',
+                'Intel graphics: stretched polygons can still appear with an upscaler on, so turn it off.',
                 'Overlays: if the game won’t start or keeps crashing, close MSI Afterburner, RTSS and other overlays.']

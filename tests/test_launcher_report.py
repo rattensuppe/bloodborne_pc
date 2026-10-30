@@ -152,7 +152,7 @@ class ToolHintTests(unittest.TestCase):
     with the Windows events handed in (BBTOOL_EVENTS) instead of this PC's."""
     LOG_TIME = datetime.datetime(2026, 10, 21, 16, 49)
 
-    def hints(self, log, events=(), settings=None):
+    def hints(self, log, events=(), settings=None, version='1.9.4'):
         """hints.txt for this last_run.log; events: (Windows event id, seconds after the log's time) of bb-probe.exe."""
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
@@ -171,7 +171,7 @@ class ToolHintTests(unittest.TestCase):
              'Properties': [{'Value': 'bb-probe.exe'}]} for number, seconds in events]), encoding='utf-8')
         (root / 'out').mkdir()
         env = {**os.environ, 'BBTOOL': str(ROOT / 'packaging' / 'windows' / 'BB-Report-Tool.bat'),
-               'BBTOOL_PORT': str(port), 'BBTOOL_SETTINGS': str(root / 'settings.json'), 'BBTOOL_VERSION': '1.9.4',
+               'BBTOOL_PORT': str(port), 'BBTOOL_SETTINGS': str(root / 'settings.json'), 'BBTOOL_VERSION': version,
                'BBTOOL_OUT': str(root / 'out'), 'BBTOOL_EVENTS': str(root / 'events.json'),
                'TEMP': str(root), 'TMP': str(root)}
         subprocess.run(['powershell', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command',
@@ -206,6 +206,42 @@ class ToolHintTests(unittest.TestCase):
         self.assertIn('Two-stage GPU pipeline is Off here: if that did not stop the freezes, set it back to Auto',
                       hints)
         self.assertNotIn('Test Advanced > Two-stage', hints)
+
+    # Online without an account (R67, 30.10.2026): the game's online check, then no sign-in.
+    SIGNED_OUT_RUN = NORMAL_RUN + '\n'.join([
+        'GPU [Lib.NpManager] <Warning> np_manager.cpp:450 sceNpPollAsync: called req_id = 0x20000001, returning result = 0x0',
+        'GPU [Lib.NpManager] <Warning> np_manager.cpp:450 sceNpPollAsync: called req_id = 0x20000003, returning result = 0x0',
+        'Runtime: Quit to Desktop']) + '\n'
+
+    def test_online_without_a_supermedo_account_says_sign_in(self):
+        hints = self.hints(self.SIGNED_OUT_RUN, settings={'online': True, 'online_pool': 'supermedo'}, version='1.9.6')
+        self.assertIn("Online is on, but the launcher is not signed in to SuperMedo Server, so the game can't play "
+                      "online", hints)
+        self.assertIn('The log shows it: the game never signed in.', hints)
+        self.assertIn('Sign in with Discord, or New SuperMedo account', hints)
+
+    def test_a_signed_in_account_gets_no_sign_in_hint(self):
+        settings = {'online': True, 'online_pool': 'supermedo', 'supermedo_npid': 'hunter', 'supermedo_pass': 'x'}
+        hints = self.hints(NORMAL_RUN, settings=settings, version='1.9.6')
+        self.assertNotIn('not signed in', hints)
+        self.assertNotIn('hunter', hints)  # the account name never reaches the report
+
+    def test_the_hunters_dream_without_its_sign_in(self):
+        hints = self.hints(NORMAL_RUN, settings={'online': True, 'online_pool': 'huntersdream'}, version='1.9.6')
+        self.assertIn("not signed in to The Hunter's Dream", hints)
+        self.assertNotIn('The log shows it', hints)  # this log never reached the online check
+
+    def test_offline_or_old_ports_get_no_sign_in_hint(self):
+        self.assertNotIn('not signed in', self.hints(NORMAL_RUN, settings={'online': False}, version='1.9.6'))
+        self.assertNotIn('not signed in', self.hints(NORMAL_RUN, settings={'online': True}, version='1.9.4'))
+
+    def test_server_drops_are_the_servers(self):
+        drop = ('GPU [ShadNet] <Warning> client.cpp:241 ReaderThread: Reader header recv failed (recv 0, error 0), '
+                'disconnecting\nGPU [NpHandler] <Warning> np_handler.cpp:550 TryReconnect: user_id=1 reconnected to '
+                'shadNet before the game noticed\n')
+        hints = self.hints(NORMAL_RUN + drop * 5, version='1.9.6')
+        self.assertIn('the server closed the co-op connection 5 times during this game', hints)
+        self.assertNotIn('co-op connection', self.hints(NORMAL_RUN + drop * 2, version='1.9.6'))
 
 
 if __name__ == '__main__':

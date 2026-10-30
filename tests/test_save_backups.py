@@ -3,6 +3,7 @@ import importlib.util
 from pathlib import Path
 import tempfile
 import unittest
+from unittest import mock
 
 spec = importlib.util.spec_from_file_location('bbport_run', ROOT / 'run.py')
 run = importlib.util.module_from_spec(spec)
@@ -34,6 +35,27 @@ class SaveBackupTests(unittest.TestCase):
             (user / 'savedata/1/x/userdata0000').write_bytes(b'one')
             (user / 'save-backups').write_text('a file where the folder goes')
             self.assertIsNone(run.backup_saves(user))
+
+    def test_a_copy_cut_off_leaves_nothing_behind(self):
+        """A full drive halfway through the copy left a part that counted among the kept copies and pushed a whole
+        one out at the next start."""
+        with tempfile.TemporaryDirectory() as temp:
+            user = Path(temp)
+            save = user / 'savedata/1/CUSA00207/SPRJ0005'
+            save.mkdir(parents=True)
+            (save / 'userdata0000').write_bytes(b'one')
+            for step in range(3):
+                run.backup_saves(user, keep=3, now=1_000_000 + step * 60)
+            before = sorted(p.name for p in (user / 'save-backups').iterdir())
+
+            def cut_off(source, target):
+                (Path(target) / '1').mkdir(parents=True)
+                (Path(target) / '1' / 'userdata0000').write_bytes(b'o')
+                raise OSError(28, 'No space left on device')
+            with mock.patch.object(run.shutil, 'copytree', side_effect=cut_off):
+                self.assertIsNone(run.backup_saves(user, keep=3, now=1_000_000 + 600))
+            self.assertEqual(sorted(p.name for p in (user / 'save-backups').iterdir()), before)
+            self.assertEqual(len(before), 3)
 
 
 class WritableSaveTests(unittest.TestCase):

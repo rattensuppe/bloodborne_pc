@@ -213,6 +213,30 @@ class LiveTests(unittest.TestCase):
         self.assertNotIn(self.L._('Server address'), shown)
         self.assertTrue([t for t in shown if t.startswith(self.L._('SuperMedo Server'))])
 
+    def test_sign_out_only_while_signed_in(self):
+        """The Online page's Sign out was clickable with nobody signed in to SuperMedo Server: greyed out then, and
+        usable once a sign-in filled the account."""
+        self.app.show('online')
+        self.pump(0.3)
+        button, = [w for w in self.widgets(self.app.pages['online'])
+                   if w.winfo_class() == 'TButton' and str(w.cget('text')) == self.L._('Sign out')]
+        npid, password = self.app.var('supermedo_npid', 'app'), self.app.var('supermedo_pass', 'app')
+        saved = npid.get(), password.get()
+        try:
+            npid.set('')
+            password.set('')
+            self.assertTrue(button.instate(['disabled']))
+            npid.set('Hunter')  # a name alone is no account to sign in with
+            self.assertTrue(button.instate(['disabled']))
+            password.set('secret')  # what "Sign in with Discord" and "Create account" set
+            self.assertFalse(button.instate(['disabled']))
+            button.invoke()
+            self.assertEqual((npid.get(), password.get()), ('', ''))
+            self.assertTrue(button.instate(['disabled']))
+        finally:
+            npid.set(saved[0])
+            password.set(saved[1])
+
     def test_the_update_notice_shows(self):
         self.app.offer_update('99.0', 'https://example.invalid/update.zip', 'https://example.invalid/')
         self.pump(0.3)

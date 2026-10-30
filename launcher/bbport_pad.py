@@ -120,16 +120,28 @@ class PadMixin:
         self.pad_picture.pack(side='left')
         side = tk.Frame(card, bg=L.CARD)
         side.pack(side='left', fill='x', expand=True, padx=(px(26), 0))
-        self.pad_status = tk.Label(side, text='', bg=L.CARD, fg=L.TEXT, font=(theme.BODY_SEMI, 11), anchor='w',
-                                   justify='left', wraplength=px(320))
-        self.pad_status.pack(anchor='w')
-        self.pad_note = tk.Label(side, text=_('Press the buttons: what lights up here reaches the game.'), bg=L.CARD,
-                                 fg=L.MUTED, font=(theme.BODY, 9), justify='left', anchor='w', wraplength=px(320))
-        self.pad_note.pack(anchor='w', pady=(px(8), 0))
+        self.pad_status = self.wrap_within(tk.Label(side, text='', bg=L.CARD, fg=L.TEXT, font=(theme.BODY_SEMI, 11),
+                                                    anchor='w', justify='left'), 320)
+        self.pad_status.pack(fill='x')
+        self.pad_note = self.wrap_within(tk.Label(side, text=_('Press the buttons: what lights up here reaches the '
+                                                                'game.'), bg=L.CARD, fg=L.MUTED, font=(theme.BODY, 9),
+                                                  justify='left', anchor='w'), 320)
+        self.pad_note.pack(fill='x', pady=(px(8), 0))
         help_link = tk.Label(side, text=_('The controller does nothing') + '  ›', bg=L.CARD, fg=L.GOLD,
                              font=(theme.BODY_MEDIUM, 9), cursor='hand2')
         help_link.pack(anchor='w', pady=(px(14), 0))
         help_link.bind('<Button-1>', lambda _e: self.open_topic('controller'))
+
+        # The text beside the picture, or under it where the card has no room for it there: at 1000 points it
+        # got about 120 pixels beside the 480 of the picture and was cut off at the card's edge.
+        def arrange(event):
+            below = event.width - 2 * px(22) < self.pad_picture.winfo_reqwidth() + px(26) + px(240)
+            if below != getattr(card, 'below', None):
+                card.below = below
+                self.pad_picture.pack_configure(side='top' if below else 'left')
+                side.pack_configure(side='top' if below else 'left', padx=(0 if below else px(26), 0),
+                                    pady=(px(12) if below else 0, 0))
+        card.bind('<Configure>', arrange, add='+')
         self.pad_reader, self.pad_job, self.pad_shown, self.pad_kind = None, None, None, 'playstation'
         self.pad_draw(None)
         return card

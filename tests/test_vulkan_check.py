@@ -14,9 +14,15 @@ RENDERER = ROOT / 'gpu' / 'shadps4' / 'video_core' / 'renderer_vulkan'
 V12, V13, V14 = (1 << 22) | (2 << 12), V.API, (1 << 22) | (4 << 12)
 
 
-def card(name='Card', api=V13, kind=V.DISCRETE, memory=8 << 30, extensions=V.REQUIRED_EXTENSIONS, features=None):
+def card(name='Card', api=V13, kind=V.DISCRETE, memory=8 << 30, extensions=V.REQUIRED_EXTENSIONS, features=None,
+         vendor=None, device_id=None):
     return {'name': name, 'api': api, 'type': kind, 'memory': memory, 'extensions': set(extensions),
-            'features': dict.fromkeys(V.REQUIRED_FEATURES, True) if features is None else features}
+            'features': dict.fromkeys(V.REQUIRED_FEATURES, True) if features is None else features,
+            'vendor': vendor, 'device_id': device_id}
+
+
+def adapter(name, vendor, device_id, memory=512 << 20):
+    return {'name': name, 'vendor': vendor, 'device_id': device_id, 'memory': memory}
 
 
 class RendererListTests(unittest.TestCase):
@@ -79,6 +85,82 @@ class VerdictTests(unittest.TestCase):
         self.assertEqual(V.evaluate(V13, laptop, '7')['problem'], 'devices')
 
 
+class UnseenCardTests(unittest.TestCase):
+    """A card Windows has and Vulkan does not list: a player's RTX 5070 Ti was in Windows' list, but the game ran
+    on the processor's AMD Radeon(TM) Graphics ("DLSS: unavailable (not an NVIDIA GPU)"), 30 October 2026."""
+    RTX = adapter('NVIDIA GeForce RTX 5070 Ti', 0x10DE, 0x2C05, 16 << 30)
+    APU = adapter('AMD Radeon(TM) Graphics', 0x1002, 0x13C0)
+
+    def test_the_game_on_the_processors_graphics(self):
+        apu = card('AMD Radeon(TM) Graphics', kind=1, memory=2 << 30, vendor=0x1002, device_id=0x13C0)
+        result = V.evaluate(V13, [apu], adapters=[self.RTX, self.APU])
+        self.assertTrue(result['ok'])  # it starts, on the slower one
+        self.assertEqual(result['unseen'], ['NVIDIA GeForce RTX 5070 Ti'])
+
+    def test_no_card_at_all(self):
+        result = V.evaluate(V13, [], adapters=[self.RTX])
+        self.assertEqual((result['problem'], result['unseen']), ('devices', ['NVIDIA GeForce RTX 5070 Ti']))
+
+    def test_a_working_discrete_card_is_enough(self):
+        rtx = card('NVIDIA GeForce RTX 5070 Ti', vendor=0x10DE, device_id=0x2C05)
+        # The processor's graphics without a Vulkan driver does not matter while the GeForce runs the game.
+        self.assertEqual(V.evaluate(V13, [rtx], adapters=[self.RTX, self.APU])['unseen'], [])
+
+    def test_a_card_vulkan_lists_is_seen(self):
+        old = card('NVIDIA GeForce GTX 760', api=V12, vendor=0x10DE, device_id=0x1187)
+        result = V.evaluate(V13, [old], adapters=[adapter('NVIDIA GeForce GTX 760', 0x10DE, 0x1187)])
+        self.assertEqual((result['problem'], result['unseen']), ('device', []))  # too old, not unseen
+        # Without ids (the tests' cards), by name.
+        self.assertEqual(V.evaluate(V13, [card('NVIDIA GeForce RTX 5070 Ti', kind=1)], adapters=[self.RTX])['unseen'],
+                         [])
+
+    def test_only_graphics_card_makers(self):
+        apu = card('AMD Radeon(TM) Graphics', kind=1, vendor=0x1002, device_id=0x13C0)
+        virtual = [adapter('Parsec Virtual Display Adapter', 0x1AB8, 0x0101),
+                   adapter('Microsoft Remote Display Adapter', 0x1414, 0x008C),
+                   adapter('DisplayLink USB Device', 0x17E9, 0x4300)]
+        self.assertEqual(V.evaluate(V13, [apu], adapters=virtual)['unseen'], [])
+
+    def test_a_card_its_driver_holds_back(self):
+        # R29: a GTX 1060 with Vulkan 1.2 from an old driver; the game picks the Vega, which has 1.3.
+        gtx = card('NVIDIA GeForce GTX 1060 6GB', api=V12, vendor=0x10DE, device_id=0x1C03, memory=6 << 30)
+        vega = card('AMD Radeon(TM) Vega 8 Graphics', kind=1, vendor=0x1002, device_id=0x15DD, memory=2 << 30)
+        result = V.evaluate(V13, [gtx, vega])
+        self.assertEqual(result['device']['name'], 'AMD Radeon(TM) Vega 8 Graphics')
+        self.assertEqual(result['held_back'], [{'name': 'NVIDIA GeForce GTX 1060 6GB',
+                                                'missing': ['Vulkan 1.3 (1.2.0)']}])
+        self.assertEqual(result['unseen'], [])  # Vulkan sees it
+        # The game on a discrete card: nothing held back to say.
+        self.assertNotIn('held_back', V.evaluate(V13, [card('GeForce RTX 3060'), vega]))
+        self.assertEqual(V.evaluate(V13, [vega])['held_back'], [])
+
+    def test_no_driver_at_all_is_said_otherwise(self):
+        self.assertEqual(V.evaluate(None, [], adapters=[self.RTX])['unseen'], [])  # 'loader' names the fix
+
+
+class RunLogTests(unittest.TestCase):
+    """run.py names the loader's variables that hide graphics drivers in the game's log."""
+
+    def test_the_variables_that_hide_drivers(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location('bbport_run_vulkan', ROOT / 'run.py')
+        run = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(run)
+        self.assertIsNone(run.vulkan_driver_note({'PATH': 'x', 'VK_INSTANCE_LAYERS': 'y'}))
+        self.assertEqual(run.vulkan_driver_note({'VK_ICD_FILENAMES': r'C:\amd\amd-vulkan64.json',
+                                                 'VK_LOADER_DRIVERS_DISABLE': '*nvidia*'}),
+                         r'Vulkan: the drivers it loads are limited by VK_ICD_FILENAMES=C:\amd\amd-vulkan64.json; '
+                         'VK_LOADER_DRIVERS_DISABLE=*nvidia*')
+        source = (ROOT / 'run.py').read_text(encoding='utf-8')
+        self.assertLess(source.index('note = vulkan_driver_note(env)'),
+                        source.index('probe = Path('))  # before anything can stop the start
+        sys.path.insert(0, str(ROOT / 'launcher'))
+        import bbport_help
+        line = run.vulkan_driver_note({'VK_DRIVER_FILES': 'x.json'})
+        self.assertEqual([topic for pattern, topic in bbport_help.LOG_HINTS if re.search(pattern, line)],
+                         ['gpu_unseen'])
+
+
 class LauncherTests(unittest.TestCase):
     """How the launcher reads the answer (bbport_launcher_win.vulkan_verdict)."""
 
@@ -106,6 +188,16 @@ class ThisPcTests(unittest.TestCase):
         verdict = json.loads(result.stdout)
         self.assertEqual(result.returncode, 0 if verdict['ok'] else 2)
         self.assertIn(verdict['problem'], (None, 'loader', 'loader_version', 'devices', 'device'))
+        self.assertIsInstance(verdict['unseen'], list)
+
+    @unittest.skipUnless(sys.platform == 'win32', "Windows' own list of cards")
+    def test_windows_lists_its_cards(self):
+        adapters = V.windows_adapters()
+        self.assertNotIn('Microsoft Basic Render Driver', [a['name'] for a in adapters])  # its software renderer
+        _loader, devices = V.query()
+        # Every card Vulkan lists here is one Windows has: the same ids.
+        self.assertTrue({(d['vendor'], d['device_id']) for d in devices if d['type'] != V.CPU}
+                        <= {(a['vendor'], a['device_id']) for a in adapters})
 
 
 if __name__ == '__main__':
