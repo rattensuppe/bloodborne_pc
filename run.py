@@ -21,13 +21,6 @@ import time
 PORT = Path(__file__).resolve().parent
 
 
-def prepare_driver_environment(env):
-    """The direct/frozen runner needs the same automatic driver lookup as the GUI."""
-    sys.path.insert(0, str(PORT / 'launcher'))
-    import bbport_driver_runtime
-    return bbport_driver_runtime.configure_environment(env)
-
-
 # Co-op: the community service that answers Bloodborne's own game-server requests
 # (messages, bloodstains, sign-in); summon requests go to the shadNet server instead.
 COMMUNITY_SERVER = 'https://game.supermedo.com'
@@ -550,7 +543,9 @@ def main():
     note = files_note(PORT)
     if note:
         print(note)
-    prepare_driver_environment(env)
+    # Internal-driver overrides belonged to the old prototype, not the public SDK.
+    env.pop('BB_TEST_AMD_VK_RUNTIME', None)
+    env.pop('BB_TEST_AMD_DX_RUNTIME', None)
     data = Path(env.get('BB_DATA_DIR', PORT))
     out = data / 'out'
     out.mkdir(parents=True, exist_ok=True)

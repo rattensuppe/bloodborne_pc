@@ -74,35 +74,23 @@ class ReadinessTests(unittest.TestCase):
                 self.assertEqual((values['upscaler'],values['fsr411_backend']),('fsr412','vk'))
                 self.assertEqual(path.read_bytes(),before)
 
-    def test_runtime_environment_shared_initialization_and_overrides(self):
-        with patch.object(runtime,'discover',return_value={'vulkan':'new-vk.dll','dx12':'new-dx.dll'}):
-            env={'BB_TEST_AMD_VK_RUNTIME':'explicit.dll','unrelated':'keep'}
-            runtime.configure_environment(env)
-            self.assertEqual(env['BB_TEST_AMD_VK_RUNTIME'],'explicit.dll')
-            self.assertEqual(env['BB_TEST_AMD_DX_RUNTIME'],'new-dx.dll')
-            runtime.configure_environment(env,replace=True)
-            self.assertEqual(env['BB_TEST_AMD_VK_RUNTIME'],'new-vk.dll')
-            self.assertEqual(env['unrelated'],'keep')
-        with patch.object(runtime,'discover',return_value={}):
-            runtime.configure_environment(env,replace=True)
-        self.assertNotIn('BB_TEST_AMD_VK_RUNTIME',env)
-        self.assertNotIn('BB_TEST_AMD_DX_RUNTIME',env)
-
-    def test_direct_run_initializes_driver_environment_before_executable_lookup(self):
+    def test_direct_run_removes_legacy_overrides_without_driver_discovery(self):
         spec=importlib.util.spec_from_file_location('run_readiness',ROOT/'run.py')
         runner=importlib.util.module_from_spec(spec);spec.loader.exec_module(runner)
         cwd=Path.cwd()
         try:
             with tempfile.TemporaryDirectory() as temp, patch.object(runner,'PORT',Path(temp)), \
-                 patch.object(runner.sys,'argv',['run.py']), patch.dict(os.environ,{},clear=True), \
-                 patch.object(runtime,'discover',return_value={'vulkan':'found-vk.dll','dx12':'found-dx.dll'}), \
+                 patch.object(runner.sys,'argv',['run.py']), \
+                 patch.dict(os.environ,{'BB_TEST_AMD_VK_RUNTIME':'old.dll','BB_TEST_AMD_DX_RUNTIME':'old.dll','unrelated':'keep'},clear=True), \
+                 patch.object(runtime,'discover',side_effect=AssertionError('runner must not discover internal drivers')), \
                  patch.object(runner,'refresh_shared_graphics'), \
                  patch.object(runner,'hold_game_mutex',return_value=True), \
                  patch.object(runner,'find_executable',return_value=None):
                 try:
                     with self.assertRaises(SystemExit): runner.main()
-                    self.assertEqual(os.environ['BB_TEST_AMD_VK_RUNTIME'],'found-vk.dll')
-                    self.assertEqual(os.environ['BB_TEST_AMD_DX_RUNTIME'],'found-dx.dll')
+                    self.assertNotIn('BB_TEST_AMD_VK_RUNTIME',os.environ)
+                    self.assertNotIn('BB_TEST_AMD_DX_RUNTIME',os.environ)
+                    self.assertEqual(os.environ['unrelated'],'keep')
                 finally:
                     os.chdir(cwd)
         finally:

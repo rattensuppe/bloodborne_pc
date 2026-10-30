@@ -483,15 +483,6 @@ target_include_directories(shared-graphics-test PRIVATE shim)
 target_compile_options(shared-graphics-test PRIVATE -UNDEBUG)
 
 if (WIN32)
-    add_library(fsr-driver-fixture SHARED EXCLUDE_FROM_ALL ../tests/test_fsr_driver_fixture.cpp)
-    target_include_directories(fsr-driver-fixture PRIVATE fsr411_dx12 fsr411_dx12/sdk/api/include)
-    add_library(fsr-driver-invalid-fixture SHARED EXCLUDE_FROM_ALL ../tests/test_fsr_driver_invalid.c)
-    target_link_options(fsr-driver-invalid-fixture PRIVATE -nostdlib -Wl,--entry,DllMain)
-    add_executable(fsr-driver-test EXCLUDE_FROM_ALL ../tests/test_fsr_driver.cpp)
-    target_include_directories(fsr-driver-test PRIVATE shim fsr411_dx12 fsr411_dx12/sdk/api/include)
-    target_compile_options(fsr-driver-test PRIVATE -UNDEBUG)
-    target_link_libraries(fsr-driver-test PRIVATE bcrypt)
-    add_dependencies(fsr-driver-test fsr-driver-fixture fsr-driver-invalid-fixture)
     add_executable(shared-graphics-overlay-test EXCLUDE_FROM_ALL ../tests/test_shared_graphics_overlay.cpp
         ${BB_RUNTIME} ../src/compat_win.c)
     target_include_directories(shared-graphics-overlay-test PRIVATE .. ../src shim shadps4
