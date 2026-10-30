@@ -5,8 +5,7 @@
 > [SDK-based FSR 4.1.2 upscaling](docs/FSR24_UPSCALING.md) and
 > [ML-FG 4.0.2](docs/SDK24_ML_FG.md). FSR 4.1.1 and ML-FG 4.0.1 remain selectable.
 > Device-feature setup, safe late cache reads, support-query reuse and preserved
-> selections on runtime fallback are included. Build, CPU/package checks and
-> 56 isolated GPU functional cases passed. SDK Vulkan has
+> selections on runtime fallback are included. SDK Vulkan has
 > [open shader-validation findings](docs/FSR24_UPSCALING.md#local-validation-findings-october-30-2026);
 > gameplay image quality and performance need a fresh comparison.
 > **[Published Windows 1.9.6 prototype.3 ZIP](https://github.com/rattensuppe/bloodborne_pc/releases/download/v1.9.6-sdk24-prototype.3/Bloodborne-Windows-1.9.6-SDK24-FSR412-FGML402-prototype.3.zip)** · [Release notes](https://github.com/rattensuppe/bloodborne_pc/releases/tag/v1.9.6-sdk24-prototype.3)
@@ -15,6 +14,7 @@
 > The source includes the RX 6000 bounded-SSBO fix. Windows 1.9.7 profiles recommend
 > disabling additional sharpening with FSR 4; explicit settings and the optimized
 > sharpening path remain available.
+> The motion-vector debug view also supports scaled SDR output at WQHD/4K.
 
 <a href="https://trendshift.io/repositories/306163?utm_source=trendshift-badge&amp;utm_medium=badge&amp;utm_campaign=badge-trendshift-306163" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/306163/daily?language=C%2B%2B" alt="Supermedo%2Funcharted_pc | Trendshift" width="250" height="55"/></a>
 

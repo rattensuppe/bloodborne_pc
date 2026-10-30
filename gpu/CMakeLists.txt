@@ -120,6 +120,7 @@ add_host_shader(fsr.comp fsr_rcas_comp SAMPLE_RCAS=1)
 add_host_shader(post_process.frag post_process_frag)
 add_host_shader(camera_motion.comp camera_motion_comp)
 add_host_shader(upscale_merge.comp upscale_merge_comp)
+add_host_shader(upscale_motion_debug.comp upscale_motion_debug_comp)
 add_host_shader(upscale_reactive.comp upscale_reactive_comp)
 add_host_shader(fsr4vk_prepare.comp fsr4vk_prepare_comp)
 add_host_shader(test_fsr411_consume.comp test_fsr411_consume_comp)
@@ -548,3 +549,15 @@ endforeach()
 
 add_executable(motion-storage-test EXCLUDE_FROM_ALL ../tests/test_motion_storage.cpp)
 target_include_directories(motion-storage-test PRIVATE shadps4)
+
+if (WIN32)
+    add_executable(scaled-motion-debug-test EXCLUDE_FROM_ALL ../tests/test_scaled_motion_debug.cpp
+        ${BB_RUNTIME} ../src/compat_win.c)
+    target_include_directories(scaled-motion-debug-test PRIVATE .. ../src shim shadps4 ${SHADER_INCLUDE})
+    target_link_libraries(scaled-motion-debug-test PRIVATE bbgpu atrac9 onecore bcrypt ws2_32 -pthread)
+else()
+    add_executable(scaled-motion-debug-test EXCLUDE_FROM_ALL ../tests/test_scaled_motion_debug.cpp
+        ../tests/test_gpu_runtime_stubs.cpp)
+    target_include_directories(scaled-motion-debug-test PRIVATE .. shim shadps4 ${SHADER_INCLUDE})
+    target_link_libraries(scaled-motion-debug-test PRIVATE bbgpu)
+endif()
