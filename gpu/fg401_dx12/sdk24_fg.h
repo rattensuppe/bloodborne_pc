@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #pragma once
 #include <windows.h>
+#include <cstdio>
+#include <cstdlib>
 #include <filesystem>
 #include <mutex>
 #include <stdexcept>
@@ -31,6 +33,35 @@ inline std::filesystem::path Directory() {
     return std::filesystem::path(path).parent_path() / L"fsr24";
 }
 struct Api { HMODULE module{}; ffxFunctions functions{}; std::filesystem::path path; };
+inline bool DebugChecking() {
+    const char* value=std::getenv("BB_FSR24_DEBUG");
+    return value && std::string_view(value)=="1";
+}
+inline void Message(uint32_t type, const wchar_t* message) {
+    if (message) std::printf("FSR SDK 2.4 FG message %u: %ls\n",type,message);
+}
+inline void ConfigureDiagnostics(const Api& api, ffxCreateContextDescFrameGeneration& create) {
+    if (DebugChecking()) create.flags |= FFX_FRAMEGENERATION_ENABLE_DEBUG_CHECKING;
+    ffxConfigureDescGlobalDebug debug{};
+    debug.header.type=FFX_API_CONFIGURE_DESC_TYPE_GLOBALDEBUG;
+    debug.effectId=FFX_API_EFFECT_ID_FRAMEGENERATION;
+    debug.fpMessage=&Message;
+    debug.debugLevel=FFX_API_CONFIGURE_GLOBALDEBUG_LEVEL_ERRORS|FFX_API_CONFIGURE_GLOBALDEBUG_LEVEL_WARNINGS;
+    const auto rc=api.functions.Configure(nullptr,&debug.header);
+    if (rc!=FFX_API_RETURN_OK)
+        std::printf("FSR SDK 2.4 FG diagnostics unavailable: code=%u\n",unsigned(rc));
+}
+inline void LogMemory(const Api& api, ffxContext* context) {
+    FfxApiEffectMemoryUsage memory{};
+    ffxQueryDescFrameGenerationGetGPUMemoryUsage query{};
+    query.header.type=FFX_API_QUERY_DESC_TYPE_FRAMEGENERATION_GPU_MEMORY_USAGE;
+    query.gpuMemoryUsageFrameGeneration=&memory;
+    const auto rc=api.functions.Query(context,&query.header);
+    if (rc==FFX_API_RETURN_OK)
+        std::printf("ML-FG 4.0.2 SDK memory: total=%llu bytes, aliasable=%llu bytes\n",
+            static_cast<unsigned long long>(memory.totalUsageInBytes),static_cast<unsigned long long>(memory.aliasableUsageInBytes));
+    else std::printf("ML-FG 4.0.2 SDK memory query unavailable: code=%u\n",unsigned(rc));
+}
 inline const Api& Runtime() {
     static Api api;
     static std::mutex mutex;

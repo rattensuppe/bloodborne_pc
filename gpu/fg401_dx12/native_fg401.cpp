@@ -306,6 +306,7 @@ struct NativeFg401::Impl {
         create.displaySize = {config.output_width, config.output_height};
         create.maxRenderSize = {config.render_width, config.render_height};
         create.backBufferFormat = ApiFormat(DXGI_FORMAT(config.color_format));
+        if (use_sdk24) FgSdk24::ConfigureDiagnostics(*sdk24, create);
         const auto rc = ffx.CreateContext(&context, &create.header, nullptr);
         if (rc)
             throw std::runtime_error("FG context creation returned " + std::to_string(rc));
@@ -315,6 +316,7 @@ struct NativeFg401::Impl {
             throw std::runtime_error("FG context selected an unexpected provider");
         if (use_sdk24) {
             FgSdk24::Verify(*sdk24, &context, sdk_selected);
+            FgSdk24::LogMemory(*sdk24, &context);
             std::printf("AMD FG native: SDK 2.4 public API; runtime fsr24/amd_fidelityfx_framegeneration_dx12.dll\n");
         }
         std::printf("AMD FG native: ACTIVE %s, %ux%u output, %ux%u depth/motion\n",
