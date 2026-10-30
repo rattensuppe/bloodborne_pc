@@ -260,6 +260,7 @@ struct Fsr412Driver::Impl {
 Fsr412Driver::Fsr412Driver(const Instance&i,Scheduler&s):impl(std::make_unique<Impl>(i,s)){}
 Fsr412Driver::~Fsr412Driver()=default;
 bool Fsr412Driver::Record(Fsr4Upscaler::Frame&f){return impl->Record(f);}
+std::filesystem::path Fsr412Driver::RuntimeDirectory(){return FsrSdk24::Directory();}
 const std::string&Fsr412Driver::Error()const{return impl->error;}
 bool Fsr412Driver::Available(const Instance& instance, int* status) {
     const auto result = [status](int code) { if (status) *status=code; return code==0; };

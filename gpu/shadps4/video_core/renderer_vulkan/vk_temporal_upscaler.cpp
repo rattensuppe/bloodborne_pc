@@ -321,11 +321,13 @@ bool TemporalUpscaler::OnFrameStart() {
     const bool changed = output_changed || applied_preset != preset || active != last_active ||
                          jitter_on != last_jitter || retry || method_changed;
     if (retry) {
+        const bool refresh_support = applied_upscaler == upscaler &&
+            (applied_upscaler_request != request || fsr4_failed);
         // A failed provider keeps a fatal flag internally; a user retry gets a fresh context.
         scheduler.Finish();
         fsr4_failed = false;
         BbSettings::Get().fsr4_fallback_source = -1;
-        fsr4 = std::make_unique<Fsr4Upscaler>(instance, scheduler);
+        fsr4 = std::make_unique<Fsr4Upscaler>(instance, scheduler, refresh_support);
         if (UseFsr4()) BbSettings::Get().fsr4_problem = nullptr;
     }
     if (BbSettings::IsFsr4(upscaler) && !UseFsr4()) BbSettings::UpscalerFailure(upscaler);

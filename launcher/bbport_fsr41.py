@@ -3,6 +3,7 @@
 import bbport_lang
 import bbport_fsr411
 import bbport_fsr412
+import bbport_driver_runtime
 import bbport_lang_motion_cache as motion_cache
 from copy import deepcopy
 from datetime import datetime, timezone
@@ -12,8 +13,9 @@ def query(port, env=None, refresh=False):
     """Return one complete snapshot; provider results never enter the base-probe cache."""
     base = bbport_fsr411.query(port, env, refresh=refresh)
     result = deepcopy(base)
-    result['fsr412_vulkan'] = bbport_fsr412.query_vulkan(port, env=env, refresh=refresh)
-    result['fsr412_dx12'] = bbport_fsr412.query_dx12(port, env=env, refresh=refresh)
+    paths = bbport_driver_runtime.discover()
+    result['fsr412_vulkan'] = bbport_fsr412.query_vulkan(port, paths=paths, env=env, refresh=refresh)
+    result['fsr412_dx12'] = bbport_fsr412.query_dx12(port, paths=paths, env=env, refresh=refresh)
     result['checked_at'] = datetime.now(timezone.utc).isoformat(timespec='seconds')
     return result
 
