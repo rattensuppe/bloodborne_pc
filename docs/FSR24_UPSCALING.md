@@ -90,3 +90,23 @@ Cached image/view getters mark the scheduler tick of their actual read. This
 keeps an image alive if a provider context switch finishes the earlier command
 buffer before a later debug/capture read. The cache default, capacity and
 sharpening curve are unchanged.
+
+## Local validation findings, October 30, 2026
+
+On an RX 9070 with Adrenalin 26.10.1, isolated checks exercise all four methods,
+SDK checking, backend switches, repair/restart boundaries and delayed cache reads.
+These checks do not establish gameplay image quality or performance.
+
+Khronos validation layer 1.4.363 reports shader errors on the original SDK 2.4
+Vulkan path. A test-only interceptor recorded 30 actual SDK shader submissions
+and identified the calling, hash-pinned AMD effect DLL. Twelve modules failed
+standalone SPIR-V validation; fourteen declared `CooperativeMatrixConversionsNV`.
+The live validation also reports an internal `rw_reprojected_color` image write
+with three components against a four-component view. This is not a clean Vulkan
+validation pass. Shader bytes and models remain unchanged; no NV features are
+forced. These findings need investigation with AMD and Khronos before release
+approval.
+
+The two DX12 methods, fsr4vk and the tested late-read/deferred cache cases have
+no Vulkan validation errors after fixing a headless-only swapchain dependency.
+This statement concerns their Vulkan work, not D3D12 debug-layer validation.
