@@ -20,6 +20,7 @@ namespace Vulkan {
 
 class Instance;
 class Scheduler;
+struct MotionTargetDiagnostics;
 struct RenderState;
 
 class ObjectMotion {
@@ -110,6 +111,7 @@ private:
     std::deque<RetiredImage> retired_images;
     u64 retired_bytes{};
     bool cache_enabled = false; ///< opt-in, read once from BB_OBJECT_MOTION_CACHE
+    std::unique_ptr<MotionTargetDiagnostics> target_diagnostics;
 };
 
 } // namespace Vulkan

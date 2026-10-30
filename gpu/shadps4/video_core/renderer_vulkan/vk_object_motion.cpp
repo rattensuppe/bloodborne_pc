@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include "video_core/renderer_vulkan/vk_object_motion.h"
+#include "video_core/renderer_vulkan/motion_target_diagnostics.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -111,6 +112,10 @@ ObjectMotion::ObjectMotion(const Instance& instance_, Scheduler& scheduler_)
     enabled = true;
     const char* cache_setting = std::getenv("BB_OBJECT_MOTION_CACHE");
     cache_enabled = cache_setting && std::strcmp(cache_setting, "1") == 0;
+    const char* diagnostics = std::getenv("BB_OBJECT_MOTION_TARGET_DIAGNOSTICS");
+    if (diagnostics && std::strcmp(diagnostics, "1") == 0) {
+        target_diagnostics = std::make_unique<MotionTargetDiagnostics>();
+    }
     std::printf("Object motion: on (%u vertices per frame)\n", PositionsPerFrame);
     std::printf("Object motion: target cache %s (BB_OBJECT_MOTION_CACHE=0|1)\n",
                 cache_enabled ? "on" : "off");
@@ -133,6 +138,25 @@ void ObjectMotion::OnFrameStart() {
         return;
     }
     CollectRetiredImages();
+    if (target_diagnostics) {
+        auto& d = *target_diagnostics;
+        if (d.counts.frames == 120) {
+            const auto& c = d.counts;
+            std::printf("Motion target diagnostics: frames=%llu attachments=%llu clears=%llu "
+                        "reads=%llu valid=%llu size_mismatch=%llu earlier_matching_attachment=%llu "
+                        "untracked_sizes=%llu\n",
+                        static_cast<unsigned long long>(c.frames),
+                        static_cast<unsigned long long>(c.attachments),
+                        static_cast<unsigned long long>(c.clears),
+                        static_cast<unsigned long long>(c.reads),
+                        static_cast<unsigned long long>(c.valid_reads),
+                        static_cast<unsigned long long>(c.size_mismatches),
+                        static_cast<unsigned long long>(c.earlier_matching_attachment),
+                        static_cast<unsigned long long>(c.untracked_sizes));
+            d.counts = {};
+        }
+        d.BeginFrame();
+    }
     if (BbStats::enabled && (frame % 600) == 0 && history.stats.draws) {
         const auto& s = history.stats;
         std::printf("Object motion: %llu draws, %llu stored, %llu with history, %llu unmatched, "
@@ -374,6 +398,9 @@ void ObjectMotion::Attach(RenderState& state, u32 width, u32 height) {
         written = true;
     }
     state.num_color_attachments = std::max<u16>(state.num_color_attachments, slot + 1);
+    if (target_diagnostics) {
+        target_diagnostics->Attach(width, height, attachment.is_clear);
+    }
 }
 
 vk::ImageView ObjectMotion::View() noexcept {
@@ -394,6 +421,9 @@ vk::ImageView ObjectMotion::PrepareRead(vk::CommandBuffer cmdbuf, u32 width, u32
                                         bool& valid) {
     EnsureImage(std::max(image_width, 1u), std::max(image_height, 1u));
     valid = written && width == image_width && height == image_height;
+    if (target_diagnostics) {
+        target_diagnostics->Read(width, height, image_width, image_height, valid);
+    }
     const vk::ImageMemoryBarrier2 barrier{
         .srcStageMask = vk::PipelineStageFlagBits2::eAllCommands,
         .srcAccessMask = vk::AccessFlagBits2::eMemoryRead | vk::AccessFlagBits2::eMemoryWrite,
