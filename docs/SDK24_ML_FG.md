@@ -33,6 +33,14 @@ adapter matching and the existing memory/fence/queue checks. HDR still pauses
 FG. Missing 4.0.2 files do not disable 4.0.1. Unavailable or failed 4.0.2 uses
 the existing session fallback while retaining the saved selection.
 
+SDK 4.0.2 registers error/warning messages for the frame-generation effect.
+`BB_FSR24_DEBUG=1` additionally enables the SDK input checker; it remains off
+by default. A GPU-memory query runs once after each verified context creation.
+Its total/aliasable byte counts describe the SDK effect, not process VRAM or
+the external shared-texture bridge. Unsupported diagnostic configuration or
+memory queries are logged and do not disable FG. The legacy 4.0.1 path is
+unchanged. Keep the checker off for performance and image comparisons.
+
 Isolated checks cover exact provider identity, both module-loading orders,
 moving synthetic input, 1080p/4K output, serial and overlapping operation,
 repeated 401/402 changes, three in-flight slots, resets and error paths.

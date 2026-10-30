@@ -8,11 +8,20 @@ figures describe the SDK effect, not total process VRAM. An unsupported
 memory query is logged and does not disable upscaling.
 
 On AMD devices with the SDK Vulkan DLL present, device creation enables the
-advertised Cooperative Matrix and Float8 features plus `computeFullSubgroups`.
+advertised Cooperative Matrix and Float8 features plus `computeFullSubgroups`,
+variable pointers, the Vulkan memory model and partially bound descriptors.
+Each feature is enabled only when supported. Variable pointers require the
+storage-buffer feature; device-scope memory requires the Vulkan memory model.
 Float8 requires both Float8 feature bits and Cooperative Matrix support.
 Absent features remain disabled: they are optional accelerators, not a new
 RX-series restriction. Enabled bits are logged, without claiming which ML
 model the SDK uses. Vulkan validation and real GPU comparisons remain required.
+
+Restoring a missing Vulkan SDK DLL does not add features to an existing logical
+device. If device setup was skipped at startup, the overlay reports **Restart
+required** and preserves the selected method. Restart the game after repairing
+the package. Replacing a DLL already loaded into a process also needs a restart;
+retrying an effect does not unload that module.
 
 FSR runtime failure uses FSR 3.1 for the current session while retaining the
 selected FSR version/backend in `bbport.ini`. The counter reports the active
@@ -47,6 +56,17 @@ FSR 3 is never silently accepted as FSR 4.1.2. Missing package files, failed
 runtime loading and unavailable GPU/driver providers remain distinct failures.
 Launcher and overlay keep the four existing choices and saved preferences.
 
+Successful 4.1.2 support queries are reused within one logical Vulkan device.
+Methods have separate entries; runtime path, presence, size and modification
+time changes invalidate an entry. Failed checks are not retained. An explicit
+retry forces another query, and context creation still verifies the actual
+provider version and ID. The launcher takes one driver fingerprint per family
+snapshot; its results do not replace the checks in the game process.
+
+The Windows 4.1.2 methods and 4.1.1 DX12 always use automatic exposure. The
+overlay shows a disabled, checked control for them. It retains the saved
+exposure preference for methods that allow changing it.
+
 The upscaling API headers are scoped to its translation units. The separate
 [SDK ML-FG change](SDK24_ML_FG.md) retains the same upscaling code and adds the
 current FG runtime independently. FSR Lite and new pacing are not integrated.
@@ -55,3 +75,18 @@ For local comparisons retain the original 1.9.5+RCAS/cache build and use the
 same copied save, camera and settings. Isolated tests establish API operation,
 handoffs, switching and finite output; they do not establish movement quality,
 absence of ghosting, or a game-performance improvement.
+
+## Motion-target diagnostics
+
+`BB_OBJECT_MOTION_TARGET_DIAGNOSTICS=1` enables bounded CPU counters for object
+motion attachments, clears, valid reads and requested/active size mismatches.
+They are off by default and report every 120 frames. An earlier attachment
+with the requested size is a candidate for further investigation, not proof
+that useful vectors were drawn or that missing vectors caused ghosting.
+These counters do not change target selection or clear behavior. Do not use
+diagnostic runs as performance comparisons.
+
+Cached image/view getters mark the scheduler tick of their actual read. This
+keeps an image alive if a provider context switch finishes the earlier command
+buffer before a later debug/capture read. The cache default, capacity and
+sharpening curve are unchanged.
