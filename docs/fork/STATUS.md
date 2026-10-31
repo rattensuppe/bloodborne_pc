@@ -20,7 +20,7 @@ Reorganising the fork does not publish a new binary build.
 
 ## Integrated components and review topics
 
-Three topics have independent fork branches on official `b480526`.
+Four topics have independent fork branches on official `b480526`.
 The remaining names define the planned split. No new upstream PR is open.
 
 | Component | Planned topic | Implementation / readiness |
@@ -28,7 +28,7 @@ The remaining names define the planned split. No new upstream PR is open.
 | Frozen-launcher runtime and package checks | [`fix/launcher-runtime-checks`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/launcher-runtime-checks) | Prepared at [`b06b235`](https://github.com/rattensuppe/bloodborne_pc/commit/b06b235e6c7c49ebe69fdb1f24ce3acf331dbaa0); two focused commits, 34 Python tests and real frozen-runtime checks |
 | RX 6000 bounded object-motion SSBO | [`fix/rx6000-object-motion`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/rx6000-object-motion) | Prepared at [`24159ad`](https://github.com/rattensuppe/bloodborne_pc/commit/24159adbd3bed1704fc3d4d492286ab80e4f619e); native build/readbacks and standard ZIP checked on the original cache lifecycle |
 | Scaled SDR motion-vector view | [`fix/scaled-motion-view`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/scaled-motion-view) | Prepared at [`d926e6f`](https://github.com/rattensuppe/bloodborne_pc/commit/d926e6f5fc69aedbb8d3df22c03a62e0abedbe4d); standalone build, 20 pixel/alpha readbacks and standard ZIP checked |
-| Combined RCAS/output | `perf/fsr41-output` | Integrated; [math, rounding and checks](../FSR41_FUSED_OUTPUT.md); Vulkan and DX12 |
+| Combined RCAS/output | [`perf/fsr41-output`](https://github.com/rattensuppe/bloodborne_pc/tree/perf/fsr41-output) | Prepared at [`140b593`](https://github.com/rattensuppe/bloodborne_pc/commit/140b593035dcb297f2fdd8e68bba9e9dc36979a1); standalone build, 220 exact output comparisons and standard ZIP checked |
 | Motion-target LRU and deferred release | `perf/motion-target-cache` | Integrated; [cache and lifetime details](../OBJECT_MOTION_CACHE.md); include late image/view reads |
 | SDK 2.4 FSR 4.1.2 upscaling | `feat/fsr-sdk24-upscaling` | Integrated; [public API implementation](../FSR24_UPSCALING.md); Vulkan findings and current gameplay coverage remain open |
 | SDK 2.4 ML-FG 4.0.2 | `feat/mlfg-sdk24` | Integrated; [independent FG runtime](../SDK24_ML_FG.md); existing DX12 bridge, 2x SDR |
@@ -78,6 +78,24 @@ there is no new NVIDIA or gameplay test.
 See the [candidate's scope and validation notes](https://github.com/rattensuppe/bloodborne_pc/blob/d926e6f5fc69aedbb8d3df22c03a62e0abedbe4d/docs/SCALED_MOTION_VIEW.md).
 No SDK, SSBO, RCAS/cache optimisation or ghosting experiment is included in this
 independent topic. The combined integration runtime remains unchanged.
+
+### Standalone RCAS/output fusion
+
+The RCAS branch combines FSR 4.1 host sharpening and SDR output while preserving
+FP16 rounding. The original off/zero and other-format paths remain; providers,
+SDK, motion vectors, cache ownership and settings are unchanged. Three CPU tests
+pass. All 220 GPU comparisons match exactly, including fresh outputs of the four
+Vulkan/DX12 methods. The three existing shader variants compile byte-identically
+to the official base. Core/Synchronization validation is confirmed active in the
+standalone RCAS fixture, with no errors or hazards; the standard ZIP and actual
+frozen launcher also pass their checks.
+
+The [candidate's validation notes](https://github.com/rattensuppe/bloodborne_pc/blob/140b593035dcb297f2fdd8e68bba9e9dc36979a1/docs/FSR41_FUSED_OUTPUT.md)
+separate shader/provider-output tests from the complete in-game composition
+wrapper, HUD and FG, which were not run anew. The unrelated upstream overlay-test
+`runtime_restart` link failure remains documented and is not counted as a pass.
+No new gameplay benchmark or performance gain is claimed for this extracted
+branch. The combined integration runtime remains unchanged.
 
 ## Already upstream
 
