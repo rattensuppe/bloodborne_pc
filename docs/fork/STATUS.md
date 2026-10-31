@@ -20,14 +20,14 @@ Reorganising the fork does not publish a new binary build.
 
 ## Integrated components and review topics
 
-The first two topics have independent fork branches on official `b480526`.
+Three topics have independent fork branches on official `b480526`.
 The remaining names define the planned split. No new upstream PR is open.
 
 | Component | Planned topic | Implementation / readiness |
 | --- | --- | --- |
 | Frozen-launcher runtime and package checks | [`fix/launcher-runtime-checks`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/launcher-runtime-checks) | Prepared at [`b06b235`](https://github.com/rattensuppe/bloodborne_pc/commit/b06b235e6c7c49ebe69fdb1f24ce3acf331dbaa0); two focused commits, 34 Python tests and real frozen-runtime checks |
 | RX 6000 bounded object-motion SSBO | [`fix/rx6000-object-motion`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/rx6000-object-motion) | Prepared at [`24159ad`](https://github.com/rattensuppe/bloodborne_pc/commit/24159adbd3bed1704fc3d4d492286ab80e4f619e); native build/readbacks and standard ZIP checked on the original cache lifecycle |
-| Scaled SDR motion-vector view | `fix/scaled-motion-view` | Integrated; WQHD/4K pixel, alpha and resize checks passed; verify independent target lifetime |
+| Scaled SDR motion-vector view | [`fix/scaled-motion-view`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/scaled-motion-view) | Prepared at [`d926e6f`](https://github.com/rattensuppe/bloodborne_pc/commit/d926e6f5fc69aedbb8d3df22c03a62e0abedbe4d); standalone build, 20 pixel/alpha readbacks and standard ZIP checked |
 | Combined RCAS/output | `perf/fsr41-output` | Integrated; [math, rounding and checks](../FSR41_FUSED_OUTPUT.md); Vulkan and DX12 |
 | Motion-target LRU and deferred release | `perf/motion-target-cache` | Integrated; [cache and lifetime details](../OBJECT_MOTION_CACHE.md); include late image/view reads |
 | SDK 2.4 FSR 4.1.2 upscaling | `feat/fsr-sdk24-upscaling` | Integrated; [public API implementation](../FSR24_UPSCALING.md); Vulkan findings and current gameplay coverage remain open |
@@ -62,6 +62,22 @@ were reported. The combined branch already has a separate headless correction;
 it is not folded into the SSBO topic. A fresh RX 6000 gameplay run of the
 extracted branch is still useful; earlier combined-prototype feedback is
 identified separately in its notes.
+
+### Standalone scaled motion view
+
+The view branch keeps upstream sharpening, providers and target ownership
+unchanged. Its shader and visualization function match the combined prototype;
+the tests add smaller object targets and repeated output-size changes. Twenty
+pixel/alpha readbacks pass, including WQHD/4K, absent/mismatched targets and
+Native-AA/Performance sizes. Core and Synchronization checks are confirmed active;
+only the existing headless-device VUID described above is reported. The actual
+embedded SPIR-V validates, three relevant CPU tests pass, and the standard ZIP
+passes manifest/CRC and frozen-launcher checks. Cached DLSS files are retained;
+there is no new NVIDIA or gameplay test.
+
+See the [candidate's scope and validation notes](https://github.com/rattensuppe/bloodborne_pc/blob/d926e6f5fc69aedbb8d3df22c03a62e0abedbe4d/docs/SCALED_MOTION_VIEW.md).
+No SDK, SSBO, RCAS/cache optimisation or ghosting experiment is included in this
+independent topic. The combined integration runtime remains unchanged.
 
 ## Already upstream
 
@@ -105,7 +121,7 @@ native Vulkan FG, new presentation pacing and FSR Lite are separate topics.
 
 ## Next review steps
 
-1. Review the first two standalone diffs and their documented coverage before
+1. Review the prepared standalone diffs and their documented coverage before
    opening focused upstream PRs; preserve the headless and hardware limits.
 2. Extract the remaining topics with explicit shared foundations and document
    standalone checks separately from combined integration checks.
