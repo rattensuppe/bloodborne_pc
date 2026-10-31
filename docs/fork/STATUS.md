@@ -21,12 +21,14 @@ Reorganising the fork does not publish a new binary build.
 ## Integrated components and review topics
 
 All seven topics have independent fork branches based on official `b480526`.
-The SDK topics share the explicit foundation below. Five topic PRs are open:
+The SDK topics share the explicit foundation below. Five ready PRs and one
+SDK SR Draft are open:
 the first wave [#140](https://github.com/Supermedo/bloodborne_pc/pull/140) /
 [#141](https://github.com/Supermedo/bloodborne_pc/pull/141), followed by
 [#142](https://github.com/Supermedo/bloodborne_pc/pull/142),
 [#143](https://github.com/Supermedo/bloodborne_pc/pull/143) and
-[#144](https://github.com/Supermedo/bloodborne_pc/pull/144).
+[#144](https://github.com/Supermedo/bloodborne_pc/pull/144), plus
+[Draft #146](https://github.com/Supermedo/bloodborne_pc/pull/146).
 
 | Component | Topic | Implementation / readiness |
 | --- | --- | --- |
@@ -35,7 +37,7 @@ the first wave [#140](https://github.com/Supermedo/bloodborne_pc/pull/140) /
 | Scaled SDR motion-vector view | [`fix/scaled-motion-view`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/scaled-motion-view) | [PR #142 open](https://github.com/Supermedo/bloodborne_pc/pull/142) at [`d926e6f`](https://github.com/rattensuppe/bloodborne_pc/commit/d926e6f5fc69aedbb8d3df22c03a62e0abedbe4d); standalone build, 20 pixel/alpha readbacks and standard ZIP checked |
 | Combined RCAS/output | [`perf/fsr41-output`](https://github.com/rattensuppe/bloodborne_pc/tree/perf/fsr41-output) | [PR #143 open](https://github.com/Supermedo/bloodborne_pc/pull/143) at [`140b593`](https://github.com/rattensuppe/bloodborne_pc/commit/140b593035dcb297f2fdd8e68bba9e9dc36979a1); standalone build, 220 exact output comparisons and standard ZIP checked |
 | Motion-target LRU and deferred release | [`perf/motion-target-cache`](https://github.com/rattensuppe/bloodborne_pc/tree/perf/motion-target-cache) | [PR #144 open](https://github.com/Supermedo/bloodborne_pc/pull/144) at [`a1d32a4`](https://github.com/rattensuppe/bloodborne_pc/commit/a1d32a4571da89e96d6211b7dfaf91b0f7c1d8d6); three focused commits, 76 standalone GPU cases and standard ZIP checked |
-| SDK 2.4 FSR 4.1.2 upscaling | [`feat/fsr-sdk24-upscaling`](https://github.com/rattensuppe/bloodborne_pc/tree/feat/fsr-sdk24-upscaling) | Prepared at [`ba4dc22`](https://github.com/rattensuppe/bloodborne_pc/commit/ba4dc221419dd82b213b56271e7f6e2b6d6073ab); test-only overlay follow-up checked; shared foundation and SR-only package retained; original AMD Vulkan findings remain open |
+| SDK 2.4 FSR 4.1.2 upscaling | [`feat/fsr-sdk24-upscaling`](https://github.com/rattensuppe/bloodborne_pc/tree/feat/fsr-sdk24-upscaling) | [Draft PR #146](https://github.com/Supermedo/bloodborne_pc/pull/146) at [`ba4dc22`](https://github.com/rattensuppe/bloodborne_pc/commit/ba4dc221419dd82b213b56271e7f6e2b6d6073ab); shared foundation and SR-only package checked; original AMD Vulkan findings and current gameplay checks remain open |
 | SDK 2.4 ML-FG 4.0.2 | [`feat/mlfg-sdk24`](https://github.com/rattensuppe/bloodborne_pc/tree/feat/mlfg-sdk24) | Prepared at [`e2426a9`](https://github.com/rattensuppe/bloodborne_pc/commit/e2426a91b2ec7ef77842ef6981dbf6c5c3863ac4); independent FG effect, retained SR paths, bridge/stress and standard ZIP checked |
 
 SDK upscaling records a small common foundation at `238137e`: public headers,
@@ -149,8 +151,8 @@ Recorded Core/Synchronization validation and captured original AMD submissions
 reproduce the SDK Vulkan findings: 30 modules, 12 separate SPIR-V failures and
 14 `CooperativeMatrixConversionsNV` declarations. Both DX12 paths and fsr4vk have
 no Vulkan errors in these cases. This is not a clean overall SDK validation pass,
-D3D12 debug-layer result or new gameplay/performance evidence. Keep the planned
-SDK upstream submission a Draft while those review questions remain open.
+D3D12 debug-layer result or new gameplay/performance evidence. Keep SDK [PR #146](https://github.com/Supermedo/bloodborne_pc/pull/146)
+a Draft while those review questions remain open.
 
 Runner/readiness conflicts preserve current Windows diagnostics and exclude the
 obsolete driver ABI. Merge previews with launcher/cache are clean. Scaled-view,
@@ -174,8 +176,9 @@ A separate worktree preserves the earlier ZIP. Its fresh standard SR-only
 package and relocated actual frozen UI pass manifest/CRC/pins, 13 languages
 and independent real four-method support probes. The previous 31 GPU cases
 and original AMD findings are reused against identical runtime sources and
-SDK pins; no new GPU dispatch or gameplay test is claimed. No new SDK PR or
-release has been created. A concise local Draft description is prepared.
+SDK pins; no new GPU dispatch or gameplay test is claimed. The topic is now
+submitted as [Draft #146](https://github.com/Supermedo/bloodborne_pc/pull/146).
+No new binary release has been created.
 
 The foundation is reconfirmed: six public API headers, verified file fetching,
 license and nested manifests, plus the separate headless fix. Its manifest
@@ -238,7 +241,7 @@ for the RX6000 SSBO fix. Both target `windows` on `b480526` at the reviewed head
 All 33 existing open PRs were checked for overlap. Fresh checks passed 34
 launcher/TLS/package tests, five SSBO launcher guards, two CPU programs and
 frozen-runtime checks; the reviewed package hashes and sources are unchanged.
-SDK SR remains a Draft candidate; fresh current-build gameplay and native
+SDK SR is now submitted as Draft #146; fresh current-build gameplay and native
 build/package CI remain separate work items. See the matrix for per-topic limits.
 
 ### Second-wave submissions
@@ -258,7 +261,8 @@ test finding, original harness/mock limits and current gameplay boundaries.
 The SSBO/cache merge resolution remains explicit in #144 and the review matrix.
 
 The first wave is still open with no review feedback at this check. SDK topics
-remain separate and unsubmitted. All topic sources and the integration runtime,
+were unsubmitted at this second-wave check; SR was subsequently submitted as
+Draft #146 below. All topic sources and the integration runtime,
 personal installation and all existing releases are unchanged.
 
 ## Already upstream
@@ -272,6 +276,27 @@ personal installation and all existing releases are unchanged.
 
 Their historical head branches are retained. New PRs describe only the current
 delta against upstream, accounting for squash merges or equivalent patches.
+
+## SDK SR Draft submission
+
+[PR #146](https://github.com/Supermedo/bloodborne_pc/pull/146), **Use SDK 2.4 for
+FSR 4.1.2 Vulkan and DX12**, targets official `windows` at `b480526`. The exact
+description, five commits and 62-file delta at `ba4dc22` were read back after
+creation; GitHub reports a clean merge. It remains a Draft because the original
+AMD Vulkan conformance findings and current gameplay/composition checks are open.
+
+All 39 previously open PRs were checked for file overlap. The new launcher
+PR #145 concerns automatic settings for new installations; its launcher hunks
+apply cleanly to this SDK head and do not replace the SDK integration. Existing
+reviewed overlap resolutions are retained. The ten CPU programs pass again;
+the exact-head native build, 151 Python tests, 31 isolated runtime cases and
+standard ZIP/frozen checks are retained after source, pin and package verification.
+No new GPU dispatch, game or performance measurement is claimed.
+
+The shared foundation remains independently reviewable at `238137e`; its nested
+manifest change matches #140. SDK FG stays in its separate branch with its own
+current-game/presentation check pending. #140–#144, all topic heads, integration
+runtime, personal data and all 13 releases/assets are unchanged.
 
 ## Validation and remaining limits
 
@@ -303,12 +328,12 @@ native Vulkan FG, new presentation pacing and FSR Lite are separate topics.
 
 ## Next review steps
 
-1. Follow reviews of the five open topic PRs above; inspect the final upstream
+1. Follow reviews of the five ready PRs and SDK SR Draft above; inspect the final upstream
    content before updating the mirror or later topics.
 2. Follow the [review order and coverage limits](REVIEW.md); retain the tested
    merge resolutions when updating later topics.
 3. Keep SDK SR, SDK FG and shared/headless helpers independently reviewable;
-   retain the published SDK overlay-test follow-up in its eventual Draft PR.
+   keep SDK SR #146 in Draft while its conformance/gameplay checks remain open.
 4. Complete the applicable current-game checks and add reliable native
    build/package automation before making those CI checks mandatory.
 

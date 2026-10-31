@@ -2,9 +2,10 @@
 
 Reviewed October 31, 2026 against official Windows 1.9.7 `b480526`.
 This is the source/coverage review for the seven extracted topics, separate from
-the combined experimental download. Five topic PRs are now open; the table
-below records their exact reviewed heads and coverage. SDK SR and FG remain
-separate topics for later submission.
+the combined experimental download. Five ready topic PRs and SDK SR Draft
+[#146](https://github.com/Supermedo/bloodborne_pc/pull/146) are open; the table
+below records their exact reviewed heads and coverage. SDK FG remains separate
+for later submission after its current-game/presentation check.
 
 ## Sources and dependencies
 
@@ -15,7 +16,7 @@ separate topics for later submission.
 | V | [`fix/scaled-motion-view`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/scaled-motion-view) | [`d926e6f`](https://github.com/rattensuppe/bloodborne_pc/commit/d926e6f5fc69aedbb8d3df22c03a62e0abedbe4d) | None | Open [#142](https://github.com/Supermedo/bloodborne_pc/pull/142) |
 | R | [`perf/fsr41-output`](https://github.com/rattensuppe/bloodborne_pc/tree/perf/fsr41-output) | [`140b593`](https://github.com/rattensuppe/bloodborne_pc/commit/140b593035dcb297f2fdd8e68bba9e9dc36979a1) | None | Open [#143](https://github.com/Supermedo/bloodborne_pc/pull/143) |
 | C | [`perf/motion-target-cache`](https://github.com/rattensuppe/bloodborne_pc/tree/perf/motion-target-cache) | [`a1d32a4`](https://github.com/rattensuppe/bloodborne_pc/commit/a1d32a4571da89e96d6211b7dfaf91b0f7c1d8d6) | None; combine explicitly with S | Open [#144](https://github.com/Supermedo/bloodborne_pc/pull/144) |
-| U | [`feat/fsr-sdk24-upscaling`](https://github.com/rattensuppe/bloodborne_pc/tree/feat/fsr-sdk24-upscaling) | [`ba4dc22`](https://github.com/rattensuppe/bloodborne_pc/commit/ba4dc221419dd82b213b56271e7f6e2b6d6073ab) | Shared SDK foundation `238137e` | Prepared for Draft; overlay-test follow-up passed; AMD Vulkan/gameplay checks open |
+| U | [`feat/fsr-sdk24-upscaling`](https://github.com/rattensuppe/bloodborne_pc/tree/feat/fsr-sdk24-upscaling) | [`ba4dc22`](https://github.com/rattensuppe/bloodborne_pc/commit/ba4dc221419dd82b213b56271e7f6e2b6d6073ab) | Shared SDK foundation `238137e` | Draft [#146](https://github.com/Supermedo/bloodborne_pc/pull/146); AMD Vulkan/gameplay checks open |
 | F | [`feat/mlfg-sdk24`](https://github.com/rattensuppe/bloodborne_pc/tree/feat/mlfg-sdk24) | [`e2426a9`](https://github.com/rattensuppe/bloodborne_pc/commit/e2426a91b2ec7ef77842ef6981dbf6c5c3863ac4) | Shared SDK foundation `238137e`; no dependency on U | Later wave: fresh FG/presentation check before ready status |
 
 The SDK topics share `2943038` (unchanged public API headers, verified fetching,
@@ -72,7 +73,7 @@ does not replace the published integration runtime or download.
 | V | 20 complete pixel/alpha checks | 10 complete checks under active Core/Sync validation |
 | R | 220 exact comparisons; unchanged fallback shader bytes | 110 exact comparisons, including fresh outputs from all four SR methods |
 | C | 76 cache cases and 24 private SSBO combination cases | 48 BDA/SSBO cases: direct/threaded recording, cache off/on, retirement pressure, LRU, teardown and late reads |
-| U | Nine CPU programs, 151 Python tests, 31 runtime cases, actual package/picker | All four methods and fresh RCAS replays; original SDK Vulkan findings reproduced |
+| U | Ten CPU programs including repaired overlay test, 151 Python tests, 31 runtime cases, actual package/picker | All four methods and fresh RCAS replays; original SDK Vulkan findings reproduced |
 | F | Six CPU programs, 58 Python tests, 31 runtime cases, actual package/picker | Both DLL load orders/versions, 1080p/4K, serial/overlap, three slots/256 frames, reset/switch/fallback and HUD |
 
 The cumulative build passes 13 native CPU programs and 181 Python tests in
@@ -97,8 +98,9 @@ Production runtime sources and SDK pins remain identical to `580d935`, so its
 31 GPU cases and known AMD findings are reused, not rerun or reclassified as
 clean. Six merge previews against the updated U head retain the matrix above.
 The original cumulative-runtime results still apply to its unchanged runtime;
-the corrected test matches the validated private combination. The Draft text
-is prepared locally; SDK PRs have not been submitted.
+the corrected test matches the validated private combination. SR is submitted
+as [Draft #146](https://github.com/Supermedo/bloodborne_pc/pull/146); the exact
+body, five commits and 62-file scope were verified. FG is not yet submitted.
 
 ## Submission sequence and remaining checks
 
@@ -113,7 +115,8 @@ is prepared locally; SDK PRs have not been submitted.
    reviewed merge resolutions as upstream advances. A short current-game check of debug view, sharpening,
    movement and resolution changes remains useful before promoting a new
    combined player build. No new performance gain is inferred from these tests.
-3. **SDK topics separately**: first review the common API/package/headless
+3. **SDK SR submitted as Draft [#146](https://github.com/Supermedo/bloodborne_pc/pull/146)**:
+   first review the common API/package/headless
    foundation. F can progress independently of U's Vulkan findings, after a
    fresh current-build FG switch/movement/HUD check. U remains Draft while its
    original AMD shader conformance findings and current gameplay coverage are
