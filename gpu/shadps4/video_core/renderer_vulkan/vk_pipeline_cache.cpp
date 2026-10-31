@@ -811,6 +811,22 @@ bool PipelineCache::RefreshGraphicsKey(PipelineSelection& sel) {
         if (all_motion) {
             sel.motion = true;
         }
+        if (sel.motion && Shader::MotionVectors::storage_buffers) {
+            // Reserve the SSBO varyings and room for builtins. A collision
+            // falls back to camera vectors instead of overwriting a game varying.
+            const auto* fs = sel.infos[static_cast<u32>(Shader::SwStage::Fragment)];
+            if (!vs || !fs)
+                sel.motion = false;
+            for (u32 i = Shader::MotionVectors::SafeCurrentLocation; i < 32 && sel.motion; ++i) {
+                const auto attr = Shader::IR::Attribute::Param0 + i;
+                if (vs->stores.GetAny(attr) || fs->loads.GetAny(attr))
+                    sel.motion = false;
+            }
+            if (sel.motion && profile.needs_clip_distance_emulation &&
+                fs->loads.GetAny(Shader::IR::Attribute::Param0 +
+                                 (Shader::MotionVectors::SafeCurrentLocation - 1)))
+                sel.motion = false;
+        }
         if (sel.motion && !RefreshGraphicsStages(sel)) {
             return false;
         }
