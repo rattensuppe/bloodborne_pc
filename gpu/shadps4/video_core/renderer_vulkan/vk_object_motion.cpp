@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include "video_core/renderer_vulkan/vk_object_motion.h"
 
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -117,6 +118,7 @@ ObjectMotion::ObjectMotion(const Instance& instance_, Scheduler& scheduler_)
 
 ObjectMotion::~ObjectMotion() {
     scheduler.Finish();
+    retired_images.clear();
     const auto allocator = instance.GetAllocator();
     if (params_buffer) {
         vmaDestroyBuffer(allocator, params_buffer, params_allocation);
@@ -130,6 +132,7 @@ void ObjectMotion::OnFrameStart() {
     if (!enabled) {
         return;
     }
+    CollectRetiredImages();
     if (BbStats::enabled && (frame % 600) == 0 && history.stats.draws) {
         const auto& s = history.stats;
         std::printf("Object motion: %llu draws, %llu stored, %llu with history, %llu unmatched, "
@@ -197,8 +200,57 @@ u32 ObjectMotion::PrepareDraw(const DrawInfo& draw) {
     return index;
 }
 
+void ObjectMotion::CollectRetiredImages() {
+    while (!retired_images.empty() && scheduler.IsFree(retired_images.front().tick)) {
+        retired_bytes -= retired_images.front().target->image.size_bytes;
+        // CachedImage destroys its view before its image. The submission has completed.
+        retired_images.pop_front();
+    }
+}
+
+void ObjectMotion::RetireCachedImage(CachedImage& cached) {
+    CollectRetiredImages();
+    const u64 bytes = cached.image.size_bytes;
+    while (!retired_images.empty() &&
+           (retired_images.size() >= MaxRetiredImages ||
+            bytes > MaxRetiredBytes - retired_bytes)) {
+        scheduler.Wait(retired_images.front().tick);
+        CollectRetiredImages();
+    }
+    if (bytes > MaxRetiredBytes) {
+        // A single oversized image must not exceed the retirement budget either.
+        scheduler.Wait(cached.last_tick);
+    }
+    if (scheduler.IsFree(cached.last_tick)) {
+        cached.view.reset();
+        cached.image.Destroy();
+    } else {
+        auto storage = std::make_unique<CachedImage>();
+        // Allocate bookkeeping while cached still owns every live Vulkan resource.
+        retired_images.push_back({std::move(storage), cached.last_tick});
+        auto& retired = *retired_images.back().target;
+        // UniqueImage's upstream move constructor loses device/size_bytes. Preserve every
+        // ownership field explicitly, as in the existing active/cache swap below.
+        std::swap(retired.image.device, cached.image.device);
+        std::swap(retired.image.allocator, cached.image.allocator);
+        std::swap(retired.image.allocation, cached.image.allocation);
+        std::swap(retired.image.image, cached.image.image);
+        std::swap(retired.image.image_ci, cached.image.image_ci);
+        std::swap(retired.image.size_bytes, cached.image.size_bytes);
+        retired.view.swap(cached.view);
+        retired_bytes += bytes;
+    }
+    cached.width = cached.height = 0;
+    cached.layout = vk::ImageLayout::eUndefined;
+    cached.last_use = cached.last_tick = 0;
+}
+
 void ObjectMotion::EnsureImage(u32 width, u32 height) {
     if (image && width == image_width && height == image_height) {
+        if (cache_enabled) {
+            image_last_use = ++cache_clock;
+            image_last_tick = scheduler.CurrentTick();
+        }
         return;
     }
     if (cache_enabled) {
@@ -215,6 +267,8 @@ void ObjectMotion::EnsureImage(u32 width, u32 height) {
             std::swap(image_width, cached.width);
             std::swap(image_height, cached.height);
             std::swap(image_layout, cached.layout);
+            std::swap(image_last_use, cached.last_use);
+            std::swap(image_last_tick, cached.last_tick);
             // Legacy resize discards the previous contents, even when returning to a size
             // used earlier in this frame. Preserve the existing clear/read behavior.
             written = false;
@@ -222,6 +276,8 @@ void ObjectMotion::EnsureImage(u32 width, u32 height) {
         for (auto &cached : cached_images) {
             if (cached.image && cached.width == width && cached.height == height) {
                 swap_target(cached);
+                image_last_use = ++cache_clock;
+                image_last_tick = scheduler.CurrentTick();
                 return;
             }
         }
@@ -233,13 +289,11 @@ void ObjectMotion::EnsureImage(u32 width, u32 height) {
                     break;
                 }
             if (!empty) {
-                // Unusual resolution churn: wait before retiring an old allocation.
-                scheduler.Finish();
-                empty = &cached_images[eviction_cursor++ % cached_images.size()];
-                empty->view.reset();
-                empty->image.Destroy();
-                empty->width = empty->height = 0;
-                empty->layout = vk::ImageLayout::eUndefined;
+                empty = &*std::min_element(cached_images.begin(), cached_images.end(),
+                    [](const CachedImage& a, const CachedImage& b) {
+                        return a.last_use < b.last_use;
+                    });
+                RetireCachedImage(*empty);
             }
             swap_target(*empty);
         }
@@ -251,7 +305,7 @@ void ObjectMotion::EnsureImage(u32 width, u32 height) {
     view.reset();
     image_layout = vk::ImageLayout::eUndefined;
     image = VideoCore::UniqueImage(device, instance.GetAllocator());
-    image.Create(vk::ImageCreateInfo{
+    const vk::ImageCreateInfo create_info{
         .imageType = vk::ImageType::e2D,
         .format = vk::Format::eR32G32B32A32Sfloat,
         .extent = {width, height, 1},
@@ -262,7 +316,22 @@ void ObjectMotion::EnsureImage(u32 width, u32 height) {
         .usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled |
                  vk::ImageUsageFlagBits::eTransferSrc,
         .initialLayout = vk::ImageLayout::eUndefined,
-    });
+    };
+    if (cache_enabled) {
+        while (!image.TryCreate(create_info)) {
+            if (retired_images.empty()) {
+                // Preserve the existing allocation-failure behavior once nothing can be freed.
+                image.Create(create_info);
+                break;
+            }
+            scheduler.Wait(retired_images.front().tick);
+            CollectRetiredImages();
+        }
+        image_last_use = ++cache_clock;
+        image_last_tick = scheduler.CurrentTick();
+    } else {
+        image.Create(create_info);
+    }
     view = Check(device.createImageViewUnique({
         .image = vk::Image(image),
         .viewType = vk::ImageViewType::e2D,
