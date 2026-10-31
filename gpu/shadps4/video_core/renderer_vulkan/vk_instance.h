@@ -536,7 +536,7 @@ public:
 private:
     Instance(const Frontend::WindowSystemInfo&, s32, bool, bool);
     /// Creates the logical device opportunistically enabling extensions
-    bool CreateDevice();
+    bool CreateDevice(bool presentation);
 
     /// Creates the VMA allocator handle
     void CreateAllocator();

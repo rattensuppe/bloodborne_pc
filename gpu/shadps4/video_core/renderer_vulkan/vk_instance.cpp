@@ -202,7 +202,7 @@ Instance::Instance(const Frontend::WindowSystemInfo& window_info, s32 physical_d
                VK_VERSION_MAJOR(TargetVulkanApiVersion), VK_VERSION_MINOR(TargetVulkanApiVersion),
                VK_VERSION_MAJOR(properties.apiVersion), VK_VERSION_MINOR(properties.apiVersion));
 
-    CreateDevice();
+    CreateDevice(window_info.type != Frontend::WindowSystemType::Headless);
     CollectPhysicalMemoryInfo();
     CollectImageFormatInfo();
     CollectToolingInfo();
@@ -272,7 +272,7 @@ std::string Instance::GetDriverVersionName() {
     return GetReadableVersion(version);
 }
 
-bool Instance::CreateDevice() {
+bool Instance::CreateDevice(bool presentation) {
     const vk::StructureChain feature_chain = physical_device.getFeatures2<
         vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan11Features,
         vk::PhysicalDeviceVulkan12Features, vk::PhysicalDeviceVulkan13Features,
@@ -322,8 +322,12 @@ bool Instance::CreateDevice() {
     };
 
     // Required
-    ASSERT_MSG(add_extension(VK_KHR_SWAPCHAIN_EXTENSION_NAME),
-               "Required Vulkan extension unavailable: {}", VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+    // Headless helpers have no VK_KHR_surface instance extension and never present.
+    // Enabling a swapchain there violates its instance-extension dependency.
+    if (presentation) {
+        ASSERT_MSG(add_extension(VK_KHR_SWAPCHAIN_EXTENSION_NAME),
+                   "Required Vulkan extension unavailable: {}", VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+    }
     ASSERT_MSG(add_extension(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME),
                "Required Vulkan extension unavailable: {}", VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
     ASSERT_MSG(add_extension(VK_EXT_VERTEX_ATTRIBUTE_DIVISOR_EXTENSION_NAME),
@@ -480,7 +484,7 @@ bool Instance::CreateDevice() {
     }
     // bbport: low latency (BB_LOW_LATENCY=on or boost): NVIDIA Reflex, else AMD Anti-Lag 2.
     // Only enabled when chosen; see vk_low_latency.cpp.
-    if (LowLatency::Wanted()) {
+    if (presentation && LowLatency::Wanted()) {
         present_id = feature_chain.get<vk::PhysicalDevicePresentIdFeaturesKHR>().presentId &&
                      add_extension(VK_KHR_PRESENT_ID_EXTENSION_NAME);
         nv_low_latency = present_id &&
