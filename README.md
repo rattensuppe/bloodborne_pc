@@ -1,19 +1,30 @@
-# Bloodborne for Windows
+# Bloodborne for Windows — experimental FSR fork
 
-> **SDK 2.4 prototype — Windows 1.9.7 source**
-> This branch combines the RCAS/output and motion-cache optimizations with
-> [SDK-based FSR 4.1.2 upscaling](docs/FSR24_UPSCALING.md) and
-> [ML-FG 4.0.2](docs/SDK24_ML_FG.md). FSR 4.1.1 and ML-FG 4.0.1 remain selectable.
-> Device-feature setup, safe late cache reads, support-query reuse and preserved
-> selections on runtime fallback are included. SDK Vulkan has
-> [open shader-validation findings](docs/FSR24_UPSCALING.md#local-validation-findings-october-30-2026);
-> gameplay image quality and performance need a fresh comparison.
-> **[Download Windows 1.9.7 prototype.1 ZIP](https://github.com/rattensuppe/bloodborne_pc/releases/download/v1.9.7-sdk24-prototype.1/Bloodborne-Windows-1.9.7-SDK24-FSR412-FGML402-prototype.1.zip)** · [Prototype README](https://github.com/rattensuppe/bloodborne_pc/releases/download/v1.9.7-sdk24-prototype.1/README-SDK24-PROTOTYPE.txt) · [Release notes](https://github.com/rattensuppe/bloodborne_pc/releases/tag/v1.9.7-sdk24-prototype.1)
-> Packaged source: [`2180512`](https://github.com/rattensuppe/bloodborne_pc/commit/21805126c2f7b93d853e17bb5535cb0111a5c4f7).
-> The source includes the RX 6000 bounded-SSBO fix. Windows 1.9.7 profiles recommend
-> disabling additional sharpening with FSR 4; explicit settings and the optimized
-> sharpening path remain available.
-> The motion-vector debug view also supports scaled SDR output at WQHD/4K.
+This fork tests public AMD SDK 2.4 integration for **FSR 4.1.2 Vulkan/DX12** and
+**ML-FG 4.0.2**, plus RCAS/output and motion-cache optimizations, the RX 6000
+object-motion fix and a scaled SDR motion-vector view. Earlier FSR/FG methods
+remain selectable. Bloodborne PC Port is developed by
+[Supermedo and contributors](https://github.com/Supermedo/bloodborne_pc).
+
+**[Download Windows 1.9.7 prototype.1 ZIP](https://github.com/rattensuppe/bloodborne_pc/releases/download/v1.9.7-sdk24-prototype.1/Bloodborne-Windows-1.9.7-SDK24-FSR412-FGML402-prototype.1.zip)** ·
+[Release notes](https://github.com/rattensuppe/bloodborne_pc/releases/tag/v1.9.7-sdk24-prototype.1) ·
+[Component status](docs/fork/STATUS.md) · [Development workflow](docs/fork/WORKFLOW.md) ·
+[Build history](docs/fork/RELEASES.md)
+
+The current base is official Windows **1.9.7**
+([`b480526`](https://github.com/Supermedo/bloodborne_pc/commit/b48052617a919fc4d6b10ae3395e209c9e94e17a)).
+The published package uses runtime commit
+[`2180512`](https://github.com/rattensuppe/bloodborne_pc/commit/21805126c2f7b93d853e17bb5535cb0111a5c4f7).
+Build, isolated GPU and packaged-launcher checks passed; a fresh 1.9.7 gameplay
+comparison remains open. Original SDK Vulkan shaders have
+[documented validation findings](docs/FSR24_UPSCALING.md#local-validation-findings-october-30-2026).
+Gameplay ghosting remains under investigation.
+
+`windows` mirrors upstream; **`integration/windows`** combines fork changes.
+Topic branches use `fix/`, `perf/` or `feat/` names without the changing bbport
+base version. Earlier merged PR branches and all existing downloads are retained.
+
+## Upstream project
 
 <a href="https://trendshift.io/repositories/306163?utm_source=trendshift-badge&amp;utm_medium=badge&amp;utm_campaign=badge-trendshift-306163" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/306163/daily?language=C%2B%2B" alt="Supermedo%2Funcharted_pc | Trendshift" width="250" height="55"/></a>
 
@@ -23,7 +34,7 @@ The original PlayStation 4 game runs directly on your PC: its own x86-64 code ru
 and the graphics are translated to Vulkan. No emulator window, no setup scripts: unpack the zip,
 start `Bloodborne.exe`, pick your game folder and press **PLAY**.
 
-**[Download the latest version](https://github.com/Supermedo/bloodborne_pc/releases/latest)** · **[Join the Discord](https://discord.gg/HXBaehzTBx)**  **[Join X,com](https://x.com/SuperMedoPorts)**
+**[Official upstream download](https://github.com/Supermedo/bloodborne_pc/releases/latest)** · **[Join the Discord](https://discord.gg/HXBaehzTBx)**  **[Join X,com](https://x.com/SuperMedoPorts)**
 Check my other ports 
 https://nativeretro.com/
 
