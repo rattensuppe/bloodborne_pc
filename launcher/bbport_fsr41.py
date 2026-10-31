@@ -3,6 +3,7 @@
 import bbport_lang
 import bbport_fsr411
 import bbport_fsr412
+import bbport_driver_runtime
 import bbport_lang_motion_cache as motion_cache
 from copy import deepcopy
 from datetime import datetime, timezone
@@ -12,8 +13,9 @@ def query(port, env=None, refresh=False):
     """Return one complete snapshot; provider results never enter the base-probe cache."""
     base = bbport_fsr411.query(port, env, refresh=refresh)
     result = deepcopy(base)
-    result['fsr412_vulkan'] = bbport_fsr412.query_vulkan(port, env=env, refresh=refresh)
-    result['fsr412_dx12'] = bbport_fsr412.query_dx12(port, env=env, refresh=refresh)
+    paths = bbport_driver_runtime.discover()
+    result['fsr412_vulkan'] = bbport_fsr412.query_vulkan(port, paths=paths, env=env, refresh=refresh)
+    result['fsr412_dx12'] = bbport_fsr412.query_dx12(port, paths=paths, env=env, refresh=refresh)
     result['checked_at'] = datetime.now(timezone.utc).isoformat(timespec='seconds')
     return result
 
@@ -158,6 +160,48 @@ KEYS += COMPACT_KEYS
 TEXTS = {language: texts + COMPACT_TEXTS[language] for language, texts in TEXTS.items()}
 KEYS += motion_cache.KEYS
 TEXTS = {language: texts + motion_cache.TEXTS[language] for language, texts in TEXTS.items()}
+FALLBACK_KEYS = ('FSR 3.1 active; saved selection retained.', 'Retry')
+FALLBACK_TEXTS = {
+    'en': FALLBACK_KEYS,
+    'de': ('FSR 3.1 aktiv; Auswahl bleibt gespeichert.', 'Erneut versuchen'),
+    'ru': ('FSR 3.1 активен; выбор сохранён.', 'Повторить'),
+    'ar': ('FSR 3.1 نشط؛ الاختيار المحفوظ لم يتغير.', 'إعادة المحاولة'),
+    'es': ('FSR 3.1 activo; se conserva la selección.', 'Reintentar'),
+    'pt': ('FSR 3.1 ativo; seleção mantida.', 'Tentar novamente'),
+    'fr': ('FSR 3.1 actif ; sélection conservée.', 'Réessayer'),
+    'it': ('FSR 3.1 attivo; selezione conservata.', 'Riprova'),
+    'pl': ('FSR 3.1 aktywny; wybór pozostaje zapisany.', 'Spróbuj ponownie'),
+    'tr': ('FSR 3.1 etkin; kayıtlı seçim korundu.', 'Yeniden dene'),
+    'zh': ('FSR 3.1 已启用；保留已保存的选择。', '重试'),
+    'ja': ('FSR 3.1 が動作中。保存済みの選択は維持されます。', '再試行'),
+    'ko': ('FSR 3.1 사용 중. 저장된 선택은 유지됩니다.', '다시 시도'),
+}
+KEYS += FALLBACK_KEYS
+TEXTS = {language: texts + FALLBACK_TEXTS[language] for language, texts in TEXTS.items()}
+RESTART = 9
+STATUS_KEYS += ('Restart required',)
+COLORS += ('#d9a441',)
+RESTART_TEXTS = {
+    'en': 'Restart required', 'de': 'Neustart erforderlich',
+    'ru': 'Требуется перезапуск', 'ar': 'إعادة التشغيل مطلوبة',
+    'es': 'Reinicio necesario', 'pt': 'Reinício necessário',
+    'fr': 'Redémarrage requis', 'it': 'Riavvio necessario',
+    'pl': 'Wymagane ponowne uruchomienie', 'tr': 'Yeniden başlatma gerekli',
+    'zh': '需要重启', 'ja': '再起動が必要', 'ko': '재시작 필요',
+}
+KEYS += ('Restart required',)
+TEXTS = {language: texts + (RESTART_TEXTS[language],) for language, texts in TEXTS.items()}
+AUTO_EXPOSURE_KEY = 'Always enabled for this method.'
+AUTO_EXPOSURE_TEXTS = {
+    'en': AUTO_EXPOSURE_KEY, 'de': 'Für diese Methode immer aktiv.',
+    'ru': 'Всегда включено для этого метода.', 'ar': 'مفعّل دائمًا لهذه الطريقة.',
+    'es': 'Siempre activada con este método.', 'pt': 'Sempre ativa neste método.',
+    'fr': 'Toujours activée pour cette méthode.', 'it': 'Sempre attiva per questo metodo.',
+    'pl': 'Zawsze włączona dla tej metody.', 'tr': 'Bu yöntemde her zaman etkin.',
+    'zh': '此方式始终启用。', 'ja': 'この方式では常に有効。', 'ko': '이 방식에서는 항상 활성화됩니다.',
+}
+KEYS += (AUTO_EXPOSURE_KEY,)
+TEXTS = {language: texts + (AUTO_EXPOSURE_TEXTS[language],) for language, texts in TEXTS.items()}
 for language, texts in TEXTS.items():
     assert len(texts) == len(KEYS), language
     # Register without constructing a cached language table before the launcher's
@@ -175,7 +219,7 @@ def code(status):
         return GPU if 'AMD GPU required' in detail or 'unsupported by selected GPU' in detail else CAPABILITY
     return {'driver': DRIVER, 'provider': CAPABILITY, 'files': FILES, 'download': FILES,
             'interop': INTEROP, 'adapter': INTEROP, 'disabled': DISABLED,
-            'checking': CHECKING}.get(reason, CHECK)
+            'checking': CHECKING, 'restart': RESTART}.get(reason, CHECK)
 
 
 def route_index(upscaler, backend):
