@@ -27,6 +27,8 @@ extern "C" void runtime_restart() { std::abort(); }
 
 namespace Vulkan {
 struct ObjectMotionCacheTest {
+    static u64 LastTick(const ObjectMotion& motion) { return motion.image_last_tick; }
+    static vk::Image RawImage(const ObjectMotion& motion) { return vk::Image(motion.image); }
     static size_t Retired(const ObjectMotion& motion) { return motion.retired_images.size(); }
     static u64 RetiredBytes(const ObjectMotion& motion) { return motion.retired_bytes; }
     static void Collect(ObjectMotion& motion) { motion.CollectRetiredImages(); }
@@ -166,6 +168,57 @@ void SpecialCase(const std::string& kind, Instance& instance, Scheduler& schedul
     std::printf("PASS kind=%s LRU/deferred_lifetime/bounds/teardown checked\n",kind.c_str());
 }
 
+void LateReadCase(bool view_read, Instance& instance, Scheduler& scheduler) {
+    const auto device=instance.GetDevice();
+    const u32 before=Allocations(instance);
+    {
+        ObjectMotion motion(instance,scheduler);
+        motion.OnFrameStart();
+        for (const auto [w,h] : std::array<std::pair<u32,u32>,5>{{{128,72},{96,54},{64,36},{48,27},{128,72}}})
+            AttachSize(motion,scheduler,w,h);
+        bool valid=false;
+        motion.PrepareRead(scheduler.CommandBuffer(),128,72,valid);
+        Require(valid,"initial motion target invalid");
+        const auto old_tick=scheduler.CurrentTick();
+        scheduler.Finish(); // Simulate a provider context/size change after PrepareRead.
+        const auto read_tick=scheduler.CurrentTick();
+        Require(old_tick!=read_tick && scheduler.IsFree(old_tick),"test needs two distinct GPU ticks");
+        Require(!motion.Image(129,72),"wrong-sized image accepted");
+        Require(ObjectMotionCacheTest::LastTick(motion)==old_tick,"invalid read incorrectly extended lifetime");
+        if (view_read) Require(bool(motion.View()),"debug view missing");
+        else Require(bool(motion.Image(128,72)),"dump image missing");
+        // Check before queueing work: the old implementation fails without risking a freed GPU read.
+        Require(ObjectMotionCacheTest::LastTick(motion)==read_tick,"late read did not update last GPU tick");
+        VkBuffer staging{}; VmaAllocation allocation{};
+        VkBufferCreateInfo buffer{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
+        buffer.size=128*72*16;buffer.usage=VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+        VmaAllocationCreateInfo host{};host.usage=VMA_MEMORY_USAGE_AUTO_PREFER_HOST;
+        if (vmaCreateBuffer(instance.GetAllocator(),&buffer,&host,&staging,&allocation,nullptr)!=VK_SUCCESS)
+            throw std::runtime_error("late-read staging allocation failed");
+        const auto image=ObjectMotionCacheTest::RawImage(motion);
+        auto cmd=scheduler.CommandBuffer();
+        const vk::MemoryBarrier2 barrier{.srcStageMask=vk::PipelineStageFlagBits2::eAllCommands,
+            .srcAccessMask=vk::AccessFlagBits2::eMemoryWrite,
+            .dstStageMask=vk::PipelineStageFlagBits2::eTransfer,.dstAccessMask=vk::AccessFlagBits2::eTransferRead};
+        cmd.pipelineBarrier2({.memoryBarrierCount=1,.pMemoryBarriers=&barrier});
+        const vk::BufferImageCopy region{.imageSubresource={vk::ImageAspectFlagBits::eColor,0,0,1},.imageExtent={128,72,1}};
+        cmd.copyImageToBuffer(image,vk::ImageLayout::eGeneral,staging,region);
+        {
+            Gate gate(device);gate.Submit(scheduler);
+            for (const auto [w,h] : std::array<std::pair<u32,u32>,4>{{{32,18},{16,9},{8,4},{4,2}}})
+                AttachSize(motion,scheduler,w,h);
+            Require(!scheduler.IsFree(read_tick),"late-read gate released too soon");
+            Require(ObjectMotionCacheTest::Retired(motion)==1,"late-read target freed instead of retained");
+            ObjectMotionCacheTest::Limits(motion);
+            gate.Release();scheduler.Finish();ObjectMotionCacheTest::Collect(motion);
+            Require(ObjectMotionCacheTest::Retired(motion)==0,"late-read target not collected after completion");
+        }
+        vmaDestroyBuffer(instance.GetAllocator(),staging,allocation);
+    }
+    Require(Allocations(instance)==before,"late-read test leaked allocations");
+    std::printf("PASS late-%s: two-tick read, blocked GPU eviction and teardown\n",view_read?"view":"image");
+}
+
 int main(int argc, char **argv) {
     try {
         const std::string kind = argc > 1 ? argv[1] : "tiny";
@@ -187,6 +240,11 @@ int main(int argc, char **argv) {
         VULKAN_HPP_DEFAULT_DISPATCHER.init(instance.GetDevice());
         const auto device = instance.GetDevice();
         Scheduler scheduler(instance);
+        if (kind=="late-view" || kind=="late-image") {
+            Require(std::getenv("BB_OBJECT_MOTION_CACHE") && std::string(std::getenv("BB_OBJECT_MOTION_CACHE"))=="1", "late reads need cache on");
+            LateReadCase(kind=="late-view",instance,scheduler);
+            return 0;
+        }
         if (kind == "lru" || kind == "deferred" || kind == "budget" || kind == "oversized" ||
             kind == "drain" || kind == "destruct") {
             Require(std::getenv("BB_OBJECT_MOTION_CACHE") &&

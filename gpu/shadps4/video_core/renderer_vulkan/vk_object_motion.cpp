@@ -376,6 +376,20 @@ void ObjectMotion::Attach(RenderState& state, u32 width, u32 height) {
     state.num_color_attachments = std::max<u16>(state.num_color_attachments, slot + 1);
 }
 
+vk::ImageView ObjectMotion::View() noexcept {
+    if (!view) return {};
+    // Debug/dump reads can follow a provider Finish(), in a newer submission
+    // than PrepareRead(). Keep the attachment alive through the actual last read.
+    if (cache_enabled) image_last_tick = scheduler.CurrentTick();
+    return *view;
+}
+
+vk::Image ObjectMotion::Image(u32 width, u32 height) noexcept {
+    if (!written || width != image_width || height != image_height) return {};
+    if (cache_enabled) image_last_tick = scheduler.CurrentTick();
+    return vk::Image(image);
+}
+
 vk::ImageView ObjectMotion::PrepareRead(vk::CommandBuffer cmdbuf, u32 width, u32 height,
                                         bool& valid) {
     EnsureImage(std::max(image_width, 1u), std::max(image_height, 1u));
