@@ -1,0 +1,211 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+// Execute the production visualization shader and read every pixel back.
+#include "video_core/host_shaders/upscale_motion_debug_comp.h"
+#include "video_core/renderer_vulkan/vk_instance.h"
+#include "video_core/renderer_vulkan/vk_scheduler.h"
+#include "video_core/texture_cache/image.h"
+#include <array>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <stdexcept>
+#include <vk_mem_alloc.h>
+
+#ifdef _WIN32
+extern "C" void runtime_restart() { std::abort(); }
+#endif
+
+namespace {
+void Need(bool condition, const char *message) {
+    if (!condition)
+        throw std::runtime_error(message);
+}
+struct Staging {
+    VmaAllocator allocator;
+    VkBuffer buffer{};
+    VmaAllocation allocation{};
+    void *mapped{};
+    Staging(VmaAllocator a, size_t bytes) : allocator(a) {
+        const VkBufferCreateInfo ci{.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+                                    .size = bytes,
+                                    .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
+                                             VK_BUFFER_USAGE_TRANSFER_DST_BIT};
+        const VmaAllocationCreateInfo ac{.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT |
+                                                  VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
+                                         .usage = VMA_MEMORY_USAGE_AUTO_PREFER_HOST};
+        VmaAllocationInfo info{};
+        Need(vmaCreateBuffer(a, &ci, &ac, &buffer, &allocation, &info) == VK_SUCCESS, "staging");
+        mapped = info.pMappedData;
+    }
+    ~Staging() { vmaDestroyBuffer(allocator, buffer, allocation); }
+};
+void Check(const Vulkan::Instance &instance, Vulkan::Scheduler &scheduler, u32 w, u32 h, u32 rw,
+           u32 rh, unsigned object_mode) {
+    const auto device = instance.GetDevice();
+    const auto allocator = instance.GetAllocator();
+    const u32 object_w = object_mode == 2 ? rw + 1 : object_mode == 3 ? rw - 1 : rw;
+    const u32 object_h = object_mode == 4 ? rh - 1 : rh;
+    const size_t rgba_bytes = size_t(w) * h * 4, motion_bytes = size_t(rw) * rh * 4;
+    const size_t object_bytes = size_t(object_w) * object_h * 16;
+    const size_t motion_offset = (rgba_bytes + 15) & ~size_t(15);
+    const size_t object_offset = (motion_offset + motion_bytes + 15) & ~size_t(15);
+    const size_t read_offset = object_offset + object_bytes;
+    Staging staging(allocator, read_offset + rgba_bytes);
+    auto *bytes = static_cast<unsigned char *>(staging.mapped);
+    for (size_t p = 0; p < size_t(w) * h; ++p) {
+        const std::array<unsigned char, 4> color{51, 102, 153, 191};
+        std::memcpy(bytes + p * 4, color.data(), 4);
+    }
+    constexpr std::array<uint16_t, 3> halves{0x3c00, 0x4000, 0x4400}; // 1, 2, 4
+    for (u32 y = 0; y < rh; ++y)
+        for (u32 x = 0; x < rw; ++x) {
+            const std::array<uint16_t, 2> mv{halves[x % 3], uint16_t(halves[y % 3] | 0x8000)};
+            std::memcpy(bytes + motion_offset + (size_t(y) * rw + x) * 4, mv.data(), 4);
+        }
+    for (u32 y = 0; y < object_h; ++y)
+        for (u32 x = 0; x < object_w; ++x) {
+            const std::array<float, 4> object{0, 0, x % 5 == 0 ? 1.f : 0.f, 0};
+            std::memcpy(bytes + object_offset + (size_t(y) * object_w + x) * 16, object.data(), 16);
+        }
+    Need(vmaFlushAllocation(allocator, staging.allocation, 0, VK_WHOLE_SIZE) == VK_SUCCESS,
+         "flush");
+    std::array<VideoCore::UniqueImage, 3> images;
+    std::array<vk::UniqueImageView, 3> views;
+    const std::array widths{w, rw, object_w}, heights{h, rh, object_h};
+    const std::array formats{vk::Format::eR8G8B8A8Unorm, vk::Format::eR16G16Sfloat,
+                             vk::Format::eR32G32B32A32Sfloat};
+    const vk::ImageSubresourceRange range{vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1};
+    for (u32 i = 0; i < 3; ++i) {
+        images[i] = VideoCore::UniqueImage(device, allocator);
+        images[i].Create(
+            {.imageType = vk::ImageType::e2D,
+             .format = formats[i],
+             .extent = {widths[i], heights[i], 1},
+             .mipLevels = 1,
+             .arrayLayers = 1,
+             .samples = vk::SampleCountFlagBits::e1,
+             .tiling = vk::ImageTiling::eOptimal,
+             .usage = vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled |
+                      vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst});
+        auto [result, view] = device.createImageViewUnique({.image = vk::Image(images[i]),
+                                                            .viewType = vk::ImageViewType::e2D,
+                                                            .format = formats[i],
+                                                            .subresourceRange = range});
+        Need(result == vk::Result::eSuccess, "image view");
+        views[i] = std::move(view);
+    }
+    std::array<vk::DescriptorSetLayoutBinding, 3> bindings{};
+    for (u32 i = 0; i < 3; ++i)
+        bindings[i] = {.binding = i,
+                       .descriptorType = i == 0 ? vk::DescriptorType::eStorageImage
+                                                : vk::DescriptorType::eSampledImage,
+                       .descriptorCount = 1,
+                       .stageFlags = vk::ShaderStageFlagBits::eCompute};
+    auto [dr, descriptors] = device.createDescriptorSetLayoutUnique(
+        {.flags = vk::DescriptorSetLayoutCreateFlagBits::ePushDescriptorKHR,
+         .bindingCount = 3,
+         .pBindings = bindings.data()});
+    Need(dr == vk::Result::eSuccess, "descriptors");
+    auto [lr, layout] =
+        device.createPipelineLayoutUnique({.setLayoutCount = 1, .pSetLayouts = &*descriptors});
+    Need(lr == vk::Result::eSuccess, "layout");
+    auto [mr, module] = device.createShaderModuleUnique(
+        {.codeSize = sizeof(UPSCALE_MOTION_DEBUG_COMP), .pCode = UPSCALE_MOTION_DEBUG_COMP});
+    Need(mr == vk::Result::eSuccess, "module");
+    auto [pr, pipeline] = device.createComputePipelineUnique(
+        {},
+        {.stage = {.stage = vk::ShaderStageFlagBits::eCompute, .module = *module, .pName = "main"},
+         .layout = *layout});
+    Need(pr == vk::Result::eSuccess, "pipeline");
+    const auto cmd = scheduler.CommandBuffer();
+    std::array<vk::ImageMemoryBarrier2, 3> transitions{};
+    for (u32 i = 0; i < 3; ++i)
+        transitions[i] = {.dstStageMask = vk::PipelineStageFlagBits2::eTransfer,
+                          .dstAccessMask = vk::AccessFlagBits2::eTransferWrite,
+                          .oldLayout = vk::ImageLayout::eUndefined,
+                          .newLayout = vk::ImageLayout::eGeneral,
+                          .image = vk::Image(images[i]),
+                          .subresourceRange = range};
+    cmd.pipelineBarrier2(
+        {.imageMemoryBarrierCount = 3, .pImageMemoryBarriers = transitions.data()});
+    const std::array<size_t, 3> offsets{0, motion_offset, object_offset};
+    for (u32 i = 0; i < 3; ++i) {
+        const vk::BufferImageCopy region{
+            .bufferOffset = offsets[i],
+            .imageSubresource = {vk::ImageAspectFlagBits::eColor, 0, 0, 1},
+            .imageExtent = {widths[i], heights[i], 1}};
+        cmd.copyBufferToImage(staging.buffer, vk::Image(images[i]), vk::ImageLayout::eGeneral,
+                              region);
+    }
+    const vk::MemoryBarrier2 before{.srcStageMask = vk::PipelineStageFlagBits2::eTransfer,
+                                    .srcAccessMask = vk::AccessFlagBits2::eTransferWrite,
+                                    .dstStageMask = vk::PipelineStageFlagBits2::eComputeShader,
+                                    .dstAccessMask = vk::AccessFlagBits2::eShaderRead |
+                                                     vk::AccessFlagBits2::eShaderWrite};
+    cmd.pipelineBarrier2({.memoryBarrierCount = 1, .pMemoryBarriers = &before});
+    std::array<vk::DescriptorImageInfo, 3> infos{};
+    std::array<vk::WriteDescriptorSet, 3> writes{};
+    for (u32 i = 0; i < 3; ++i) {
+        infos[i] = {.imageView = *views[object_mode == 1 && i == 2 ? 1 : i],
+                    .imageLayout = vk::ImageLayout::eGeneral};
+        writes[i] = {.dstBinding = i,
+                     .descriptorCount = 1,
+                     .descriptorType = bindings[i].descriptorType,
+                     .pImageInfo = &infos[i]};
+    }
+    cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pipeline);
+    cmd.pushDescriptorSetKHR(vk::PipelineBindPoint::eCompute, *layout, 0, writes);
+    cmd.dispatch((w + 7) / 8, (h + 7) / 8, 1);
+    const vk::MemoryBarrier2 after{.srcStageMask = vk::PipelineStageFlagBits2::eComputeShader,
+                                   .srcAccessMask = vk::AccessFlagBits2::eShaderWrite,
+                                   .dstStageMask = vk::PipelineStageFlagBits2::eTransfer,
+                                   .dstAccessMask = vk::AccessFlagBits2::eTransferRead};
+    cmd.pipelineBarrier2({.memoryBarrierCount = 1, .pMemoryBarriers = &after});
+    const vk::BufferImageCopy read{.bufferOffset = read_offset,
+                                   .imageSubresource = {vk::ImageAspectFlagBits::eColor, 0, 0, 1},
+                                   .imageExtent = {w, h, 1}};
+    cmd.copyImageToBuffer(vk::Image(images[0]), vk::ImageLayout::eGeneral, staging.buffer, read);
+    const vk::MemoryBarrier2 host{.srcStageMask = vk::PipelineStageFlagBits2::eTransfer,
+                                  .srcAccessMask = vk::AccessFlagBits2::eTransferWrite,
+                                  .dstStageMask = vk::PipelineStageFlagBits2::eHost,
+                                  .dstAccessMask = vk::AccessFlagBits2::eHostRead};
+    cmd.pipelineBarrier2({.memoryBarrierCount = 1, .pMemoryBarriers = &host});
+    scheduler.Finish();
+    Need(vmaInvalidateAllocation(allocator, staging.allocation, 0, VK_WHOLE_SIZE) == VK_SUCCESS,
+         "invalidate");
+    constexpr std::array<float, 3> motion{1, 2, 4};
+    for (u32 y = 0; y < h; ++y)
+        for (u32 x = 0; x < w; ++x) {
+            const u32 sx = x * rw / w, sy = y * rh / h;
+            const std::array<float, 4> expected{
+                0.108f + motion[sx % 3] / 8.f, 0.108f + motion[sy % 3] / 8.f,
+                0.108f + (object_mode == 0 && sx % 5 == 0 ? 0.6f : 0.f), 191.f / 255.f};
+            for (u32 c = 0; c < 4; ++c)
+                Need(std::abs(int(bytes[read_offset + (size_t(y) * w + x) * 4 + c]) -
+                              int(std::lround(expected[c] * 255.f))) <= 1,
+                     "motion mapping, object coverage or alpha");
+        }
+    std::printf("PASS scaled motion %ux%u <- %ux%u objects=%u; all pixels and alpha\n", w, h, rw,
+                rh, object_mode);
+}
+} // namespace
+int main() {
+    try {
+        Vulkan::Instance instance(0, std::getenv("BB_TEST_VULKAN_VALIDATION") != nullptr);
+        VULKAN_HPP_DEFAULT_DISPATCHER.init(instance.GetInstance());
+        VULKAN_HPP_DEFAULT_DISPATCHER.init(instance.GetDevice());
+        Vulkan::Scheduler scheduler(instance);
+        for (unsigned mode = 0; mode < 5; ++mode)
+            Check(instance, scheduler, 13, 9, 7, 5, mode);
+        Check(instance, scheduler, 2560, 1440, 1707, 960, 0);
+        Check(instance, scheduler, 3840, 2160, 2560, 1440, 0);
+        Check(instance, scheduler, 1920, 1080, 960, 540, 0); // smaller output/Performance
+        Check(instance, scheduler, 3840, 2160, 3840, 2160, 0); // Native AA after resize
+        Check(instance, scheduler, 13, 9, 13, 9, 0); // back to a small/native size
+        return 0;
+    } catch (const std::exception &e) {
+        std::fprintf(stderr, "FAIL scaled motion: %s\n", e.what());
+        return 1;
+    }
+}

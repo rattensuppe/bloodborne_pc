@@ -1,5 +1,11 @@
 # FSR 4.1 on Windows
 
+**Motion-vector debug view:** the existing overlay switch also visualizes scaled
+SDR output at WQHD/4K, after reconstruction and sharpening and before the HUD.
+Red/green show the motion supplied to the upscaler; blue marks object-target
+coverage, independently of the depth-validity check. The normal rendering path
+adds no visualization dispatch while the switch is off.
+
 The integration offers one **FSR 4.1 (experimental)** entry in **Upscaler**.
 **FSR 4.1 Settings** lists four independently checked methods:
 
