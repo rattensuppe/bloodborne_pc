@@ -8,9 +8,8 @@
 > selections on runtime fallback are included. SDK Vulkan has
 > [open shader-validation findings](docs/FSR24_UPSCALING.md#local-validation-findings-october-30-2026);
 > gameplay image quality and performance need a fresh comparison.
-> **[Published Windows 1.9.6 prototype.3 ZIP](https://github.com/rattensuppe/bloodborne_pc/releases/download/v1.9.6-sdk24-prototype.3/Bloodborne-Windows-1.9.6-SDK24-FSR412-FGML402-prototype.3.zip)** · [Release notes](https://github.com/rattensuppe/bloodborne_pc/releases/tag/v1.9.6-sdk24-prototype.3)
-> The Windows 1.9.6 package contains source
-> [`3449119`](https://github.com/rattensuppe/bloodborne_pc/commit/3449119f07446085ce763a40f51cbfbfe8867861).
+> **[Download Windows 1.9.7 prototype.1 ZIP](https://github.com/rattensuppe/bloodborne_pc/releases/download/v1.9.7-sdk24-prototype.1/Bloodborne-Windows-1.9.7-SDK24-FSR412-FGML402-prototype.1.zip)** · [Prototype README](https://github.com/rattensuppe/bloodborne_pc/releases/download/v1.9.7-sdk24-prototype.1/README-SDK24-PROTOTYPE.txt) · [Release notes](https://github.com/rattensuppe/bloodborne_pc/releases/tag/v1.9.7-sdk24-prototype.1)
+> Packaged source: [`2180512`](https://github.com/rattensuppe/bloodborne_pc/commit/21805126c2f7b93d853e17bb5535cb0111a5c4f7).
 > The source includes the RX 6000 bounded-SSBO fix. Windows 1.9.7 profiles recommend
 > disabling additional sharpening with FSR 4; explicit settings and the optimized
 > sharpening path remain available.
