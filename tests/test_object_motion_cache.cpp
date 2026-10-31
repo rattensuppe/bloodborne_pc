@@ -220,6 +220,10 @@ void LateReadCase(bool view_read, Instance& instance, Scheduler& scheduler) {
 }
 
 int main(int argc, char **argv) {
+#ifdef _WIN32
+    _set_error_mode(_OUT_TO_STDERR);
+    _set_abort_behavior(0, _CALL_REPORTFAULT);
+#endif
     try {
         const std::string kind = argc > 1 ? argv[1] : "tiny";
         const u32 steps = kind == "game" ? 12 : 64;
@@ -239,7 +243,11 @@ int main(int argc, char **argv) {
         VULKAN_HPP_DEFAULT_DISPATCHER.init(instance.GetInstance());
         VULKAN_HPP_DEFAULT_DISPATCHER.init(instance.GetDevice());
         const auto device = instance.GetDevice();
-        Scheduler scheduler(instance);
+        const char* threaded_setting = std::getenv("BB_CACHE_TEST_THREADED");
+        const bool threaded = threaded_setting && std::strcmp(threaded_setting, "1") == 0;
+        Scheduler scheduler(instance, threaded);
+        Require(scheduler.IsRecordingDeferred() == threaded, "requested recording mode is not active");
+        std::printf("Cache fixture: %s recording\n", threaded ? "threaded" : "direct");
         if (kind=="late-view" || kind=="late-image") {
             Require(std::getenv("BB_OBJECT_MOTION_CACHE") && std::string(std::getenv("BB_OBJECT_MOTION_CACHE"))=="1", "late reads need cache on");
             LateReadCase(kind=="late-view",instance,scheduler);
@@ -316,6 +324,13 @@ int main(int argc, char **argv) {
                     .bufferOffset = i * stride,
                     .imageSubresource = {vk::ImageAspectFlagBits::eColor, 0, 0, 1},
                     .imageExtent = {w, h, 1}};
+                // PrepareRead exposes shader reads; this fixture also performs a transfer read.
+                const vk::MemoryBarrier2 readback_barrier{
+                    .srcStageMask = vk::PipelineStageFlagBits2::eAllCommands,
+                    .srcAccessMask = vk::AccessFlagBits2::eMemoryWrite,
+                    .dstStageMask = vk::PipelineStageFlagBits2::eTransfer,
+                    .dstAccessMask = vk::AccessFlagBits2::eTransferRead};
+                cmd.pipelineBarrier2({.memoryBarrierCount = 1, .pMemoryBarriers = &readback_barrier});
                 cmd.copyImageToBuffer(motion.Image(w, h), vk::ImageLayout::eGeneral, staging, copy);
                 expected.push_back(contents);
             }

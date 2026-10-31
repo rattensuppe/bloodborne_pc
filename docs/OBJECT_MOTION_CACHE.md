@@ -115,3 +115,47 @@ A fresh Windows build and 36 isolated Vulkan cache cases passed, including
 full readbacks, count/byte pressure, collection and pending-work destruction.
 This common cache applies to FSR 4.1 Vulkan/DX12 when object motion and the
 startup cache switch are active. No new gameplay or FPS claim is made here.
+
+## Standalone review on Windows 1.9.7
+
+The `perf/motion-target-cache` topic extracts the LRU/retirement policy from
+`d868e1f` and the late-reader correction from `906ffa9` onto official `b480526`.
+The latter records a new scheduler tick when a valid image or view is obtained
+after a provider finishes earlier work. Retired images and views therefore stay
+alive through their actual last read. The two changes remain separate commits.
+Shaders, motion-history calculations, providers, launcher/overlay settings and
+the default-off preference are unchanged. SDK migration, RX 6000 SSBO routing,
+RCAS/output fusion and optional motion-target diagnostics are separate topics.
+
+On RX 9070 / Adrenalin 26.10.1, the native renderer/capability build and three
+relevant CPU tests pass. There are 76 isolated Vulkan cache cases in direct and
+threaded recording modes: 60 full pixel/validity readbacks agree across cache
+off/on, unset/invalid values and the FSR 3/4/4.1.1/4.1.2 selectors; 16 cases
+cover LRU reuse, blocked GPU submissions, count/byte limits, oversized targets,
+frame-start collection, teardown and late image/view reads. Allocation counts
+return to their starting value after the lifetime tests. Selector coverage does
+not dispatch the upscalers or frame generation.
+
+Core and Synchronization validation are explicitly confirmed active. The
+unchanged headless instance reports
+`VUID-vkCreateDevice-ppEnabledExtensionNames-01387`: it enables a device swapchain
+extension without the required instance surface extension. The cache-off control
+reports the same finding; no additional validation errors or synchronization
+hazards remain. The existing pixel fixture needed a transfer-read barrier after
+`PrepareRead`, whose production contract exposes shader reads. That barrier and
+the recording-mode coverage are test-only changes. Fixture assertion failures
+are routed to stderr on Windows.
+
+The unchanged launcher cache suite has one stale shortcut mock: it intercepts
+the old FSR 4.1.1 probe, while startup now queries the whole FSR 4.1 family.
+Seven original tests pass and that failure is reproduced with untouched base
+launcher/test files. All eight pass with a corrected private mock; this unrelated
+test correction is not shipped or counted as a pass of the original suite.
+
+The standard local Windows ZIP is checked for manifest/CRC, matching cache notes
+and actual frozen-launcher imports. Cached DLSS files are retained; no new
+NVIDIA or RX 6000 hardware test is claimed. Allocation-failure recovery was
+reviewed, without forcing a real out-of-memory condition. No new gameplay,
+area-transition, frame-pacing or FPS benchmark of this extracted branch is
+claimed. Earlier combined-prototype measurements retain their own source and
+scene context.
