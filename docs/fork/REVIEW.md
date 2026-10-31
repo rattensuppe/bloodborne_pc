@@ -11,7 +11,7 @@ for later submission after its current-game/presentation check.
 
 | ID | Topic | Reviewed head | Required foundation | Submission state |
 | --- | --- | --- | --- | --- |
-| L | [`fix/launcher-runtime-checks`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/launcher-runtime-checks) | [`b06b235`](https://github.com/rattensuppe/bloodborne_pc/commit/b06b235e6c7c49ebe69fdb1f24ce3acf331dbaa0) | None | Open [#140](https://github.com/Supermedo/bloodborne_pc/pull/140) |
+| L | [`fix/launcher-runtime-checks`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/launcher-runtime-checks) | [`63a37f9`](https://github.com/rattensuppe/bloodborne_pc/commit/63a37f9fcafe39be2f4213d63a95eba27cb55d47) | None | Open [#140](https://github.com/Supermedo/bloodborne_pc/pull/140) |
 | S | [`fix/rx6000-object-motion`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/rx6000-object-motion) | [`24159ad`](https://github.com/rattensuppe/bloodborne_pc/commit/24159adbd3bed1704fc3d4d492286ab80e4f619e) | None; official cache lifecycle | Open [#141](https://github.com/Supermedo/bloodborne_pc/pull/141); hardware limits documented |
 | V | [`fix/scaled-motion-view`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/scaled-motion-view) | [`d926e6f`](https://github.com/rattensuppe/bloodborne_pc/commit/d926e6f5fc69aedbb8d3df22c03a62e0abedbe4d) | None | Open [#142](https://github.com/Supermedo/bloodborne_pc/pull/142) |
 | R | [`perf/fsr41-output`](https://github.com/rattensuppe/bloodborne_pc/tree/perf/fsr41-output) | [`140b593`](https://github.com/rattensuppe/bloodborne_pc/commit/140b593035dcb297f2fdd8e68bba9e9dc36979a1) | None | Open [#143](https://github.com/Supermedo/bloodborne_pc/pull/143) |
@@ -68,7 +68,7 @@ does not replace the published integration runtime or download.
 
 | Scope | Standalone evidence | Fresh cumulative evidence |
 | --- | --- | --- |
-| L | 34 Python tests; actual console/windowed freezes; Unicode path without development PATH | Real standard package, frozen imports, 27 TLS tests including local certificate failures |
+| L | 44 Python tests in default/-O/-OO; actual/optimized freezes and 31 negative controls; standard ZIP and Unicode path without development PATH | Real standard package, frozen imports, 27 TLS tests including local certificate failures |
 | S | RX6000 routing/bounds/history and BDA/forced-SSBO checks; one RX6800XT/26.10.1 gameplay sample of the prior integration | Policy test plus SSBO/cache owner combination; no new RX6000 machine or vertex-draw certification |
 | V | 20 complete pixel/alpha checks | 10 complete checks under active Core/Sync validation |
 | R | 220 exact comparisons; unchanged fallback shader bytes | 110 exact comparisons, including fresh outputs from all four SR methods |
@@ -101,6 +101,23 @@ The original cumulative-runtime results still apply to its unchanged runtime;
 the corrected test matches the validated private combination. SR is submitted
 as [Draft #146](https://github.com/Supermedo/bloodborne_pc/pull/146); the exact
 body, five commits and 62-file scope were verified. FG is not yet submitted.
+
+## PR140 packaging-gate follow-up
+
+L now includes a separate hardening commit after the cumulative review. It
+changes only the build gate, its invocation and regression tests. Explicit
+failures remain active with Python optimization; TLS output describes context
+configuration. Pillow/Tk/Tcl coverage includes the actual windowed bundle and
+both filesystem and DLL-embedded Tcl libraries. Full native dependencies and
+Tcl/Tk data are compared before the actual check, which has a 30-second timeout.
+
+The standard standalone ZIP, actual relocated launcher, optimized frozen gate
+and 31 negative controls pass. A real packaging-failure control preserves an
+existing stage and ZIP. The manifest/shared-SDK patch is unchanged. Dependency
+pinning is a separately validated local build-policy change, not part of #140.
+Six fresh merge previews against the other topic heads remain clean. Cumulative
+runtime evidence retains its original scope; the integration runtime and
+published binary releases have not been rebuilt or replaced.
 
 ## Submission sequence and remaining checks
 

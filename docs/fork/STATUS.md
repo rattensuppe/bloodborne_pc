@@ -32,7 +32,7 @@ the first wave [#140](https://github.com/Supermedo/bloodborne_pc/pull/140) /
 
 | Component | Topic | Implementation / readiness |
 | --- | --- | --- |
-| Frozen-launcher runtime and package checks | [`fix/launcher-runtime-checks`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/launcher-runtime-checks) | [PR #140 open](https://github.com/Supermedo/bloodborne_pc/pull/140) at [`b06b235`](https://github.com/rattensuppe/bloodborne_pc/commit/b06b235e6c7c49ebe69fdb1f24ce3acf331dbaa0); two focused commits, 34 Python tests and real frozen-runtime checks |
+| Frozen-launcher runtime and package checks | [`fix/launcher-runtime-checks`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/launcher-runtime-checks) | [PR #140 open](https://github.com/Supermedo/bloodborne_pc/pull/140) at [`63a37f9`](https://github.com/rattensuppe/bloodborne_pc/commit/63a37f9fcafe39be2f4213d63a95eba27cb55d47); three focused commits, 44 Python tests in default/-O/-OO and real frozen-runtime checks |
 | RX 6000 bounded object-motion SSBO | [`fix/rx6000-object-motion`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/rx6000-object-motion) | [PR #141 open](https://github.com/Supermedo/bloodborne_pc/pull/141) at [`24159ad`](https://github.com/rattensuppe/bloodborne_pc/commit/24159adbd3bed1704fc3d4d492286ab80e4f619e); native build/readbacks and standard ZIP checked on the original cache lifecycle |
 | Scaled SDR motion-vector view | [`fix/scaled-motion-view`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/scaled-motion-view) | [PR #142 open](https://github.com/Supermedo/bloodborne_pc/pull/142) at [`d926e6f`](https://github.com/rattensuppe/bloodborne_pc/commit/d926e6f5fc69aedbb8d3df22c03a62e0abedbe4d); standalone build, 20 pixel/alpha readbacks and standard ZIP checked |
 | Combined RCAS/output | [`perf/fsr41-output`](https://github.com/rattensuppe/bloodborne_pc/tree/perf/fsr41-output) | [PR #143 open](https://github.com/Supermedo/bloodborne_pc/pull/143) at [`140b593`](https://github.com/rattensuppe/bloodborne_pc/commit/140b593035dcb297f2fdd8e68bba9e9dc36979a1); standalone build, 220 exact output comparisons and standard ZIP checked |
@@ -48,10 +48,23 @@ renderer code; preserve their documented merge resolutions and coverage.
 
 ### First two standalone candidates
 
-The launcher branch adds the console TLS/Pillow/Tk preflight and recursive
-package-manifest coverage. Its actual windowed launcher also executes the
-import check, including from a relocated Unicode path without development tools
-on PATH. There are no renderer or SDK changes in that branch.
+The launcher branch checks TLS-context settings, Pillow image/font operations,
+Tk imports and Tcl initialization without removable assertions. It compares
+native dependencies and Tcl/Tk script data before invoking the actual windowed
+launcher through its existing `--script` role with a 30-second timeout. Tcl 9's
+DLL-embedded script library is checked as well as Tcl 8's filesystem layout.
+
+The follow-up in PR #140 passes 44 focused tests in each of default, `-O` and
+`-OO` modes, a fresh complete native build and standard Windows ZIP. Normal
+and optimized frozen gates reject 31 controlled native/import/Tcl/TLS faults;
+the actual relocated windowed launcher passes with only Windows tools on PATH.
+A deliberately failing packaging gate preserves the previous staging folder
+and ZIP. The gate remains build-only and is not shipped to players.
+
+Recursive manifest coverage first benefits the standard SDK layout at
+`bin/fsr24/` in #146, whose manifest patch remains identical. Direct dependency
+pinning was validated separately and remains outside this PR. Renderer, SDK,
+game startup settings and the integration runtime are unchanged.
 
 The SSBO branch resolves three extraction conflicts while preserving the
 official cache lifecycle and provider paths. On RX 9070, private SSBO fixtures
