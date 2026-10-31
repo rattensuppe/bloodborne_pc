@@ -2,14 +2,16 @@
 
 Reviewed October 31, 2026 against official Windows 1.9.7 `b480526`.
 This is the source/coverage review for the seven extracted topics, separate from
-the combined experimental download. No new upstream PR was created by this review.
+the combined experimental download. The first wave is now submitted as
+[#140](https://github.com/Supermedo/bloodborne_pc/pull/140) and
+[#141](https://github.com/Supermedo/bloodborne_pc/pull/141).
 
 ## Sources and dependencies
 
 | ID | Topic | Reviewed head | Required foundation | Submission state |
 | --- | --- | --- | --- | --- |
-| L | [`fix/launcher-runtime-checks`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/launcher-runtime-checks) | [`b06b235`](https://github.com/rattensuppe/bloodborne_pc/commit/b06b235e6c7c49ebe69fdb1f24ce3acf331dbaa0) | None | First wave: ready for focused review |
-| S | [`fix/rx6000-object-motion`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/rx6000-object-motion) | [`24159ad`](https://github.com/rattensuppe/bloodborne_pc/commit/24159adbd3bed1704fc3d4d492286ab80e4f619e) | None; official cache lifecycle | First wave: state the hardware coverage precisely |
+| L | [`fix/launcher-runtime-checks`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/launcher-runtime-checks) | [`b06b235`](https://github.com/rattensuppe/bloodborne_pc/commit/b06b235e6c7c49ebe69fdb1f24ce3acf331dbaa0) | None | Open [#140](https://github.com/Supermedo/bloodborne_pc/pull/140) |
+| S | [`fix/rx6000-object-motion`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/rx6000-object-motion) | [`24159ad`](https://github.com/rattensuppe/bloodborne_pc/commit/24159adbd3bed1704fc3d4d492286ab80e4f619e) | None; official cache lifecycle | Open [#141](https://github.com/Supermedo/bloodborne_pc/pull/141); hardware limits documented |
 | V | [`fix/scaled-motion-view`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/scaled-motion-view) | [`d926e6f`](https://github.com/rattensuppe/bloodborne_pc/commit/d926e6f5fc69aedbb8d3df22c03a62e0abedbe4d) | None | Second wave: independent fix |
 | R | [`perf/fsr41-output`](https://github.com/rattensuppe/bloodborne_pc/tree/perf/fsr41-output) | [`140b593`](https://github.com/rattensuppe/bloodborne_pc/commit/140b593035dcb297f2fdd8e68bba9e9dc36979a1) | None | Second wave: preserve exact-output and gameplay limits |
 | C | [`perf/motion-target-cache`](https://github.com/rattensuppe/bloodborne_pc/tree/perf/motion-target-cache) | [`a1d32a4`](https://github.com/rattensuppe/bloodborne_pc/commit/a1d32a4571da89e96d6211b7dfaf91b0f7c1d8d6) | None; combine explicitly with S | Second wave: lifetime/memory review |
@@ -93,8 +95,9 @@ published heads. Production sources are unchanged by this follow-up.
 
 ## Submission sequence and remaining checks
 
-1. **First wave: L and S**, with concise descriptions and only their own
-   changes. S must state which RX6000 sample exists and that the newly
+1. **First wave submitted: L [#140](https://github.com/Supermedo/bloodborne_pc/pull/140)
+   and S [#141](https://github.com/Supermedo/bloodborne_pc/pull/141)**, each with
+   its own changes and checks. S states which RX6000 sample exists and that the newly
    extracted candidate was not freshly played on RX6000. Request a targeted
    RX6800XT/cache-off-on check; do not call this whole-series certification.
 2. **Second wave: V, then R and C**, preserving the reviewed merge resolutions

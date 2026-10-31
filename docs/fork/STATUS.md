@@ -21,12 +21,14 @@ Reorganising the fork does not publish a new binary build.
 ## Integrated components and review topics
 
 All seven topics have independent fork branches based on official `b480526`.
-The SDK topics share the explicit foundation below. No new upstream PR is open.
+The SDK topics share the explicit foundation below. The first wave is open as
+[#140](https://github.com/Supermedo/bloodborne_pc/pull/140) and
+[#141](https://github.com/Supermedo/bloodborne_pc/pull/141).
 
-| Component | Planned topic | Implementation / readiness |
+| Component | Topic | Implementation / readiness |
 | --- | --- | --- |
-| Frozen-launcher runtime and package checks | [`fix/launcher-runtime-checks`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/launcher-runtime-checks) | Prepared at [`b06b235`](https://github.com/rattensuppe/bloodborne_pc/commit/b06b235e6c7c49ebe69fdb1f24ce3acf331dbaa0); two focused commits, 34 Python tests and real frozen-runtime checks |
-| RX 6000 bounded object-motion SSBO | [`fix/rx6000-object-motion`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/rx6000-object-motion) | Prepared at [`24159ad`](https://github.com/rattensuppe/bloodborne_pc/commit/24159adbd3bed1704fc3d4d492286ab80e4f619e); native build/readbacks and standard ZIP checked on the original cache lifecycle |
+| Frozen-launcher runtime and package checks | [`fix/launcher-runtime-checks`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/launcher-runtime-checks) | [PR #140 open](https://github.com/Supermedo/bloodborne_pc/pull/140) at [`b06b235`](https://github.com/rattensuppe/bloodborne_pc/commit/b06b235e6c7c49ebe69fdb1f24ce3acf331dbaa0); two focused commits, 34 Python tests and real frozen-runtime checks |
+| RX 6000 bounded object-motion SSBO | [`fix/rx6000-object-motion`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/rx6000-object-motion) | [PR #141 open](https://github.com/Supermedo/bloodborne_pc/pull/141) at [`24159ad`](https://github.com/rattensuppe/bloodborne_pc/commit/24159adbd3bed1704fc3d4d492286ab80e4f619e); native build/readbacks and standard ZIP checked on the original cache lifecycle |
 | Scaled SDR motion-vector view | [`fix/scaled-motion-view`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/scaled-motion-view) | Prepared at [`d926e6f`](https://github.com/rattensuppe/bloodborne_pc/commit/d926e6f5fc69aedbb8d3df22c03a62e0abedbe4d); standalone build, 20 pixel/alpha readbacks and standard ZIP checked |
 | Combined RCAS/output | [`perf/fsr41-output`](https://github.com/rattensuppe/bloodborne_pc/tree/perf/fsr41-output) | Prepared at [`140b593`](https://github.com/rattensuppe/bloodborne_pc/commit/140b593035dcb297f2fdd8e68bba9e9dc36979a1); standalone build, 220 exact output comparisons and standard ZIP checked |
 | Motion-target LRU and deferred release | [`perf/motion-target-cache`](https://github.com/rattensuppe/bloodborne_pc/tree/perf/motion-target-cache) | Prepared at [`a1d32a4`](https://github.com/rattensuppe/bloodborne_pc/commit/a1d32a4571da89e96d6211b7dfaf91b0f7c1d8d6); three focused commits, 76 standalone GPU cases and standard ZIP checked |
@@ -204,8 +206,12 @@ validation, new gameplay, frame-pacing or performance claim.
 
 The old overlay-test restart/window-ID repairs are reproduced and checked as
 a local test-only follow-up for SDK SR. They are not included in its currently
-published head. First-wave PR descriptions are prepared locally for launcher
-runtime/package checks and the RX6000 fix; no upstream PR has been opened.
+published head. The first wave is submitted: [#140](https://github.com/Supermedo/bloodborne_pc/pull/140)
+for launcher/package checks and [#141](https://github.com/Supermedo/bloodborne_pc/pull/141)
+for the RX6000 SSBO fix. Both target `windows` on `b480526` at the reviewed heads.
+All 33 existing open PRs were checked for overlap. Fresh checks passed 34
+launcher/TLS/package tests, five SSBO launcher guards, two CPU programs and
+frozen-runtime checks; the reviewed package hashes and sources are unchanged.
 SDK SR remains a Draft candidate; fresh current-build gameplay and native
 build/package CI remain separate work items. See the matrix for per-topic limits.
 
@@ -251,8 +257,9 @@ native Vulkan FG, new presentation pacing and FSR Lite are separate topics.
 
 ## Next review steps
 
-1. Submit the prepared first wave (launcher/runtime and RX6000) as focused PRs,
-   refreshing upstream and checking equivalent patches before each submission.
+1. Follow reviews of [#140](https://github.com/Supermedo/bloodborne_pc/pull/140)
+   and [#141](https://github.com/Supermedo/bloodborne_pc/pull/141); inspect the
+   final upstream content before updating the mirror or later topics.
 2. Follow the [review order and coverage limits](REVIEW.md); retain the tested
    merge resolutions when updating later topics.
 3. Keep SDK SR, SDK FG and shared/headless helpers independently reviewable;
