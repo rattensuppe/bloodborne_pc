@@ -188,6 +188,27 @@ this is not a fresh combined-runtime GPU result. See the
 [standalone scope](https://github.com/rattensuppe/bloodborne_pc/blob/e2426a91b2ec7ef77842ef6981dbf6c5c3863ac4/docs/SDK24_ML_FG.md#standalone-review-on-windows-197).
 The combined integration runtime remains unchanged.
 
+### Final dependency and coverage review
+
+The [review matrix and submission order](REVIEW.md) records all seven exact
+topic heads, the common SDK foundation, all 21 pairwise merge previews and
+the explicit resolutions used in a private cumulative build. The published
+integration runtime and the seven topic heads are unchanged.
+
+The cumulative build passes 13 native CPU programs, 181 Python tests and
+78 isolated functional GPU cases, including 48 BDA/SSBO cache cases,
+10 scaled-view readbacks, 110 exact RCAS comparisons and both FG versions.
+The standard package and actual relocated 13-language frozen launcher pass.
+Known original AMD SDK Vulkan findings remain; there is no blanket clean
+validation, new gameplay, frame-pacing or performance claim.
+
+The old overlay-test restart/window-ID repairs are reproduced and checked as
+a local test-only follow-up for SDK SR. They are not included in its currently
+published head. First-wave PR descriptions are prepared locally for launcher
+runtime/package checks and the RX6000 fix; no upstream PR has been opened.
+SDK SR remains a Draft candidate; fresh current-build gameplay and native
+build/package CI remain separate work items. See the matrix for per-topic limits.
+
 ## Already upstream
 
 | PR | Scope |
@@ -230,12 +251,14 @@ native Vulkan FG, new presentation pacing and FSR Lite are separate topics.
 
 ## Next review steps
 
-1. Review the prepared standalone diffs and their documented coverage before
-   opening focused upstream PRs; preserve the headless and hardware limits.
-2. Finish the cross-topic dependency/coverage review, including documented merge
-   resolutions. Choose at most two small candidates for the first upstream reviews.
-3. Keep SDK SR, SDK FG and shared/headless helper changes independently reviewable.
-4. Add reliable build/package automation before requiring CI status checks.
+1. Submit the prepared first wave (launcher/runtime and RX6000) as focused PRs,
+   refreshing upstream and checking equivalent patches before each submission.
+2. Follow the [review order and coverage limits](REVIEW.md); retain the tested
+   merge resolutions when updating later topics.
+3. Keep SDK SR, SDK FG and shared/headless helpers independently reviewable;
+   publish the prepared SDK overlay-test follow-up before its upstream PR.
+4. Complete the applicable current-game checks and add reliable native
+   build/package automation before making those CI checks mandatory.
 
 ## Repository organisation
 
