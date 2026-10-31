@@ -35,7 +35,7 @@ the first wave [#140](https://github.com/Supermedo/bloodborne_pc/pull/140) /
 | Scaled SDR motion-vector view | [`fix/scaled-motion-view`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/scaled-motion-view) | [PR #142 open](https://github.com/Supermedo/bloodborne_pc/pull/142) at [`d926e6f`](https://github.com/rattensuppe/bloodborne_pc/commit/d926e6f5fc69aedbb8d3df22c03a62e0abedbe4d); standalone build, 20 pixel/alpha readbacks and standard ZIP checked |
 | Combined RCAS/output | [`perf/fsr41-output`](https://github.com/rattensuppe/bloodborne_pc/tree/perf/fsr41-output) | [PR #143 open](https://github.com/Supermedo/bloodborne_pc/pull/143) at [`140b593`](https://github.com/rattensuppe/bloodborne_pc/commit/140b593035dcb297f2fdd8e68bba9e9dc36979a1); standalone build, 220 exact output comparisons and standard ZIP checked |
 | Motion-target LRU and deferred release | [`perf/motion-target-cache`](https://github.com/rattensuppe/bloodborne_pc/tree/perf/motion-target-cache) | [PR #144 open](https://github.com/Supermedo/bloodborne_pc/pull/144) at [`a1d32a4`](https://github.com/rattensuppe/bloodborne_pc/commit/a1d32a4571da89e96d6211b7dfaf91b0f7c1d8d6); three focused commits, 76 standalone GPU cases and standard ZIP checked |
-| SDK 2.4 FSR 4.1.2 upscaling | [`feat/fsr-sdk24-upscaling`](https://github.com/rattensuppe/bloodborne_pc/tree/feat/fsr-sdk24-upscaling) | Prepared at [`580d935`](https://github.com/rattensuppe/bloodborne_pc/commit/580d93515fbe48cf1e0af86b7dfb8d1951570e00); shared foundation and SR-only runtime checked; original AMD Vulkan findings remain open |
+| SDK 2.4 FSR 4.1.2 upscaling | [`feat/fsr-sdk24-upscaling`](https://github.com/rattensuppe/bloodborne_pc/tree/feat/fsr-sdk24-upscaling) | Prepared at [`ba4dc22`](https://github.com/rattensuppe/bloodborne_pc/commit/ba4dc221419dd82b213b56271e7f6e2b6d6073ab); test-only overlay follow-up checked; shared foundation and SR-only package retained; original AMD Vulkan findings remain open |
 | SDK 2.4 ML-FG 4.0.2 | [`feat/mlfg-sdk24`](https://github.com/rattensuppe/bloodborne_pc/tree/feat/mlfg-sdk24) | Prepared at [`e2426a9`](https://github.com/rattensuppe/bloodborne_pc/commit/e2426a91b2ec7ef77842ef6981dbf6c5c3863ac4); independent FG effect, retained SR paths, bridge/stress and standard ZIP checked |
 
 SDK upscaling records a small common foundation at `238137e`: public headers,
@@ -130,7 +130,7 @@ claimed. The combined integration runtime remains unchanged.
 
 ### Standalone SDK 2.4 upscaling
 
-The SDK branch has three commits: shared API/file/manifest foundation
+The SDK branch starts with three implementation commits: shared API/file/manifest foundation
 [`2943038`](https://github.com/rattensuppe/bloodborne_pc/commit/29430384d1449da4ef7e168ed492c6e7fd9923fa),
 headless-device fix
 [`238137e`](https://github.com/rattensuppe/bloodborne_pc/commit/238137e44071a2050825e245b91daff20fc9c1c9),
@@ -139,13 +139,13 @@ at the second commit; that base contains neither SDK SR nor SDK FG integration.
 This SR package retains the official FG sources, headers and runtime files and
 adds only two SDK upscaling DLLs. Camera, cache, shaders and RCAS remain official.
 
-Native build, nine CPU programs and 151 Python tests pass. Thirty-one isolated
-runtime cases cover all four SR methods, switching, failure/repair boundaries,
+The latest native build, ten CPU programs (including the repaired overlay test)
+and 151 Python tests pass. The existing 31 isolated runtime cases cover all four SR methods, switching, failure/repair boundaries,
 DLL loading orders and both retained FG support queries. The standard ZIP and
 actual relocated frozen launcher pass manifest/pin/runtime checks; its 13-language
 CPU picker fixture is separate from the real packaged four-method support probe.
 
-Fresh Core/Synchronization validation and captured original AMD submissions
+Recorded Core/Synchronization validation and captured original AMD submissions
 reproduce the SDK Vulkan findings: 30 modules, 12 separate SPIR-V failures and
 14 `CooperativeMatrixConversionsNV` declarations. Both DX12 paths and fsr4vk have
 no Vulkan errors in these cases. This is not a clean overall SDK validation pass,
@@ -157,8 +157,31 @@ obsolete driver ABI. Merge previews with launcher/cache are clean. Scaled-view,
 RCAS and SSBO need documentation-copy unions; SSBO also needs the public-SDK
 includes retained in its capability helper. Private shell/C++ syntax checks pass;
 other branches remain separate and no new combined GPU run is claimed. See the
-[standalone scope and validation notes](https://github.com/rattensuppe/bloodborne_pc/blob/580d93515fbe48cf1e0af86b7dfb8d1951570e00/docs/FSR24_UPSCALING.md#standalone-review-on-windows-197).
+[standalone scope and validation notes](https://github.com/rattensuppe/bloodborne_pc/blob/ba4dc221419dd82b213b56271e7f6e2b6d6073ab/docs/FSR24_UPSCALING.md#standalone-review-on-windows-197).
 The combined integration runtime remains unchanged.
+
+### SDK SR test-only follow-up
+
+The existing SDK SR topic now adds
+[`6047f4e`](https://github.com/rattensuppe/bloodborne_pc/commit/6047f4e7382300235f4d8c70928775f9fd3b8d43)
+for the missing PC-menu restart test stub and stable `###settings` window lookup,
+then [`ba4dc22`](https://github.com/rattensuppe/bloodborne_pc/commit/ba4dc221419dd82b213b56271e7f6e2b6d6073ab)
+for scope notes. Assertions are explicitly enabled and the actual overlay
+selection/storage/restart test passes. Changes from `580d935` are confined to
+that test and its documentation.
+
+A separate worktree preserves the earlier ZIP. Its fresh standard SR-only
+package and relocated actual frozen UI pass manifest/CRC/pins, 13 languages
+and independent real four-method support probes. The previous 31 GPU cases
+and original AMD findings are reused against identical runtime sources and
+SDK pins; no new GPU dispatch or gameplay test is claimed. No new SDK PR or
+release has been created. A concise local Draft description is prepared.
+
+The foundation is reconfirmed: six public API headers, verified file fetching,
+license and nested manifests, plus the separate headless fix. Its manifest
+matches #140; it contains no SR/FG effect integration. SDK FG still starts at
+`238137e`. All six SDK-SR merge previews retain the existing conflict classes;
+the repaired test matches the already validated cumulative combination.
 
 ### Standalone SDK 2.4 frame generation
 
@@ -207,9 +230,9 @@ The standard package and actual relocated 13-language frozen launcher pass.
 Known original AMD SDK Vulkan findings remain; there is no blanket clean
 validation, new gameplay, frame-pacing or performance claim.
 
-The old overlay-test restart/window-ID repairs are reproduced and checked as
-a local test-only follow-up for SDK SR. They are not included in its currently
-published head. The first wave is submitted: [#140](https://github.com/Supermedo/bloodborne_pc/pull/140)
+The overlay-test restart/window-ID repairs are now published in the SDK SR
+topic as a separate test-only commit, followed by scope documentation. They
+match the previously validated local follow-up; product runtime sources are unchanged. The first wave is submitted: [#140](https://github.com/Supermedo/bloodborne_pc/pull/140)
 for launcher/package checks and [#141](https://github.com/Supermedo/bloodborne_pc/pull/141)
 for the RX6000 SSBO fix. Both target `windows` on `b480526` at the reviewed heads.
 All 33 existing open PRs were checked for overlap. Fresh checks passed 34
@@ -285,7 +308,7 @@ native Vulkan FG, new presentation pacing and FSR Lite are separate topics.
 2. Follow the [review order and coverage limits](REVIEW.md); retain the tested
    merge resolutions when updating later topics.
 3. Keep SDK SR, SDK FG and shared/headless helpers independently reviewable;
-   publish the prepared SDK overlay-test follow-up before its upstream PR.
+   retain the published SDK overlay-test follow-up in its eventual Draft PR.
 4. Complete the applicable current-game checks and add reliable native
    build/package automation before making those CI checks mandatory.
 
