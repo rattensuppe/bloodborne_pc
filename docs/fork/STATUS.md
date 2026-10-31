@@ -20,7 +20,7 @@ Reorganising the fork does not publish a new binary build.
 
 ## Integrated components and review topics
 
-Four topics have independent fork branches on official `b480526`.
+Five topics have independent fork branches on official `b480526`.
 The remaining names define the planned split. No new upstream PR is open.
 
 | Component | Planned topic | Implementation / readiness |
@@ -29,7 +29,7 @@ The remaining names define the planned split. No new upstream PR is open.
 | RX 6000 bounded object-motion SSBO | [`fix/rx6000-object-motion`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/rx6000-object-motion) | Prepared at [`24159ad`](https://github.com/rattensuppe/bloodborne_pc/commit/24159adbd3bed1704fc3d4d492286ab80e4f619e); native build/readbacks and standard ZIP checked on the original cache lifecycle |
 | Scaled SDR motion-vector view | [`fix/scaled-motion-view`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/scaled-motion-view) | Prepared at [`d926e6f`](https://github.com/rattensuppe/bloodborne_pc/commit/d926e6f5fc69aedbb8d3df22c03a62e0abedbe4d); standalone build, 20 pixel/alpha readbacks and standard ZIP checked |
 | Combined RCAS/output | [`perf/fsr41-output`](https://github.com/rattensuppe/bloodborne_pc/tree/perf/fsr41-output) | Prepared at [`140b593`](https://github.com/rattensuppe/bloodborne_pc/commit/140b593035dcb297f2fdd8e68bba9e9dc36979a1); standalone build, 220 exact output comparisons and standard ZIP checked |
-| Motion-target LRU and deferred release | `perf/motion-target-cache` | Integrated; [cache and lifetime details](../OBJECT_MOTION_CACHE.md); include late image/view reads |
+| Motion-target LRU and deferred release | [`perf/motion-target-cache`](https://github.com/rattensuppe/bloodborne_pc/tree/perf/motion-target-cache) | Prepared at [`a1d32a4`](https://github.com/rattensuppe/bloodborne_pc/commit/a1d32a4571da89e96d6211b7dfaf91b0f7c1d8d6); three focused commits, 76 standalone GPU cases and standard ZIP checked |
 | SDK 2.4 FSR 4.1.2 upscaling | `feat/fsr-sdk24-upscaling` | Integrated; [public API implementation](../FSR24_UPSCALING.md); Vulkan findings and current gameplay coverage remain open |
 | SDK 2.4 ML-FG 4.0.2 | `feat/mlfg-sdk24` | Integrated; [independent FG runtime](../SDK24_ML_FG.md); existing DX12 bridge, 2x SDR |
 
@@ -96,6 +96,32 @@ wrapper, HUD and FG, which were not run anew. The unrelated upstream overlay-tes
 `runtime_restart` link failure remains documented and is not counted as a pass.
 No new gameplay benchmark or performance gain is claimed for this extracted
 branch. The combined integration runtime remains unchanged.
+
+### Standalone motion-target cache
+
+The cache branch separates LRU/bounded retirement, late image/view reads and test
+hardening into three commits. The default stays off. It retains four reusable
+targets and at most two pending retired images / 128 MiB of allocation bytes.
+Shaders, providers and saved settings remain unchanged. Seventy-six isolated
+GPU cases pass in direct/threaded recording, including 60 identical full pixel
+readbacks and 16 lifetime/pressure checks. Core/Synchronization validation reports
+only the known headless-base VUID described above. The pixel fixture's own
+transfer read now has an explicit barrier. The standard ZIP, manifest/CRC and
+actual frozen launcher pass their checks.
+
+Merge previews are clean with the launcher, scaled-view and RCAS topics. Combining
+with SSBO requires resolving private declarations and fixture code in two files;
+the renderer implementation merges automatically. A private resolved combination
+passes 24 additional SSBO-owner/cache readback and lifetime cases, with identical
+cache-function bodies. Both standalone branches remain separate. This is no new
+RX 6000 hardware or vertex-shader gameplay test.
+
+The unchanged launcher-cache suite has a stale shortcut mock: seven original
+tests pass and one errors on unchanged base files too. Eight pass with a corrected
+private mock; that unrelated correction is not shipped. The
+[candidate's notes](https://github.com/rattensuppe/bloodborne_pc/blob/a1d32a4571da89e96d6211b7dfaf91b0f7c1d8d6/docs/OBJECT_MOTION_CACHE.md#standalone-review-on-windows-197)
+preserve these limits. No new gameplay/FPS result or forced out-of-memory test is
+claimed. The combined integration runtime remains unchanged.
 
 ## Already upstream
 
