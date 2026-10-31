@@ -20,8 +20,8 @@ Reorganising the fork does not publish a new binary build.
 
 ## Integrated components and review topics
 
-Six topics have independent fork branches on official `b480526`.
-The remaining names define the planned split. No new upstream PR is open.
+All seven topics have independent fork branches based on official `b480526`.
+The SDK topics share the explicit foundation below. No new upstream PR is open.
 
 | Component | Planned topic | Implementation / readiness |
 | --- | --- | --- |
@@ -31,11 +31,11 @@ The remaining names define the planned split. No new upstream PR is open.
 | Combined RCAS/output | [`perf/fsr41-output`](https://github.com/rattensuppe/bloodborne_pc/tree/perf/fsr41-output) | Prepared at [`140b593`](https://github.com/rattensuppe/bloodborne_pc/commit/140b593035dcb297f2fdd8e68bba9e9dc36979a1); standalone build, 220 exact output comparisons and standard ZIP checked |
 | Motion-target LRU and deferred release | [`perf/motion-target-cache`](https://github.com/rattensuppe/bloodborne_pc/tree/perf/motion-target-cache) | Prepared at [`a1d32a4`](https://github.com/rattensuppe/bloodborne_pc/commit/a1d32a4571da89e96d6211b7dfaf91b0f7c1d8d6); three focused commits, 76 standalone GPU cases and standard ZIP checked |
 | SDK 2.4 FSR 4.1.2 upscaling | [`feat/fsr-sdk24-upscaling`](https://github.com/rattensuppe/bloodborne_pc/tree/feat/fsr-sdk24-upscaling) | Prepared at [`580d935`](https://github.com/rattensuppe/bloodborne_pc/commit/580d93515fbe48cf1e0af86b7dfb8d1951570e00); shared foundation and SR-only runtime checked; original AMD Vulkan findings remain open |
-| SDK 2.4 ML-FG 4.0.2 | `feat/mlfg-sdk24` | Integrated; [independent FG runtime](../SDK24_ML_FG.md); existing DX12 bridge, 2x SDR |
+| SDK 2.4 ML-FG 4.0.2 | [`feat/mlfg-sdk24`](https://github.com/rattensuppe/bloodborne_pc/tree/feat/mlfg-sdk24) | Prepared at [`e2426a9`](https://github.com/rattensuppe/bloodborne_pc/commit/e2426a91b2ec7ef77842ef6981dbf6c5c3863ac4); independent FG effect, retained SR paths, bridge/stress and standard ZIP checked |
 
 SDK upscaling records a small common foundation at `238137e`: public headers,
 file verification, nested-runtime manifests and the separate headless fix. The
-SDK FG topic will reuse that base without the SR runtime change. Effect pins and
+SDK FG topic reuses that base without the SR runtime change. Effect pins and
 tests remain separate. SSBO/cache and scaled-view/output also touch common
 renderer code; preserve their documented merge resolutions and coverage.
 
@@ -129,7 +129,7 @@ The SDK branch has three commits: shared API/file/manifest foundation
 [`2943038`](https://github.com/rattensuppe/bloodborne_pc/commit/29430384d1449da4ef7e168ed492c6e7fd9923fa),
 headless-device fix
 [`238137e`](https://github.com/rattensuppe/bloodborne_pc/commit/238137e44071a2050825e245b91daff20fc9c1c9),
-then the public Vulkan/DX12 upscaling integration. A future FG branch can start
+then the public Vulkan/DX12 upscaling integration. The independent FG branch starts
 at the second commit; that base contains neither SDK SR nor SDK FG integration.
 This SR package retains the official FG sources, headers and runtime files and
 adds only two SDK upscaling DLLs. Camera, cache, shaders and RCAS remain official.
@@ -153,6 +153,39 @@ RCAS and SSBO need documentation-copy unions; SSBO also needs the public-SDK
 includes retained in its capability helper. Private shell/C++ syntax checks pass;
 other branches remain separate and no new combined GPU run is claimed. See the
 [standalone scope and validation notes](https://github.com/rattensuppe/bloodborne_pc/blob/580d93515fbe48cf1e0af86b7dfb8d1951570e00/docs/FSR24_UPSCALING.md#standalone-review-on-windows-197).
+The combined integration runtime remains unchanged.
+
+### Standalone SDK 2.4 frame generation
+
+The FG branch shares foundation `238137e` with SDK SR, then adds two commits:
+[`a8e571e`](https://github.com/rattensuppe/bloodborne_pc/commit/a8e571e21786baec94d66927438bad5ff2f317d2)
+for the independent 4.0.2 effect and
+[`e2426a9`](https://github.com/rattensuppe/bloodborne_pc/commit/e2426a91b2ec7ef77842ef6981dbf6c5c3863ac4)
+for optional input checks and nonfatal memory diagnostics. Public FG headers
+and the signed DLL match the AMD pins. Its downloader uses the shared verifier
+directly and does not depend on SDK SR. The package adds one SDK FG DLL;
+legacy 4.0.1 and the four official upscaling paths remain. The DX12 interop
+bridge, SDR 2x output, HUD, camera, shaders, cache and user settings are unchanged.
+
+Native build, six CPU programs and 58 Python tests pass. Thirty-one isolated
+runtime cases cover both DLL load orders and ML-FG versions, moving input,
+1080p/4K output, serial/overlap operation, 256-frame three-slot stress,
+reset/version switches, missing SDK fallback, independent 4.0.1 availability,
+invalid adapter, optional diagnostics, HUD and all four retained SR methods.
+Core/Synchronization validation is active and clean in the FG bridge, stress,
+switch and HUD cases. This is not a D3D12 debug-layer or real presentation test.
+The separate SDK SR Vulkan findings above remain open.
+
+The standard ZIP passes manifest/CRC/pin checks. The real relocated frozen
+launcher passes imports and 13-language picker/preference checks; real packaged
+capability probes independently verify SR and FG, including a missing FG DLL.
+No game, new visual-quality test or performance measurement was run.
+
+Merge previews are runtime-clean against the other six topics. SSBO, scaled
+motion view, RCAS and SDK SR each need a documentation-copy union in package.sh;
+the private resolutions pass shell syntax checks. Other branches remain separate;
+this is not a fresh combined-runtime GPU result. See the
+[standalone scope](https://github.com/rattensuppe/bloodborne_pc/blob/e2426a91b2ec7ef77842ef6981dbf6c5c3863ac4/docs/SDK24_ML_FG.md#standalone-review-on-windows-197).
 The combined integration runtime remains unchanged.
 
 ## Already upstream
@@ -199,8 +232,8 @@ native Vulkan FG, new presentation pacing and FSR Lite are separate topics.
 
 1. Review the prepared standalone diffs and their documented coverage before
    opening focused upstream PRs; preserve the headless and hardware limits.
-2. Extract the remaining topics with explicit shared foundations and document
-   standalone checks separately from combined integration checks.
+2. Finish the cross-topic dependency/coverage review, including documented merge
+   resolutions. Choose at most two small candidates for the first upstream reviews.
 3. Keep SDK SR, SDK FG and shared/headless helper changes independently reviewable.
 4. Add reliable build/package automation before requiring CI status checks.
 
