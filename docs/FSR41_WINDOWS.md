@@ -48,3 +48,6 @@ Windows 11, exact-provider and SDR requirements.
 
 Regression fixtures cover failed loader retries, concurrent initialization, missing
 API callbacks, provider-independent host sharpening and package validation.
+
+ML-FG 4.0.2 uses a separately pinned SDK 2.4 effect DLL. The upscaling
+methods retain their existing runtimes. See [SDK ML-FG](SDK24_ML_FG.md).
