@@ -24,6 +24,10 @@ of the bbport version.
 heads. Old documents and PRs contain branch-based links; raw file URLs are not
 automatically redirected by a rename.
 
+The fork default is `integration/windows`. Active rules protect the two primary
+branches from deletion/forced history updates, freeze the historical branches
+and prevent version-tag updates/deletion. New review topics remain writable.
+
 ## Updating upstream
 
 1. Check the remote heads, working tree and parallel work first.
@@ -124,6 +128,11 @@ Require status checks only after they reliably check the **actual topic SHA**.
 An integration-only green workflow does not validate a different topic commit.
 Hosted Windows runners can build and check CPU/frozen/package paths. GPU and
 gameplay checks remain separately documented.
+
+The initial hosted `Fork documentation` check only verifies overview links and
+anchors on the integration SHA. It has read-only permissions, a pinned checkout
+action and no public-PR trigger. It is intentionally not a required status check;
+native build/package automation is a later step.
 
 Never automatically execute untrusted public-PR code on a personal NUC runner.
 Keep credentials out of logs and build artifacts. Fork-only administration/CI

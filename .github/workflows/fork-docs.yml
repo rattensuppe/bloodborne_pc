@@ -1,0 +1,25 @@
+name: Fork documentation
+
+on:
+  push:
+    branches: [integration/windows]
+    paths:
+      - README.md
+      - docs/**
+      - .github/scripts/check_fork_docs.py
+      - .github/workflows/fork-docs.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  links:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check local overview links
+        run: python3 .github/scripts/check_fork_docs.py

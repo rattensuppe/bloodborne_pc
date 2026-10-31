@@ -18,15 +18,15 @@ program files. Commit `2a8ec7e` records the download link and adds the RX 6000
 document to future standard packages; its runtime is identical to `2180512`.
 Reorganising the fork does not publish a new binary build.
 
-## Integrated components awaiting separate review
+## Integrated components and review topics
 
-The topic names below define the intended split. They are **planned**, not
-claims that each standalone branch has already passed its checks or has a PR.
+The first two topics have independent fork branches on official `b480526`.
+The remaining names define the planned split. No new upstream PR is open.
 
 | Component | Planned topic | Implementation / readiness |
 | --- | --- | --- |
-| Frozen-launcher runtime and package checks | `fix/launcher-runtime-checks` | Integrated; extract the checks and verify a standalone package |
-| RX 6000 bounded object-motion SSBO | `fix/rx6000-object-motion` | Integrated; [implementation and RX 6800 XT feedback](../RX6000_OBJECT_MOTION.md); separate from the cache optimisation |
+| Frozen-launcher runtime and package checks | [`fix/launcher-runtime-checks`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/launcher-runtime-checks) | Prepared at [`b06b235`](https://github.com/rattensuppe/bloodborne_pc/commit/b06b235e6c7c49ebe69fdb1f24ce3acf331dbaa0); two focused commits, 34 Python tests and real frozen-runtime checks |
+| RX 6000 bounded object-motion SSBO | [`fix/rx6000-object-motion`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/rx6000-object-motion) | Prepared at [`24159ad`](https://github.com/rattensuppe/bloodborne_pc/commit/24159adbd3bed1704fc3d4d492286ab80e4f619e); native build/readbacks and standard ZIP checked on the original cache lifecycle |
 | Scaled SDR motion-vector view | `fix/scaled-motion-view` | Integrated; WQHD/4K pixel, alpha and resize checks passed; verify independent target lifetime |
 | Combined RCAS/output | `perf/fsr41-output` | Integrated; [math, rounding and checks](../FSR41_FUSED_OUTPUT.md); Vulkan and DX12 |
 | Motion-target LRU and deferred release | `perf/motion-target-cache` | Integrated; [cache and lifetime details](../OBJECT_MOTION_CACHE.md); include late image/view reads |
@@ -38,6 +38,30 @@ remain separate. Before separate PRs, isolate the required common foundation
 and test each feature on its own source base. The SSBO/cache and scaled-view/
 output changes also touch common renderer code; copying commits alone does not
 establish independence.
+
+### First two standalone candidates
+
+The launcher branch adds the console TLS/Pillow/Tk preflight and recursive
+package-manifest coverage. Its actual windowed launcher also executes the
+import check, including from a relocated Unicode path without development tools
+on PATH. There are no renderer or SDK changes in that branch.
+
+The SSBO branch resolves three extraction conflicts while preserving the
+official cache lifecycle and provider paths. On RX 9070, private SSBO fixtures
+pass 56 bounds cases and 48 history frames across direct/threaded recording and
+normal/push descriptor layouts. Eight emitted SPIR-V modules validate; four
+BDA/SSBO cache-off/on readbacks match. The standard local Windows ZIP passes
+manifest/CRC and real frozen-launcher checks. The validation package omits the
+optional separately built DLSS bridge; existing published packages are unchanged.
+
+One existing headless-device finding remains in this standalone candidate:
+`VUID-vkCreateDevice-ppEnabledExtensionNames-01387`. Unchanged upstream instance
+code enables a swapchain extension without a surface; a BDA-only control
+reproduces it. No additional SSBO validation findings or synchronization hazards
+were reported. The combined branch already has a separate headless correction;
+it is not folded into the SSBO topic. A fresh RX 6000 gameplay run of the
+extracted branch is still useful; earlier combined-prototype feedback is
+identified separately in its notes.
 
 ## Already upstream
 
@@ -81,8 +105,21 @@ native Vulkan FG, new presentation pacing and FSR Lite are separate topics.
 
 ## Next review steps
 
-1. Extract launcher/package checks and the RX 6000 fix onto current upstream.
-2. Verify their independent builds and relevant tests before opening small PRs.
-3. Extract the remaining topics with explicit shared foundations and document
+1. Review the first two standalone diffs and their documented coverage before
+   opening focused upstream PRs; preserve the headless and hardware limits.
+2. Extract the remaining topics with explicit shared foundations and document
    standalone checks separately from combined integration checks.
-4. Add reliable commit-specific automation before requiring CI status checks.
+3. Keep SDK SR, SDK FG and shared/headless helper changes independently reviewable.
+4. Add reliable build/package automation before requiring CI status checks.
+
+## Repository organisation
+
+`integration/windows` is the fork default. `windows` remains the official mirror.
+Rules block deletion and forced history updates on both primary branches, freeze
+the seven historical branches and protect version tags from updates/deletion.
+Normal integration updates and new topic branches remain available.
+
+The hosted **Fork documentation** workflow checks local overview links on the
+integration commit. It has read-only repository access and uses a pinned checkout
+action. It is not a renderer build, does not execute public PRs on the NUC and is
+not a required merge check. All 13 existing releases and their assets are retained.
