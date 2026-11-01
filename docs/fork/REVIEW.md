@@ -15,7 +15,7 @@ for later submission after its current-game/presentation check.
 | L | [`fix/launcher-runtime-checks`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/launcher-runtime-checks) | [`63a37f9`](https://github.com/rattensuppe/bloodborne_pc/commit/63a37f9fcafe39be2f4213d63a95eba27cb55d47) | None | Open [#140](https://github.com/Supermedo/bloodborne_pc/pull/140) |
 | S | [`fix/rx6000-object-motion`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/rx6000-object-motion) | [`b3bd49d`](https://github.com/rattensuppe/bloodborne_pc/commit/b3bd49d72175c2027e37b85f24e5b55af1df1286) | None; official cache lifecycle | Open [#141](https://github.com/Supermedo/bloodborne_pc/pull/141); hardware limits documented |
 | V | [`fix/scaled-motion-view`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/scaled-motion-view) | [`ef9e1ef`](https://github.com/rattensuppe/bloodborne_pc/commit/ef9e1efa6348b3e69850857f88e5fc5343053216) | None | Open [#142](https://github.com/Supermedo/bloodborne_pc/pull/142) |
-| R | [`perf/fsr41-output`](https://github.com/rattensuppe/bloodborne_pc/tree/perf/fsr41-output) | [`140b593`](https://github.com/rattensuppe/bloodborne_pc/commit/140b593035dcb297f2fdd8e68bba9e9dc36979a1) | None | Open [#143](https://github.com/Supermedo/bloodborne_pc/pull/143) |
+| R | [`perf/fsr41-output`](https://github.com/rattensuppe/bloodborne_pc/tree/perf/fsr41-output) | [`89b5215`](https://github.com/rattensuppe/bloodborne_pc/commit/89b5215528392e1071f5e67c2b7955208c525732) | None | Open [#143](https://github.com/Supermedo/bloodborne_pc/pull/143) |
 | C | [`perf/motion-target-cache`](https://github.com/rattensuppe/bloodborne_pc/tree/perf/motion-target-cache) | [`a1d32a4`](https://github.com/rattensuppe/bloodborne_pc/commit/a1d32a4571da89e96d6211b7dfaf91b0f7c1d8d6) | None; combine explicitly with S | Open [#144](https://github.com/Supermedo/bloodborne_pc/pull/144) |
 | U | [`feat/fsr-sdk24-upscaling`](https://github.com/rattensuppe/bloodborne_pc/tree/feat/fsr-sdk24-upscaling) | [`ba4dc22`](https://github.com/rattensuppe/bloodborne_pc/commit/ba4dc221419dd82b213b56271e7f6e2b6d6073ab) | Shared SDK foundation `238137e` | Draft [#146](https://github.com/Supermedo/bloodborne_pc/pull/146); AMD Vulkan/gameplay checks open |
 | F | [`feat/mlfg-sdk24`](https://github.com/rattensuppe/bloodborne_pc/tree/feat/mlfg-sdk24) | [`e2426a9`](https://github.com/rattensuppe/bloodborne_pc/commit/e2426a91b2ec7ef77842ef6981dbf6c5c3863ac4) | Shared SDK foundation `238137e`; no dependency on U | Later wave: fresh FG/presentation check before ready status |
@@ -34,9 +34,9 @@ needs the explicit resolution below.
 
 ## Merge matrix
 
-All 21 unordered topic pairs were checked; pairs involving S and V were
-refreshed after their November 1 follow-ups. Seventeen merge automatically;
-four need explicit resolutions. Codes: **D** documentation-copy union in package.sh,
+All 21 unordered topic pairs were checked; pairs involving S, V and R were
+refreshed after their November 1 follow-ups. Nineteen merge automatically;
+two need explicit resolutions. Codes: **D** documentation-copy union in package.sh,
 **T** independent test targets/helpers, **O** SSBO private owner declarations.
 A checkmark means an automatic pairwise merge,
 not an independent hardware or gameplay certification.
@@ -46,14 +46,15 @@ not an independent hardware or gameplay certification.
 | L | — | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | S | | — | ✓ | ✓ | O, T | ✓ | ✓ |
 | V | | | — | ✓ | ✓ | ✓ | ✓ |
-| R | | | | — | ✓ | D | D |
+| R | | | | — | ✓ | ✓ | ✓ |
 | C | | | | | — | ✓ | ✓ |
 | U | | | | | | — | D |
 | F | | | | | | | — |
 
 The earlier private cumulative merge used the original S head `24159ad`,
-original V head `d926e6f` and the other five heads above. Updated S and V are
-checked independently; the cumulative runtime has not been rebuilt. Its original resolutions were:
+original V head `d926e6f`, original R head `140b593` and the other four heads
+above. Updated S, V and R are checked independently; the cumulative runtime
+has not been rebuilt. Its original resolutions were:
 
 - Preserve both motion-storage and scaled-view CMake test targets.
 - Preserve the SSBO constructor/friend declarations and the cache lifetime
@@ -75,7 +76,7 @@ does not replace the published integration runtime or download.
 | L | 44 Python tests in default/-O/-OO; actual/optimized freezes and 31 negative controls; standard ZIP and Unicode path without development PATH | Real standard package, frozen imports, 27 TLS tests including local certificate failures |
 | S | 75 location cases, 56 bounds cases, 48 frames, four indirect rebind cases, byte-identical shaders and four cache readbacks on forced SSBO; 12 Python tests per mode and standard ZIP; earlier combined RX6800XT sample only | Policy test plus SSBO/cache owner combination; no new RX6000 machine or vertex-draw certification |
 | V | 39 pixel/alpha readbacks, 12 current-frame owner sequences, unchanged SPIR-V, standard ZIP and RX9070 scaled/legacy HUD checks with output/FSR/FG changes | 10 complete checks under active Core/Sync validation on original V |
-| R | 220 exact comparisons; unchanged fallback shader bytes | 110 exact comparisons, including fresh outputs from all four SR methods |
+| R | 440 dual-reference RGBA8 checks, ten explicit-GPU checks, 90 direct/copy cases, ten NDEBUG negative controls, standard ZIP and 14 live phases with user FG/HUD sight checks | 110 exact comparisons on original R, including outputs from all four SR methods |
 | C | 76 cache cases and 24 private SSBO combination cases | 48 BDA/SSBO cases: direct/threaded recording, cache off/on, retirement pressure, LRU, teardown and late reads |
 | U | Ten CPU programs including repaired overlay test, 151 Python tests, 31 runtime cases, actual package/picker | All four methods and fresh RCAS replays; original SDK Vulkan findings reproduced |
 | F | Six CPU programs, 58 Python tests, 31 runtime cases, actual package/picker | Both DLL load orders/versions, 1080p/4K, serial/overlap, three slots/256 frames, reset/switch/fallback and HUD |
@@ -162,6 +163,26 @@ excluded from the branch and ZIP. All six V merge previews are automatic;
 remaining D conflicts are between other topics. Integration runtime and
 published downloads are unchanged.
 
+## PR143 diagnostics and test follow-up
+
+R adds three focused commits for route/dump diagnostics, robust dual-reference
+tests and separate player/developer documentation. The historical direct shader
+is retained alongside the current generated reference; arithmetic and existing
+shader bytes remain unchanged. Explicit failure checks survive NDEBUG, the
+fixture prefers a capable discrete GPU, and an explicit GPU selector is checked.
+The build, three CPU programs, 440 main comparisons, ten explicit-selection
+comparisons, 90 direct/copy cases, ten negative controls and standard ZIP pass.
+The RCAS Core/Sync fixture reports no errors or synchronization hazards.
+
+Actual game composition confirms all four methods, off/zero guards, output
+changes, TAA/FSR3.1 and FG3.1/ML-FG4.0.2. Both new dump outputs are checked;
+the user reports no image errors in camera/movement/HUD checks with each FG
+provider. Regular exit and original data preservation are verified. Private
+control hooks are excluded from the branch/package. RX7900XT and display HDR
+remain untested; this adds no new performance result. All six R merge previews
+are automatic; only the S/C owner/test-helper and U/F documentation-copy
+combinations retain explicit resolutions. Integration runtime/downloads remain.
+
 ## Submission sequence and remaining checks
 
 1. **First wave submitted: L [#140](https://github.com/Supermedo/bloodborne_pc/pull/140)
@@ -173,8 +194,8 @@ published downloads are unchanged.
    R [#143](https://github.com/Supermedo/bloodborne_pc/pull/143) and
    C [#144](https://github.com/Supermedo/bloodborne_pc/pull/144)**. Preserve the
    reviewed merge resolutions as upstream advances. V now has a current-game
-   visibility check; sharpening and the full updated combination still need
-   their own appropriate checks before a new combined player build. No new
+   visibility check, and R has current composition/FG/HUD checks. The full
+   updated combination still needs appropriate checks before a combined build. No new
    performance gain is inferred from these tests.
 3. **SDK SR submitted as Draft [#146](https://github.com/Supermedo/bloodborne_pc/pull/146)**:
    first review the common API/package/headless

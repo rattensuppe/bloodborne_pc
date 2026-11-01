@@ -35,7 +35,7 @@ the first wave [#140](https://github.com/Supermedo/bloodborne_pc/pull/140) /
 | Frozen-launcher runtime and package checks | [`fix/launcher-runtime-checks`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/launcher-runtime-checks) | [PR #140 open](https://github.com/Supermedo/bloodborne_pc/pull/140) at [`63a37f9`](https://github.com/rattensuppe/bloodborne_pc/commit/63a37f9fcafe39be2f4213d63a95eba27cb55d47); three focused commits, 44 Python tests in default/-O/-OO and real frozen-runtime checks |
 | RX 6000 bounded object-motion SSBO | [`fix/rx6000-object-motion`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/rx6000-object-motion) | [PR #141 open](https://github.com/Supermedo/bloodborne_pc/pull/141) at [`b3bd49d`](https://github.com/rattensuppe/bloodborne_pc/commit/b3bd49d72175c2027e37b85f24e5b55af1df1286); indirect binding, varying-location checks and 13-language reasons verified; original cache lifecycle retained |
 | Scaled RGBA8 motion-vector view | [`fix/scaled-motion-view`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/scaled-motion-view) | [PR #142 open](https://github.com/Supermedo/bloodborne_pc/pull/142) at [`ef9e1ef`](https://github.com/rattensuppe/bloodborne_pc/commit/ef9e1efa6348b3e69850857f88e5fc5343053216); current-frame coverage, 39 pixel/alpha readbacks, 12 owner sequences and live scaled/legacy HUD checks |
-| Combined RCAS/output | [`perf/fsr41-output`](https://github.com/rattensuppe/bloodborne_pc/tree/perf/fsr41-output) | [PR #143 open](https://github.com/Supermedo/bloodborne_pc/pull/143) at [`140b593`](https://github.com/rattensuppe/bloodborne_pc/commit/140b593035dcb297f2fdd8e68bba9e9dc36979a1); standalone build, 220 exact output comparisons and standard ZIP checked |
+| Combined RCAS/output | [`perf/fsr41-output`](https://github.com/rattensuppe/bloodborne_pc/tree/perf/fsr41-output) | [PR #143 open](https://github.com/Supermedo/bloodborne_pc/pull/143) at [`89b5215`](https://github.com/rattensuppe/bloodborne_pc/commit/89b5215528392e1071f5e67c2b7955208c525732); three follow-up commits; dual-reference pixel checks, NDEBUG controls, standard ZIP and RX9070 live composition/HUD checks |
 | Motion-target LRU and deferred release | [`perf/motion-target-cache`](https://github.com/rattensuppe/bloodborne_pc/tree/perf/motion-target-cache) | [PR #144 open](https://github.com/Supermedo/bloodborne_pc/pull/144) at [`a1d32a4`](https://github.com/rattensuppe/bloodborne_pc/commit/a1d32a4571da89e96d6211b7dfaf91b0f7c1d8d6); three focused commits, 76 standalone GPU cases and standard ZIP checked |
 | SDK 2.4 FSR 4.1.2 upscaling | [`feat/fsr-sdk24-upscaling`](https://github.com/rattensuppe/bloodborne_pc/tree/feat/fsr-sdk24-upscaling) | [Draft PR #146](https://github.com/Supermedo/bloodborne_pc/pull/146) at [`ba4dc22`](https://github.com/rattensuppe/bloodborne_pc/commit/ba4dc221419dd82b213b56271e7f6e2b6d6073ab); shared foundation and SR-only package checked; original AMD Vulkan findings and current gameplay checks remain open |
 | SDK 2.4 ML-FG 4.0.2 | [`feat/mlfg-sdk24`](https://github.com/rattensuppe/bloodborne_pc/tree/feat/mlfg-sdk24) | Prepared at [`e2426a9`](https://github.com/rattensuppe/bloodborne_pc/commit/e2426a91b2ec7ef77842ef6981dbf6c5c3863ac4); independent FG effect, retained SR paths, bridge/stress and standard ZIP checked |
@@ -117,21 +117,28 @@ the integration runtime and downloads are unchanged.
 
 ### Standalone RCAS/output fusion
 
-The RCAS branch combines FSR 4.1 host sharpening and SDR output while preserving
-FP16 rounding. The original off/zero and other-format paths remain; providers,
-SDK, motion vectors, cache ownership and settings are unchanged. Three CPU tests
-pass. All 220 GPU comparisons match exactly, including fresh outputs of the four
-Vulkan/DX12 methods. The three existing shader variants compile byte-identically
-to the official base. Core/Synchronization validation is confirmed active in the
-standalone RCAS fixture, with no errors or hazards; the standard ZIP and actual
-frozen launcher also pass their checks.
+The RCAS branch combines FSR4.1 host sharpening and RGBA8 UI output with
+explicit FP16 rounding. Diagnostic follow-ups identify the executed route on
+transitions and distinguish optional provider `output` from composed pre-HUD
+`output_sdr`. Existing shaders, guards, providers and motion/cache settings remain.
 
-The [candidate's validation notes](https://github.com/rattensuppe/bloodborne_pc/blob/140b593035dcb297f2fdd8e68bba9e9dc36979a1/docs/FSR41_FUSED_OUTPUT.md)
-separate shader/provider-output tests from the complete in-game composition
-wrapper, HUD and FG, which were not run anew. The unrelated upstream overlay-test
-`runtime_restart` link failure remains documented and is not counted as a pass.
-No new gameplay benchmark or performance gain is claimed for this extracted
-branch. The combined integration runtime remains unchanged.
+The complete native build and three CPU programs pass. Historical and current
+direct references match in 440 full RGBA8 comparisons across synthetic inputs
+and fresh outputs of all four methods, plus ten explicit-GPU comparisons.
+The existing 90-case direct/copy regression passes. Actual NDEBUG checks reject
+ten malformed captures/selectors. Core/Sync and SPIR-V checks pass; all three
+pre-existing shader variants remain byte-identical. Standard ZIP, manifest/CRC
+and actual frozen-launcher checks pass; technical notes stay outside the package.
+
+RX9070 game checks confirm 14 phases covering methods, off/zero sharpening,
+4K/WQHD/1080p, TAA/FSR3.1 and FG3.1/ML-FG4.0.2, plus the new diagnostic outputs.
+The user reports no image errors in requested camera/movement/HUD checks with
+both FG providers. The game exits regularly. RX7900XT and display HDR checks
+remain open; no new performance measurement is claimed.
+
+See the [technical validation](https://github.com/rattensuppe/bloodborne_pc/blob/89b5215528392e1071f5e67c2b7955208c525732/docs/development/FSR41_FUSED_OUTPUT.md).
+All six R topic merge previews are automatic. The integration runtime and
+published downloads remain unchanged.
 
 ### Standalone motion-target cache
 
