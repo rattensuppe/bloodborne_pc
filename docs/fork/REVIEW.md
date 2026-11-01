@@ -17,7 +17,7 @@ for later submission after its current-game/presentation check.
 | V | [`fix/scaled-motion-view`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/scaled-motion-view) | [`ef9e1ef`](https://github.com/rattensuppe/bloodborne_pc/commit/ef9e1efa6348b3e69850857f88e5fc5343053216) | None | Open [#142](https://github.com/Supermedo/bloodborne_pc/pull/142) |
 | R | [`perf/fsr41-output`](https://github.com/rattensuppe/bloodborne_pc/tree/perf/fsr41-output) | [`89b5215`](https://github.com/rattensuppe/bloodborne_pc/commit/89b5215528392e1071f5e67c2b7955208c525732) | None | Open [#143](https://github.com/Supermedo/bloodborne_pc/pull/143) |
 | C | [`perf/motion-target-cache`](https://github.com/rattensuppe/bloodborne_pc/tree/perf/motion-target-cache) | [`775d816`](https://github.com/rattensuppe/bloodborne_pc/commit/775d8167fe5bc045a6b3d5dc610b6d5155477243) | None; combine explicitly with S | Open [#144](https://github.com/Supermedo/bloodborne_pc/pull/144) |
-| U | [`feat/fsr-sdk24-upscaling`](https://github.com/rattensuppe/bloodborne_pc/tree/feat/fsr-sdk24-upscaling) | [`ba4dc22`](https://github.com/rattensuppe/bloodborne_pc/commit/ba4dc221419dd82b213b56271e7f6e2b6d6073ab) | Shared SDK foundation `238137e` | Draft [#146](https://github.com/Supermedo/bloodborne_pc/pull/146); AMD Vulkan/gameplay checks open |
+| U | [`feat/fsr-sdk24-upscaling`](https://github.com/rattensuppe/bloodborne_pc/tree/feat/fsr-sdk24-upscaling) | [`2f63b4b`](https://github.com/rattensuppe/bloodborne_pc/commit/2f63b4be8c85016a03256b1671780327df7c3337) | Shared SDK foundation `238137e` | Draft [#146](https://github.com/Supermedo/bloodborne_pc/pull/146); AMD Vulkan findings open; standalone RX9070 game comparison checked |
 | F | [`feat/mlfg-sdk24`](https://github.com/rattensuppe/bloodborne_pc/tree/feat/mlfg-sdk24) | [`e2426a9`](https://github.com/rattensuppe/bloodborne_pc/commit/e2426a91b2ec7ef77842ef6981dbf6c5c3863ac4) | Shared SDK foundation `238137e`; no dependency on U | Later wave: fresh FG/presentation check before ready status |
 
 The SDK topics share `2943038` (unchanged public API headers, verified fetching,
@@ -34,7 +34,7 @@ needs the explicit resolution below.
 
 ## Merge matrix
 
-All 21 unordered topic pairs were checked; pairs involving S, V, R and C were
+All 21 unordered topic pairs were checked; pairs involving S, V, R, C and U were
 refreshed after their November 1 follow-ups. Nineteen merge automatically;
 two need explicit resolutions. Codes: **D** documentation-copy union in package.sh,
 **T** independent test targets/helpers. The S/C header now merges automatically.
@@ -53,7 +53,8 @@ not an independent hardware or gameplay certification.
 
 The earlier private cumulative merge used the original S head `24159ad`,
 original V head `d926e6f`, original R head `140b593`, original C head `a1d32a4`
-and the other three heads above. Updated S, V, R and C are checked independently; the cumulative runtime
+and the original U runtime before its November 1 corrections. Updated S, V, R, C
+and U are checked independently; the cumulative runtime
 has not been rebuilt. Its original resolutions were:
 
 - Preserve both motion-storage and scaled-view CMake test targets.
@@ -78,7 +79,7 @@ does not replace the published integration runtime or download.
 | V | 39 pixel/alpha readbacks, 12 current-frame owner sequences, unchanged SPIR-V, standard ZIP and RX9070 scaled/legacy HUD checks with output/FSR/FG changes | 10 complete checks under active Core/Sync validation on original V |
 | R | 440 dual-reference RGBA8 checks, ten explicit-GPU checks, 90 direct/copy cases, ten NDEBUG negative controls, standard ZIP and 14 live phases with user FG/HUD sight checks | 110 exact comparisons on original R, including outputs from all four SR methods |
 | C | 78 cache cases, four safe negative controls, 26 private SSBO cases, full build/three CPU programs and standard ZIP | 48 BDA/SSBO cases on original C: direct/threaded recording, cache off/on, retirement pressure, LRU, teardown and late reads |
-| U | Ten CPU programs including repaired overlay test, 151 Python tests, 31 runtime cases, actual package/picker | All four methods and fresh RCAS replays; original SDK Vulkan findings reproduced |
+| U | 11 CPU programs, 162 Python tests, ABI controls, 31 fresh runtime cases, standard ZIP/13-language frozen UI; current RX9070 Warehouse/movement checks | Original U runtime: all four methods and RCAS replays; original SDK Vulkan findings reproduced |
 | F | Six CPU programs, 58 Python tests, 31 runtime cases, actual package/picker | Both DLL load orders/versions, 1080p/4K, serial/overlap, three slots/256 frames, reset/switch/fallback and HUD |
 
 That earlier cumulative build passes 13 native CPU programs and 181 Python tests in
@@ -92,20 +93,12 @@ launcher pass pins/manifest/CRC, 13-language picker/preferences and separate
 real packaged support probes. Cached DLSS binaries were retained; no NVIDIA
 hardware was tested.
 
-The SDK SR topic now includes the separately reviewed overlay-test follow-up
-`6047f4e`: a PC-menu `runtime_restart` test stub and stable `###settings` window
-lookup. Its documentation follow-up is `ba4dc22`. Both repairs already existed
-in the old integration. The fresh build passes ten CPU programs, with assertions
-enabled in the actual overlay test, and 151 Python tests. A fresh SR-only ZIP
-and relocated 13-language frozen launcher pass; the previous ZIP is retained.
-
-Production runtime sources and SDK pins remain identical to `580d935`, so its
-31 GPU cases and known AMD findings are reused, not rerun or reclassified as
-clean. Six merge previews against the updated U head retain the matrix above.
-The original cumulative-runtime results still apply to its unchanged runtime;
-the corrected test matches the validated private combination. SR is submitted
-as [Draft #146](https://github.com/Supermedo/bloodborne_pc/pull/146); the exact
-body, five commits and 62-file scope were verified. FG is not yet submitted.
+The earlier SDK SR test-only follow-up `6047f4e` repaired the PC-menu restart
+stub and stable overlay-window lookup; `ba4dc22` recorded that scope. At that
+stage the runtime still matched `580d935`: ten CPU programs, 151 Python tests,
+standard ZIP/frozen checks and reused runtime evidence. The November 1 SDK
+corrections and fresh runtime/game evidence are recorded below. The original
+cumulative-runtime evidence retains its original scope. FG is not submitted.
 
 ## PR140 packaging-gate follow-up
 
@@ -200,6 +193,29 @@ runtime/header are automatic and the resolution is exercised. Technical notes
 are excluded from the player package. No game, performance or real-OOM result
 is added, and the combined integration runtime/downloads remain unchanged.
 
+## PR146 SDK safeguards and current-game follow-up
+
+U adds five focused follow-up commits for neutral localized hints, compile-time
+SDK ABI guards and pre-dispatch context verification cleanup, explicit native
+PC-menu Retry FSR with its existing settling filter, initial-wrapper reuse,
+and separate player/developer notes. Original SDK headers, pins, FG and render
+math/shaders remain unchanged. No bridge, depth-direction or max-size refactor
+is folded into this correction.
+
+The full build, 11 CPU programs, 162 Python tests, ABI negative controls,
+31 fresh runtime cases and standard ZIP/actual frozen UI pass. The RX9070
+same-compiler official 1.9.7 comparison verifies the identical saved camera:
+Vulkan 98.01 -> 98.06 FPS; DX12 97.05 -> 97.01 FPS at 4K/Quality, cache on,
+FG/cap/VSync off. Each method has two 10+25 s captures. The means are effectively
+unchanged; five-frame pooled 0.1% tails do not establish movement smoothness.
+The user reports unremarkable short movement/camera/HUD checks on both methods.
+Initial wrapper construction is two versus one; startup time is unmeasured.
+
+Original AMD Vulkan findings are reproduced on byte-identical SDK shaders;
+the cause remains open and #146 stays Draft. Five current topic merges are
+automatic; U/F retains only the package-documentation union. Integration runtime,
+all releases and personal data remain unchanged. [Detailed scope/results](https://github.com/rattensuppe/bloodborne_pc/blob/2f63b4be8c85016a03256b1671780327df7c3337/docs/development/FSR24_UPSCALING.md).
+
 ## Submission sequence and remaining checks
 
 1. **First wave submitted: L [#140](https://github.com/Supermedo/bloodborne_pc/pull/140)
@@ -217,9 +233,9 @@ is added, and the combined integration runtime/downloads remain unchanged.
 3. **SDK SR submitted as Draft [#146](https://github.com/Supermedo/bloodborne_pc/pull/146)**:
    first review the common API/package/headless
    foundation. F can progress independently of U's Vulkan findings, after a
-   fresh current-build FG switch/movement/HUD check. U remains Draft while its
-   original AMD shader conformance findings and current gameplay coverage are
-   open. Its test-only follow-up is now published and checked.
+   fresh current-build FG switch/movement/HUD check. U now has a standalone
+   RX9070 game comparison and short movement/HUD checks. It remains Draft while
+   original AMD shader conformance findings are open; broader coverage stays separate.
 4. Before each submission, refresh upstream, inspect existing PRs/equivalent
    patches and compare the resulting delta. Do not treat an automatic merge
    or matching ancestry as proof of coverage.

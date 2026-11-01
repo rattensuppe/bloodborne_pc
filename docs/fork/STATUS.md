@@ -37,7 +37,7 @@ the first wave [#140](https://github.com/Supermedo/bloodborne_pc/pull/140) /
 | Scaled RGBA8 motion-vector view | [`fix/scaled-motion-view`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/scaled-motion-view) | [PR #142 open](https://github.com/Supermedo/bloodborne_pc/pull/142) at [`ef9e1ef`](https://github.com/rattensuppe/bloodborne_pc/commit/ef9e1efa6348b3e69850857f88e5fc5343053216); current-frame coverage, 39 pixel/alpha readbacks, 12 owner sequences and live scaled/legacy HUD checks |
 | Combined RCAS/output | [`perf/fsr41-output`](https://github.com/rattensuppe/bloodborne_pc/tree/perf/fsr41-output) | [PR #143 open](https://github.com/Supermedo/bloodborne_pc/pull/143) at [`89b5215`](https://github.com/rattensuppe/bloodborne_pc/commit/89b5215528392e1071f5e67c2b7955208c525732); three follow-up commits; dual-reference pixel checks, NDEBUG controls, standard ZIP and RX9070 live composition/HUD checks |
 | Motion-target LRU and deferred release | [`perf/motion-target-cache`](https://github.com/rattensuppe/bloodborne_pc/tree/perf/motion-target-cache) | [PR #144 open](https://github.com/Supermedo/bloodborne_pc/pull/144) at [`775d816`](https://github.com/rattensuppe/bloodborne_pc/commit/775d8167fe5bc045a6b3d5dc610b6d5155477243); two follow-up commits; split-submission lifetime guard, 78 GPU cases, four negative controls, 26 private SSBO cases and standard ZIP checked |
-| SDK 2.4 FSR 4.1.2 upscaling | [`feat/fsr-sdk24-upscaling`](https://github.com/rattensuppe/bloodborne_pc/tree/feat/fsr-sdk24-upscaling) | [Draft PR #146](https://github.com/Supermedo/bloodborne_pc/pull/146) at [`ba4dc22`](https://github.com/rattensuppe/bloodborne_pc/commit/ba4dc221419dd82b213b56271e7f6e2b6d6073ab); shared foundation and SR-only package checked; original AMD Vulkan findings and current gameplay checks remain open |
+| SDK 2.4 FSR 4.1.2 upscaling | [`feat/fsr-sdk24-upscaling`](https://github.com/rattensuppe/bloodborne_pc/tree/feat/fsr-sdk24-upscaling) | [Draft PR #146](https://github.com/Supermedo/bloodborne_pc/pull/146) at [`2f63b4b`](https://github.com/rattensuppe/bloodborne_pc/commit/2f63b4be8c85016a03256b1671780327df7c3337); five follow-up commits; 11 CPU programs, 162 Python tests, 31 fresh runtime cases and RX9070 Warehouse/movement checks; original AMD Vulkan findings remain open |
 | SDK 2.4 ML-FG 4.0.2 | [`feat/mlfg-sdk24`](https://github.com/rattensuppe/bloodborne_pc/tree/feat/mlfg-sdk24) | Prepared at [`e2426a9`](https://github.com/rattensuppe/bloodborne_pc/commit/e2426a91b2ec7ef77842ef6981dbf6c5c3863ac4); independent FG effect, retained SR paths, bridge/stress and standard ZIP checked |
 
 SDK upscaling records a small common foundation at `238137e`: public headers,
@@ -170,37 +170,44 @@ downloads remain unchanged.
 
 ### Standalone SDK 2.4 upscaling
 
-The SDK branch starts with three implementation commits: shared API/file/manifest foundation
-[`2943038`](https://github.com/rattensuppe/bloodborne_pc/commit/29430384d1449da4ef7e168ed492c6e7fd9923fa),
-headless-device fix
-[`238137e`](https://github.com/rattensuppe/bloodborne_pc/commit/238137e44071a2050825e245b91daff20fc9c1c9),
-then the public Vulkan/DX12 upscaling integration. The independent FG branch starts
-at the second commit; that base contains neither SDK SR nor SDK FG integration.
-This SR package retains the official FG sources, headers and runtime files and
-adds only two SDK upscaling DLLs. Camera, cache, shaders and RCAS remain official.
+The public Vulkan/DX12 upscaling topic shares the API/file/manifest foundation
+`2943038` and headless fix `238137e` with the independent FG branch. The SR
+package adds only two SDK effect DLLs and retains official FG. Camera math,
+depth preparation, shaders, cache and RCAS remain unchanged.
 
-The latest native build, ten CPU programs (including the repaired overlay test)
-and 151 Python tests pass. The existing 31 isolated runtime cases cover all four SR methods, switching, failure/repair boundaries,
-DLL loading orders and both retained FG support queries. The standard ZIP and
-actual relocated frozen launcher pass manifest/pin/runtime checks; its 13-language
-CPU picker fixture is separate from the real packaged four-method support probe.
+Five November 1 follow-up commits add neutral 13-language method hints, SDK ABI
+guards, cleanup of unverified new Vulkan contexts, shared native-menu selection
+with localized Retry FSR, and reuse of the initial wrapper. Concise player help
+is packaged; technical validation stays in the source repository. The initial
+method ranking and saved preferences are preserved.
 
-Recorded Core/Synchronization validation and captured original AMD submissions
-reproduce the SDK Vulkan findings: 30 modules, 12 separate SPIR-V failures and
-14 `CooperativeMatrixConversionsNV` declarations. Both DX12 paths and fsr4vk have
-no Vulkan errors in these cases. This is not a clean overall SDK validation pass,
-D3D12 debug-layer result or new gameplay/performance evidence. Keep SDK [PR #146](https://github.com/Supermedo/bloodborne_pc/pull/146)
-a Draft while those review questions remain open.
+The full native build, 11 CPU programs, 162 Python tests and ABI negative
+controls pass. All 31 runtime cases were rerun, covering all four SR methods,
+loading order, fallback/repair boundaries and retained FG queries. Standard ZIP,
+pins/manifest/CRC, actual frozen runtime and relocated UI in 13 languages pass.
+The public renderer is restored after private measurements; only PE link
+timestamps differ from its tested packaged binary.
 
-Runner/readiness conflicts preserve current Windows diagnostics and exclude the
-obsolete driver ABI. Merge previews with launcher/cache are clean. Scaled-view,
-RCAS and SSBO need documentation-copy unions; SSBO also needs the public-SDK
-includes retained in its capability helper. Private shell/C++ syntax checks pass;
-other branches remain separate and no new combined GPU run is claimed. See the
-[standalone scope and validation notes](https://github.com/rattensuppe/bloodborne_pc/blob/ba4dc221419dd82b213b56271e7f6e2b6d6073ab/docs/FSR24_UPSCALING.md#standalone-review-on-windows-197).
-The combined integration runtime remains unchanged.
+On RX9070 / 26.10.1, the same-compiler official 1.9.7 comparison uses the same
+saved Warehouse camera, 4K/Quality, cache on and FG/cap/VSync off. Two 10+25 s
+captures per method give Vulkan 98.01 -> 98.06 FPS and DX12 97.05 -> 97.01 FPS.
+The means are effectively unchanged. Stationary lows retain their actual tail
+counts; five-frame 0.1% tails do not establish a stutter improvement. Requested
+movement/camera/HUD sight checks are unremarkable for both methods. The initial
+wrapper count drops from two to one; startup duration was not benchmarked.
 
-### SDK SR test-only follow-up
+Original AMD Vulkan findings remain: identical 30 captured modules, 12 static
+SPIR-V failures, 14 NV conversion declarations and the same five runtime VUIDs,
+with no synchronization hazards. DX12/fsr4vk are clean only for the exercised
+Vulkan checks; this is not a D3D12 debug-layer or overall SDK conformance pass.
+[Draft #146](https://github.com/Supermedo/bloodborne_pc/pull/146) remains Draft.
+No new RX6000, NVIDIA, NativeAA or HDR image-quality coverage is claimed.
+
+Five topic merges are automatic; only the independent FG topic needs its known
+package-documentation union. Integration runtime and releases are unchanged.
+[Technical scope and results](https://github.com/rattensuppe/bloodborne_pc/blob/2f63b4be8c85016a03256b1671780327df7c3337/docs/development/FSR24_UPSCALING.md).
+
+### Earlier SDK SR test-only follow-up (October 31)
 
 The existing SDK SR topic now adds
 [`6047f4e`](https://github.com/rattensuppe/bloodborne_pc/commit/6047f4e7382300235f4d8c70928775f9fd3b8d43)
@@ -279,8 +286,8 @@ for the RX6000 SSBO fix. Both target `windows` on `b480526` at the reviewed head
 All 33 existing open PRs were checked for overlap. Fresh checks passed 34
 launcher/TLS/package tests, five SSBO launcher guards, two CPU programs and
 frozen-runtime checks; the reviewed package hashes and sources are unchanged.
-SDK SR is now submitted as Draft #146; fresh current-build gameplay and native
-build/package CI remain separate work items. See the matrix for per-topic limits.
+SDK SR is submitted as Draft #146; its November 1 standalone game comparison
+is recorded above. Native build/package CI remains separate. See the matrix for per-topic limits.
 
 ### Second-wave submissions
 
@@ -315,13 +322,14 @@ personal installation and all existing releases are unchanged.
 Their historical head branches are retained. New PRs describe only the current
 delta against upstream, accounting for squash merges or equivalent patches.
 
-## SDK SR Draft submission
+## Original SDK SR Draft submission (October 31)
 
 [PR #146](https://github.com/Supermedo/bloodborne_pc/pull/146), **Use SDK 2.4 for
 FSR 4.1.2 Vulkan and DX12**, targets official `windows` at `b480526`. The exact
 description, five commits and 62-file delta at `ba4dc22` were read back after
-creation; GitHub reports a clean merge. It remains a Draft because the original
-AMD Vulkan conformance findings and current gameplay/composition checks are open.
+creation; GitHub reported a clean merge. At submission, AMD Vulkan conformance
+and current gameplay/composition checks were open; the November 1 follow-up above
+records the new standalone coverage. The conformance findings remain open.
 
 All 39 previously open PRs were checked for file overlap. The new launcher
 PR #145 concerns automatic settings for new installations; its launcher hunks
@@ -348,8 +356,9 @@ runtime; each extracted topic still needs its own validation.
 - Original AMD SDK Vulkan shaders produce validation findings on RX 9070 /
   Adrenalin 26.10.1. The [captured-module report](../FSR24_UPSCALING.md#local-validation-findings-october-30-2026)
   distinguishes them from the validated SSBO and motion-view shaders.
-- A fresh gameplay/performance comparison on the 1.9.7 source remains open.
-  Isolated output checks do not establish gameplay image quality.
+- SDK SR now has a standalone RX9070 4K/Quality game comparison and short
+  movement/HUD checks. The updated cumulative combination has not been rebuilt;
+  broader image-quality/pacing coverage remains separate.
 - Static-floor ghosting is reported in both official and fork builds. A local
   camera/depth investigation is separate; this branch does not contain a
   claimed fix. Brief freezes on teleport/first attack remain observations to test.
@@ -371,7 +380,7 @@ native Vulkan FG, new presentation pacing and FSR Lite are separate topics.
 2. Follow the [review order and coverage limits](REVIEW.md); retain the tested
    merge resolutions when updating later topics.
 3. Keep SDK SR, SDK FG and shared/headless helpers independently reviewable;
-   keep SDK SR #146 in Draft while its conformance/gameplay checks remain open.
+   keep SDK SR #146 in Draft while its AMD Vulkan conformance findings remain open.
 4. Complete the applicable current-game checks and add reliable native
    build/package automation before making those CI checks mandatory.
 
