@@ -34,7 +34,7 @@ the first wave [#140](https://github.com/Supermedo/bloodborne_pc/pull/140) /
 | --- | --- | --- |
 | Frozen-launcher runtime and package checks | [`fix/launcher-runtime-checks`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/launcher-runtime-checks) | [PR #140 open](https://github.com/Supermedo/bloodborne_pc/pull/140) at [`63a37f9`](https://github.com/rattensuppe/bloodborne_pc/commit/63a37f9fcafe39be2f4213d63a95eba27cb55d47); three focused commits, 44 Python tests in default/-O/-OO and real frozen-runtime checks |
 | RX 6000 bounded object-motion SSBO | [`fix/rx6000-object-motion`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/rx6000-object-motion) | [PR #141 open](https://github.com/Supermedo/bloodborne_pc/pull/141) at [`b3bd49d`](https://github.com/rattensuppe/bloodborne_pc/commit/b3bd49d72175c2027e37b85f24e5b55af1df1286); indirect binding, varying-location checks and 13-language reasons verified; original cache lifecycle retained |
-| Scaled SDR motion-vector view | [`fix/scaled-motion-view`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/scaled-motion-view) | [PR #142 open](https://github.com/Supermedo/bloodborne_pc/pull/142) at [`d926e6f`](https://github.com/rattensuppe/bloodborne_pc/commit/d926e6f5fc69aedbb8d3df22c03a62e0abedbe4d); standalone build, 20 pixel/alpha readbacks and standard ZIP checked |
+| Scaled RGBA8 motion-vector view | [`fix/scaled-motion-view`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/scaled-motion-view) | [PR #142 open](https://github.com/Supermedo/bloodborne_pc/pull/142) at [`ef9e1ef`](https://github.com/rattensuppe/bloodborne_pc/commit/ef9e1efa6348b3e69850857f88e5fc5343053216); current-frame coverage, 39 pixel/alpha readbacks, 12 owner sequences and live scaled/legacy HUD checks |
 | Combined RCAS/output | [`perf/fsr41-output`](https://github.com/rattensuppe/bloodborne_pc/tree/perf/fsr41-output) | [PR #143 open](https://github.com/Supermedo/bloodborne_pc/pull/143) at [`140b593`](https://github.com/rattensuppe/bloodborne_pc/commit/140b593035dcb297f2fdd8e68bba9e9dc36979a1); standalone build, 220 exact output comparisons and standard ZIP checked |
 | Motion-target LRU and deferred release | [`perf/motion-target-cache`](https://github.com/rattensuppe/bloodborne_pc/tree/perf/motion-target-cache) | [PR #144 open](https://github.com/Supermedo/bloodborne_pc/pull/144) at [`a1d32a4`](https://github.com/rattensuppe/bloodborne_pc/commit/a1d32a4571da89e96d6211b7dfaf91b0f7c1d8d6); three focused commits, 76 standalone GPU cases and standard ZIP checked |
 | SDK 2.4 FSR 4.1.2 upscaling | [`feat/fsr-sdk24-upscaling`](https://github.com/rattensuppe/bloodborne_pc/tree/feat/fsr-sdk24-upscaling) | [Draft PR #146](https://github.com/Supermedo/bloodborne_pc/pull/146) at [`ba4dc22`](https://github.com/rattensuppe/bloodborne_pc/commit/ba4dc221419dd82b213b56271e7f6e2b6d6073ab); shared foundation and SR-only package checked; original AMD Vulkan findings and current gameplay checks remain open |
@@ -95,19 +95,25 @@ identified separately in its notes.
 
 ### Standalone scaled motion view
 
-The view branch keeps upstream sharpening, providers and target ownership
-unchanged. Its shader and visualization function match the combined prototype;
-the tests add smaller object targets and repeated output-size changes. Twenty
-pixel/alpha readbacks pass, including WQHD/4K, absent/mismatched targets and
-Native-AA/Performance sizes. Core and Synchronization checks are confirmed active;
-only the existing headless-device VUID described above is reported. The actual
-embedded SPIR-V validates, three relevant CPU tests pass, and the standard ZIP
-passes manifest/CRC and frozen-launcher checks. Cached DLSS files are retained;
-there is no new NVIDIA or gameplay test.
+The view branch now accepts blue coverage only from a current-frame target at
+the matching render size. Motion generation and the original target lifecycle
+are preserved. Both visualization SPIR-V modules remain byte-identical.
+Thirteen pixel/alpha cases across normal and validated cache-off/on runs give
+39 readbacks; 12 real-owner sequences check stale coverage and size changes.
+The full native build, three CPU programs, standard ZIP and actual frozen
+launcher pass. Only the inherited headless-device VUID above remains.
 
-See the [candidate's scope and validation notes](https://github.com/rattensuppe/bloodborne_pc/blob/d926e6f5fc69aedbb8d3df22c03a62e0abedbe4d/docs/SCALED_MOTION_VIEW.md).
-No SDK, SSBO, RCAS/cache optimisation or ghosting experiment is included in this
-independent topic. The combined integration runtime remains unchanged.
+RX9070 live checks cover FSR3.1, TAA, FSR4.1.2 Vulkan/DX12, the scaled and legacy
+1080p routes, output changes, FG3.1 and ML-FG4.0.2. The user confirms
+movement-dependent colors and normally visible HUD in both routes. Disabling
+the view skips its dispatch. These are functional visibility checks; display
+HDR and general image-quality certification are outside this evidence.
+
+Player guidance is in the packaged FSR guide; the
+[technical validation](https://github.com/rattensuppe/bloodborne_pc/blob/ef9e1efa6348b3e69850857f88e5fc5343053216/docs/development/SCALED_MOTION_VIEW.md)
+stays in the repository. All six topic merge previews are automatic. SDK,
+SSBO, RCAS/cache optimisation and ghosting experiments remain separate;
+the integration runtime and downloads are unchanged.
 
 ### Standalone RCAS/output fusion
 
