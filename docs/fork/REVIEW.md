@@ -12,7 +12,7 @@ for later submission after its current-game/presentation check.
 | ID | Topic | Reviewed head | Required foundation | Submission state |
 | --- | --- | --- | --- | --- |
 | L | [`fix/launcher-runtime-checks`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/launcher-runtime-checks) | [`63a37f9`](https://github.com/rattensuppe/bloodborne_pc/commit/63a37f9fcafe39be2f4213d63a95eba27cb55d47) | None | Open [#140](https://github.com/Supermedo/bloodborne_pc/pull/140) |
-| S | [`fix/rx6000-object-motion`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/rx6000-object-motion) | [`24159ad`](https://github.com/rattensuppe/bloodborne_pc/commit/24159adbd3bed1704fc3d4d492286ab80e4f619e) | None; official cache lifecycle | Open [#141](https://github.com/Supermedo/bloodborne_pc/pull/141); hardware limits documented |
+| S | [`fix/rx6000-object-motion`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/rx6000-object-motion) | [`b3bd49d`](https://github.com/rattensuppe/bloodborne_pc/commit/b3bd49d72175c2027e37b85f24e5b55af1df1286) | None; official cache lifecycle | Open [#141](https://github.com/Supermedo/bloodborne_pc/pull/141); hardware limits documented |
 | V | [`fix/scaled-motion-view`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/scaled-motion-view) | [`d926e6f`](https://github.com/rattensuppe/bloodborne_pc/commit/d926e6f5fc69aedbb8d3df22c03a62e0abedbe4d) | None | Open [#142](https://github.com/Supermedo/bloodborne_pc/pull/142) |
 | R | [`perf/fsr41-output`](https://github.com/rattensuppe/bloodborne_pc/tree/perf/fsr41-output) | [`140b593`](https://github.com/rattensuppe/bloodborne_pc/commit/140b593035dcb297f2fdd8e68bba9e9dc36979a1) | None | Open [#143](https://github.com/Supermedo/bloodborne_pc/pull/143) |
 | C | [`perf/motion-target-cache`](https://github.com/rattensuppe/bloodborne_pc/tree/perf/motion-target-cache) | [`a1d32a4`](https://github.com/rattensuppe/bloodborne_pc/commit/a1d32a4571da89e96d6211b7dfaf91b0f7c1d8d6) | None; combine explicitly with S | Open [#144](https://github.com/Supermedo/bloodborne_pc/pull/144) |
@@ -33,23 +33,26 @@ needs the explicit resolution below.
 
 ## Merge matrix
 
-All 21 unordered topic pairs were checked. Ten merge automatically; eleven
-need explicit resolutions. Codes: **D** documentation-copy union in package.sh,
+All 21 unordered topic pairs were checked; the six involving S were refreshed
+after its November 1 follow-up. Fourteen merge automatically; seven need
+explicit resolutions. Codes: **D** documentation-copy union in package.sh,
 **T** independent test targets/helpers, **O** SSBO private owner declarations,
-**I** SDK capability includes. A checkmark means an automatic pairwise merge,
+A checkmark means an automatic pairwise merge,
 not an independent hardware or gameplay certification.
 
 | | L | S | V | R | C | U | F |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | L | — | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| S | | — | D, T | D | O, T | D, I | D |
+| S | | — | ✓ | ✓ | O, T | ✓ | ✓ |
 | V | | | — | D | ✓ | D | D |
 | R | | | | — | ✓ | D | D |
 | C | | | | | — | ✓ | ✓ |
 | U | | | | | | — | D |
 | F | | | | | | | — |
 
-The private cumulative merge was built from all seven reviewed heads:
+The earlier private cumulative merge used the original S head `24159ad` and
+the other six heads above. The updated S is checked independently; the
+cumulative runtime has not been rebuilt. Its original resolutions were:
 
 - Preserve both motion-storage and scaled-view CMake test targets.
 - Preserve the SSBO constructor/friend declarations and the cache lifetime
@@ -58,8 +61,8 @@ The private cumulative merge was built from all seven reviewed heads:
   metadata; exclude the obsolete `driver_provider.h` route.
 - Keep every topic's documentation in the standard package exactly once.
 
-Runtime sources for the launcher, SR/FG, public SDK, motion shaders and shader
-compiler match the existing integration. The deliberate differences are the
+In that earlier cumulative build, runtime sources for the launcher, SR/FG,
+public SDK, motion shaders and shader compiler match the existing integration. The deliberate differences are the
 excluded unfinished target diagnostics, preservation of upstream's constant
 far-plane input, and a comment encoding correction. The local combination
 does not replace the published integration runtime or download.
@@ -69,14 +72,14 @@ does not replace the published integration runtime or download.
 | Scope | Standalone evidence | Fresh cumulative evidence |
 | --- | --- | --- |
 | L | 44 Python tests in default/-O/-OO; actual/optimized freezes and 31 negative controls; standard ZIP and Unicode path without development PATH | Real standard package, frozen imports, 27 TLS tests including local certificate failures |
-| S | RX6000 routing/bounds/history and BDA/forced-SSBO checks; one RX6800XT/26.10.1 gameplay sample of the prior integration | Policy test plus SSBO/cache owner combination; no new RX6000 machine or vertex-draw certification |
+| S | 75 location cases, 56 bounds cases, 48 frames, four indirect rebind cases, byte-identical shaders and four cache readbacks on forced SSBO; 12 Python tests per mode and standard ZIP; earlier combined RX6800XT sample only | Policy test plus SSBO/cache owner combination; no new RX6000 machine or vertex-draw certification |
 | V | 20 complete pixel/alpha checks | 10 complete checks under active Core/Sync validation |
 | R | 220 exact comparisons; unchanged fallback shader bytes | 110 exact comparisons, including fresh outputs from all four SR methods |
 | C | 76 cache cases and 24 private SSBO combination cases | 48 BDA/SSBO cases: direct/threaded recording, cache off/on, retirement pressure, LRU, teardown and late reads |
 | U | Ten CPU programs including repaired overlay test, 151 Python tests, 31 runtime cases, actual package/picker | All four methods and fresh RCAS replays; original SDK Vulkan findings reproduced |
 | F | Six CPU programs, 58 Python tests, 31 runtime cases, actual package/picker | Both DLL load orders/versions, 1080p/4K, serial/overlap, three slots/256 frames, reset/switch/fallback and HUD |
 
-The cumulative build passes 13 native CPU programs and 181 Python tests in
+That earlier cumulative build passes 13 native CPU programs and 181 Python tests in
 23 fresh processes. Its 78 GPU processes pass their functional assertions;
 the validation sentinel deliberately reports one invalid buffer. Apart from
 that sentinel and the known original SDK Vulkan findings, the exercised
@@ -118,6 +121,26 @@ pinning is a separately validated local build-policy change, not part of #140.
 Six fresh merge previews against the other topic heads remain clean. Cumulative
 runtime evidence retains its original scope; the integration runtime and
 published binary releases have not been rebuilt or replaced.
+
+## PR141 hardware-independent follow-up
+
+S now includes three follow-up commits for indirect descriptor binding, actual
+varying-location checks, shared 13-language reasons and separated player/developer
+documentation. The 75 CPU location cases cover remapping, constant defaults,
+passthrough, unused declarations and clip-distance shifts. GPU fixtures add an
+indirect zero-record draw after incompatible set0 layouts in all four recorder/
+descriptor combinations. Eight emitted shader modules are byte-identical; no
+additional validation findings or synchronization hazards were reported beyond
+the inherited headless VUID, also reproduced by the BDA control.
+
+The complete native build, 12 Python tests per mode, standard ZIP and actual
+frozen-launcher check pass. The ZIP retains player help and excludes the technical
+report. Existing motion-pipeline preload exclusion, GPU selection, BDA/SSBO access,
+atomics and cache lifetime are preserved. A fresh RX6000 gameplay run is pending;
+there is no whole-series reliability or performance claim. No automatic device-loss
+policy changes the saved preference. Five merge previews are automatic; only the
+existing S/C owner/test-helper combination requires resolution. Remaining D conflicts
+between other topics retain their documented scope.
 
 ## Submission sequence and remaining checks
 

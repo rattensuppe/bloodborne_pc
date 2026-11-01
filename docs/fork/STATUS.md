@@ -1,6 +1,6 @@
 # Fork status
 
-Updated October 31, 2026. This page tracks integration and review readiness.
+Updated November 1, 2026. This page tracks integration and review readiness.
 [Workflow](WORKFLOW.md) · [Build history](RELEASES.md) · [Fork overview](../../README.md)
 
 ## Source and downloads
@@ -33,7 +33,7 @@ the first wave [#140](https://github.com/Supermedo/bloodborne_pc/pull/140) /
 | Component | Topic | Implementation / readiness |
 | --- | --- | --- |
 | Frozen-launcher runtime and package checks | [`fix/launcher-runtime-checks`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/launcher-runtime-checks) | [PR #140 open](https://github.com/Supermedo/bloodborne_pc/pull/140) at [`63a37f9`](https://github.com/rattensuppe/bloodborne_pc/commit/63a37f9fcafe39be2f4213d63a95eba27cb55d47); three focused commits, 44 Python tests in default/-O/-OO and real frozen-runtime checks |
-| RX 6000 bounded object-motion SSBO | [`fix/rx6000-object-motion`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/rx6000-object-motion) | [PR #141 open](https://github.com/Supermedo/bloodborne_pc/pull/141) at [`24159ad`](https://github.com/rattensuppe/bloodborne_pc/commit/24159adbd3bed1704fc3d4d492286ab80e4f619e); native build/readbacks and standard ZIP checked on the original cache lifecycle |
+| RX 6000 bounded object-motion SSBO | [`fix/rx6000-object-motion`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/rx6000-object-motion) | [PR #141 open](https://github.com/Supermedo/bloodborne_pc/pull/141) at [`b3bd49d`](https://github.com/rattensuppe/bloodborne_pc/commit/b3bd49d72175c2027e37b85f24e5b55af1df1286); indirect binding, varying-location checks and 13-language reasons verified; original cache lifecycle retained |
 | Scaled SDR motion-vector view | [`fix/scaled-motion-view`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/scaled-motion-view) | [PR #142 open](https://github.com/Supermedo/bloodborne_pc/pull/142) at [`d926e6f`](https://github.com/rattensuppe/bloodborne_pc/commit/d926e6f5fc69aedbb8d3df22c03a62e0abedbe4d); standalone build, 20 pixel/alpha readbacks and standard ZIP checked |
 | Combined RCAS/output | [`perf/fsr41-output`](https://github.com/rattensuppe/bloodborne_pc/tree/perf/fsr41-output) | [PR #143 open](https://github.com/Supermedo/bloodborne_pc/pull/143) at [`140b593`](https://github.com/rattensuppe/bloodborne_pc/commit/140b593035dcb297f2fdd8e68bba9e9dc36979a1); standalone build, 220 exact output comparisons and standard ZIP checked |
 | Motion-target LRU and deferred release | [`perf/motion-target-cache`](https://github.com/rattensuppe/bloodborne_pc/tree/perf/motion-target-cache) | [PR #144 open](https://github.com/Supermedo/bloodborne_pc/pull/144) at [`a1d32a4`](https://github.com/rattensuppe/bloodborne_pc/commit/a1d32a4571da89e96d6211b7dfaf91b0f7c1d8d6); three focused commits, 76 standalone GPU cases and standard ZIP checked |
@@ -66,13 +66,23 @@ Recursive manifest coverage first benefits the standard SDK layout at
 pinning was validated separately and remains outside this PR. Renderer, SDK,
 game startup settings and the integration runtime are unchanged.
 
-The SSBO branch resolves three extraction conflicts while preserving the
-official cache lifecycle and provider paths. On RX 9070, private SSBO fixtures
-pass 56 bounds cases and 48 history frames across direct/threaded recording and
-normal/push descriptor layouts. Eight emitted SPIR-V modules validate; four
-BDA/SSBO cache-off/on readbacks match. The standard local Windows ZIP passes
-manifest/CRC and real frozen-launcher checks. The validation package omits the
-optional separately built DLSS bridge; existing published packages are unchanged.
+The SSBO follow-up binds descriptors on indirect motion draws and checks actual
+varying locations, including fragment remapping and clip-distance emulation.
+Optional logs describe the final choice; launcher/overlay reasons share 13
+translations. Existing device policy, memory access and cache lifetime remain.
+
+The complete Windows build, 12 Python tests in each default/-O/-OO mode, 75
+location cases, 56 GPU bounds/data cases, 48 history frames and four indirect
+descriptor-rebind cases pass. Private RX9070 fixtures cover direct/threaded
+recording and normal/push set0 layouts. Eight emitted SPIR-V modules remain
+byte-identical; four BDA/SSBO cache-off/on readbacks match. The standard ZIP
+passes manifest/CRC and actual frozen-launcher checks, retaining cached DLSS.
+Only concise player help is packaged; technical validation stays in the repo.
+
+Five of S's six topic merge previews are now automatic. Package-copy, SDK
+include-order and test-target insertion conflicts are removed; combining S/C
+still requires the documented owner/test-helper resolution. Other topics are
+unchanged. The integration runtime and published downloads remain unchanged.
 
 One existing headless-device finding remains in this standalone candidate:
 `VUID-vkCreateDevice-ppEnabledExtensionNames-01387`. Unchanged upstream instance
