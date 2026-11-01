@@ -16,7 +16,7 @@ for later submission after its current-game/presentation check.
 | S | [`fix/rx6000-object-motion`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/rx6000-object-motion) | [`b3bd49d`](https://github.com/rattensuppe/bloodborne_pc/commit/b3bd49d72175c2027e37b85f24e5b55af1df1286) | None; official cache lifecycle | Open [#141](https://github.com/Supermedo/bloodborne_pc/pull/141); hardware limits documented |
 | V | [`fix/scaled-motion-view`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/scaled-motion-view) | [`ef9e1ef`](https://github.com/rattensuppe/bloodborne_pc/commit/ef9e1efa6348b3e69850857f88e5fc5343053216) | None | Open [#142](https://github.com/Supermedo/bloodborne_pc/pull/142) |
 | R | [`perf/fsr41-output`](https://github.com/rattensuppe/bloodborne_pc/tree/perf/fsr41-output) | [`89b5215`](https://github.com/rattensuppe/bloodborne_pc/commit/89b5215528392e1071f5e67c2b7955208c525732) | None | Open [#143](https://github.com/Supermedo/bloodborne_pc/pull/143) |
-| C | [`perf/motion-target-cache`](https://github.com/rattensuppe/bloodborne_pc/tree/perf/motion-target-cache) | [`a1d32a4`](https://github.com/rattensuppe/bloodborne_pc/commit/a1d32a4571da89e96d6211b7dfaf91b0f7c1d8d6) | None; combine explicitly with S | Open [#144](https://github.com/Supermedo/bloodborne_pc/pull/144) |
+| C | [`perf/motion-target-cache`](https://github.com/rattensuppe/bloodborne_pc/tree/perf/motion-target-cache) | [`775d816`](https://github.com/rattensuppe/bloodborne_pc/commit/775d8167fe5bc045a6b3d5dc610b6d5155477243) | None; combine explicitly with S | Open [#144](https://github.com/Supermedo/bloodborne_pc/pull/144) |
 | U | [`feat/fsr-sdk24-upscaling`](https://github.com/rattensuppe/bloodborne_pc/tree/feat/fsr-sdk24-upscaling) | [`ba4dc22`](https://github.com/rattensuppe/bloodborne_pc/commit/ba4dc221419dd82b213b56271e7f6e2b6d6073ab) | Shared SDK foundation `238137e` | Draft [#146](https://github.com/Supermedo/bloodborne_pc/pull/146); AMD Vulkan/gameplay checks open |
 | F | [`feat/mlfg-sdk24`](https://github.com/rattensuppe/bloodborne_pc/tree/feat/mlfg-sdk24) | [`e2426a9`](https://github.com/rattensuppe/bloodborne_pc/commit/e2426a91b2ec7ef77842ef6981dbf6c5c3863ac4) | Shared SDK foundation `238137e`; no dependency on U | Later wave: fresh FG/presentation check before ready status |
 
@@ -34,17 +34,17 @@ needs the explicit resolution below.
 
 ## Merge matrix
 
-All 21 unordered topic pairs were checked; pairs involving S, V and R were
+All 21 unordered topic pairs were checked; pairs involving S, V, R and C were
 refreshed after their November 1 follow-ups. Nineteen merge automatically;
 two need explicit resolutions. Codes: **D** documentation-copy union in package.sh,
-**T** independent test targets/helpers, **O** SSBO private owner declarations.
+**T** independent test targets/helpers. The S/C header now merges automatically.
 A checkmark means an automatic pairwise merge,
 not an independent hardware or gameplay certification.
 
 | | L | S | V | R | C | U | F |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | L | — | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| S | | — | ✓ | ✓ | O, T | ✓ | ✓ |
+| S | | — | ✓ | ✓ | T | ✓ | ✓ |
 | V | | | — | ✓ | ✓ | ✓ | ✓ |
 | R | | | | — | ✓ | ✓ | ✓ |
 | C | | | | | — | ✓ | ✓ |
@@ -52,8 +52,8 @@ not an independent hardware or gameplay certification.
 | F | | | | | | | — |
 
 The earlier private cumulative merge used the original S head `24159ad`,
-original V head `d926e6f`, original R head `140b593` and the other four heads
-above. Updated S, V and R are checked independently; the cumulative runtime
+original V head `d926e6f`, original R head `140b593`, original C head `a1d32a4`
+and the other three heads above. Updated S, V, R and C are checked independently; the cumulative runtime
 has not been rebuilt. Its original resolutions were:
 
 - Preserve both motion-storage and scaled-view CMake test targets.
@@ -77,7 +77,7 @@ does not replace the published integration runtime or download.
 | S | 75 location cases, 56 bounds cases, 48 frames, four indirect rebind cases, byte-identical shaders and four cache readbacks on forced SSBO; 12 Python tests per mode and standard ZIP; earlier combined RX6800XT sample only | Policy test plus SSBO/cache owner combination; no new RX6000 machine or vertex-draw certification |
 | V | 39 pixel/alpha readbacks, 12 current-frame owner sequences, unchanged SPIR-V, standard ZIP and RX9070 scaled/legacy HUD checks with output/FSR/FG changes | 10 complete checks under active Core/Sync validation on original V |
 | R | 440 dual-reference RGBA8 checks, ten explicit-GPU checks, 90 direct/copy cases, ten NDEBUG negative controls, standard ZIP and 14 live phases with user FG/HUD sight checks | 110 exact comparisons on original R, including outputs from all four SR methods |
-| C | 76 cache cases and 24 private SSBO combination cases | 48 BDA/SSBO cases: direct/threaded recording, cache off/on, retirement pressure, LRU, teardown and late reads |
+| C | 78 cache cases, four safe negative controls, 26 private SSBO cases, full build/three CPU programs and standard ZIP | 48 BDA/SSBO cases on original C: direct/threaded recording, cache off/on, retirement pressure, LRU, teardown and late reads |
 | U | Ten CPU programs including repaired overlay test, 151 Python tests, 31 runtime cases, actual package/picker | All four methods and fresh RCAS replays; original SDK Vulkan findings reproduced |
 | F | Six CPU programs, 58 Python tests, 31 runtime cases, actual package/picker | Both DLL load orders/versions, 1080p/4K, serial/overlap, three slots/256 frames, reset/switch/fallback and HUD |
 
@@ -182,6 +182,23 @@ control hooks are excluded from the branch/package. RX7900XT and display HDR
 remain untested; this adds no new performance result. All six R merge previews
 are automatic; only the S/C owner/test-helper and U/F documentation-copy
 combinations retain explicit resolutions. Integration runtime/downloads remain.
+
+## PR144 lifetime and test follow-up
+
+C adds an outgoing-target submission bound for Attach -> upload submission ->
+actual rendering. Existing late-read tracking remains. A local helper exchanges
+all image ownership fields; global UniqueImage moves and image rules are unchanged.
+The NDEBUG fixture tests the split submission before unsafe eviction, then checks
+a gated real clear/readback and retirement. Conservative retention is reflected
+in count-pressure expectations; pending count/byte limits still hold.
+
+The full build, three CPU programs, 78 GPU cases, four controlled negative cases,
+26 private SSBO-owner cases and standard ZIP/frozen launcher pass. Only the
+known headless-base VUID remains; RX6000 hardware is unavailable. Five of six
+current topic merges are automatic. S/C requires one test-helper union; its
+runtime/header are automatic and the resolution is exercised. Technical notes
+are excluded from the player package. No game, performance or real-OOM result
+is added, and the combined integration runtime/downloads remain unchanged.
 
 ## Submission sequence and remaining checks
 

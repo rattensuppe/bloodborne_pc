@@ -36,7 +36,7 @@ the first wave [#140](https://github.com/Supermedo/bloodborne_pc/pull/140) /
 | RX 6000 bounded object-motion SSBO | [`fix/rx6000-object-motion`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/rx6000-object-motion) | [PR #141 open](https://github.com/Supermedo/bloodborne_pc/pull/141) at [`b3bd49d`](https://github.com/rattensuppe/bloodborne_pc/commit/b3bd49d72175c2027e37b85f24e5b55af1df1286); indirect binding, varying-location checks and 13-language reasons verified; original cache lifecycle retained |
 | Scaled RGBA8 motion-vector view | [`fix/scaled-motion-view`](https://github.com/rattensuppe/bloodborne_pc/tree/fix/scaled-motion-view) | [PR #142 open](https://github.com/Supermedo/bloodborne_pc/pull/142) at [`ef9e1ef`](https://github.com/rattensuppe/bloodborne_pc/commit/ef9e1efa6348b3e69850857f88e5fc5343053216); current-frame coverage, 39 pixel/alpha readbacks, 12 owner sequences and live scaled/legacy HUD checks |
 | Combined RCAS/output | [`perf/fsr41-output`](https://github.com/rattensuppe/bloodborne_pc/tree/perf/fsr41-output) | [PR #143 open](https://github.com/Supermedo/bloodborne_pc/pull/143) at [`89b5215`](https://github.com/rattensuppe/bloodborne_pc/commit/89b5215528392e1071f5e67c2b7955208c525732); three follow-up commits; dual-reference pixel checks, NDEBUG controls, standard ZIP and RX9070 live composition/HUD checks |
-| Motion-target LRU and deferred release | [`perf/motion-target-cache`](https://github.com/rattensuppe/bloodborne_pc/tree/perf/motion-target-cache) | [PR #144 open](https://github.com/Supermedo/bloodborne_pc/pull/144) at [`a1d32a4`](https://github.com/rattensuppe/bloodborne_pc/commit/a1d32a4571da89e96d6211b7dfaf91b0f7c1d8d6); three focused commits, 76 standalone GPU cases and standard ZIP checked |
+| Motion-target LRU and deferred release | [`perf/motion-target-cache`](https://github.com/rattensuppe/bloodborne_pc/tree/perf/motion-target-cache) | [PR #144 open](https://github.com/Supermedo/bloodborne_pc/pull/144) at [`775d816`](https://github.com/rattensuppe/bloodborne_pc/commit/775d8167fe5bc045a6b3d5dc610b6d5155477243); two follow-up commits; split-submission lifetime guard, 78 GPU cases, four negative controls, 26 private SSBO cases and standard ZIP checked |
 | SDK 2.4 FSR 4.1.2 upscaling | [`feat/fsr-sdk24-upscaling`](https://github.com/rattensuppe/bloodborne_pc/tree/feat/fsr-sdk24-upscaling) | [Draft PR #146](https://github.com/Supermedo/bloodborne_pc/pull/146) at [`ba4dc22`](https://github.com/rattensuppe/bloodborne_pc/commit/ba4dc221419dd82b213b56271e7f6e2b6d6073ab); shared foundation and SR-only package checked; original AMD Vulkan findings and current gameplay checks remain open |
 | SDK 2.4 ML-FG 4.0.2 | [`feat/mlfg-sdk24`](https://github.com/rattensuppe/bloodborne_pc/tree/feat/mlfg-sdk24) | Prepared at [`e2426a9`](https://github.com/rattensuppe/bloodborne_pc/commit/e2426a91b2ec7ef77842ef6981dbf6c5c3863ac4); independent FG effect, retained SR paths, bridge/stress and standard ZIP checked |
 
@@ -142,29 +142,31 @@ published downloads remain unchanged.
 
 ### Standalone motion-target cache
 
-The cache branch separates LRU/bounded retirement, late image/view reads and test
-hardening into three commits. The default stays off. It retains four reusable
-targets and at most two pending retired images / 128 MiB of allocation bytes.
-Shaders, providers and saved settings remain unchanged. Seventy-six isolated
-GPU cases pass in direct/threaded recording, including 60 identical full pixel
-readbacks and 16 lifetime/pressure checks. Core/Synchronization validation reports
-only the known headless-base VUID described above. The pixel fixture's own
-transfer read now has an explicit barrier. The standard ZIP, manifest/CRC and
-actual frozen launcher pass their checks.
+The cache branch retains LRU/bounded retirement and late reads, then adds two
+follow-up commits for the outgoing submission bound, regression robustness and
+separate player/developer guidance. The stash tick covers a submission between
+attachment setup and the actual draw. The default remains off, with four reusable
+targets and at most two retired images / 128 MiB of actual allocation bytes.
+Shaders, providers, clear/validity rules and saved settings remain unchanged.
 
-Merge previews are clean with the launcher, scaled-view and RCAS topics. Combining
-with SSBO requires resolving private declarations and fixture code in two files;
-the renderer implementation merges automatically. A private resolved combination
-passes 24 additional SSBO-owner/cache readback and lifetime cases, with identical
-cache-function bodies. Both standalone branches remain separate. This is no new
-RX 6000 hardware or vertex-shader gameplay test.
+The complete native build, three CPU programs and standard ZIP/frozen launcher
+pass. On RX9070, 78 direct/threaded GPU cases include 60 complete pixel/validity
+readbacks and 18 lifetime/pressure cases. Two safe mutation controls detect the
+old bound before eviction; two injected watchdog failures exit normally under
+NDEBUG. Core/Sync checks retain only the documented headless-base VUID, with
+no additional cache findings or hazards. Real out-of-memory is not injected.
 
-The unchanged launcher-cache suite has a stale shortcut mock: seven original
-tests pass and one errors on unchanged base files too. Eight pass with a corrected
-private mock; that unrelated correction is not shipped. The
-[candidate's notes](https://github.com/rattensuppe/bloodborne_pc/blob/a1d32a4571da89e96d6211b7dfaf91b0f7c1d8d6/docs/OBJECT_MOTION_CACHE.md#standalone-review-on-windows-197)
-preserve these limits. No new gameplay/FPS result or forced out-of-memory test is
-claimed. The combined integration runtime remains unchanged.
+All six topic merge previews are refreshed. Five merge automatically; with
+current SSBO head `b3bd49d`, only the test-helper union needs manual resolution.
+The production implementation and header merge automatically. The checked
+private combination passes 26 forced SSBO-owner cache cases on RX9070; RX6000
+hardware and new vertex-shader gameplay checks remain open. Standalone source
+and renderer are restored afterward; no combined runtime is published.
+
+The packaged cache guide is concise; the [technical validation](https://github.com/rattensuppe/bloodborne_pc/blob/775d8167fe5bc045a6b3d5dc610b6d5155477243/docs/development/OBJECT_MOTION_CACHE.md)
+stays in the repository and records the inherited launcher-test mock limitation.
+No new gameplay/performance result is claimed. Integration runtime and
+downloads remain unchanged.
 
 ### Standalone SDK 2.4 upscaling
 
