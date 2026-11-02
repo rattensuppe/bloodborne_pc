@@ -232,6 +232,16 @@ int NearestFov(int value) {
     return FovSteps[best];
 }
 
+static_assert(FRAME_GEN_TEXT + BbSettings::FrameGenCount <= MULTIPLIER_TEXT,
+              "Frame-generation text IDs overlap the multiplier choice block");
+
+bool FrameGenSupported(int provider) {
+    const auto& s = BbSettings::Get();
+    if (provider == BbSettings::FrameGenDlss) return s.dlssg_max_multiplier > 1;
+    if (BbSettings::IsMlFrameGen(provider)) return s.MlFgSupported(provider);
+    return provider == BbSettings::FrameGenOff || provider == BbSettings::FrameGenFsr3;
+}
+
 // The port's settings as the lines show them.
 void ReadSettings(int32_t* out) {
     const auto& s = BbSettings::Get();
@@ -320,7 +330,15 @@ bool Apply(Line line, int32_t v) {
         s.sharpen = v > 0;
         if (v > 0) s.sharpness = SharpnessSteps[std::clamp(v, 1, SharpnessCount - 1)];
         return true;
-    case FrameGen: BbSettings::SelectFrameGen(std::clamp(v, 0, BbSettings::FrameGenCount - 1)); return true;
+    case FrameGen:
+        v = std::clamp(v, 0, BbSettings::FrameGenCount - 1);
+        if (v != s.frame_gen && !FrameGenSupported(v)) {
+            SetValue(FrameGen, s.frame_gen);
+            applied[FrameGen] = s.frame_gen;
+            return false;
+        }
+        BbSettings::SelectFrameGen(v);
+        return true;
     case Multiplier: s.frame_gen_multiplier = std::clamp(v, 2, 4); return true;
     case Output: s.output_res = std::clamp(v, 0, BbSettings::OutputCount - 1); return true;
     case FrameRate: s.fps_mode = std::clamp(v, 0, BbSettings::FpsModeCount - 1); return true;
@@ -412,8 +430,7 @@ void LineChoices(Line line, const int32_t* now, Choices& c) {
         break;
     case FrameGen:
         for (int f = 0; f < BbSettings::FrameGenCount; ++f) {
-            const bool supported = f == BbSettings::FrameGenDlss ? s.dlssg_max_multiplier > 1
-                                 : f == BbSettings::FrameGenFsr401 ? s.fg401_supported.load() : true;
+            const bool supported = FrameGenSupported(f);
             if (supported || f == now[FrameGen]) c.Add(f, FRAME_GEN_TEXT + f);
         }
         break;

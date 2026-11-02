@@ -521,6 +521,10 @@ target_link_libraries(fsr4-bench PRIVATE ffx-vulkan::fsr4-v07-vulkan ffx-vulkan:
 
 if (WIN32)
     include(fg401_dx12/CMakeLists.txt)
+    add_executable(pc-menu-framegen-test EXCLUDE_FROM_ALL ../tests/test_pc_menu_framegen.cpp
+        ${BB_RUNTIME} ../src/compat_win.c)
+    target_include_directories(pc-menu-framegen-test PRIVATE .. ../src shim shadps4 third_party/gcn/include)
+    target_link_libraries(pc-menu-framegen-test PRIVATE bbgpu atrac9 onecore bcrypt ws2_32 -pthread)
 endif()
 
 # Compare the actual host RCAS shaders, including the legacy FP16 -> FP32 blit.
