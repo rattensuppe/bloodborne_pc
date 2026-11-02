@@ -112,7 +112,6 @@ private:
         vk::ImageLayout layout = vk::ImageLayout::eUndefined;
         u64 last_use{}, last_tick{};
     };
-    friend struct ObjectMotionCacheTest;
     void RetireCachedImage(CachedImage& cached);
     struct RetiredImage {
         std::unique_ptr<CachedImage> target;
