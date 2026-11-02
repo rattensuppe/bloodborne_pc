@@ -63,5 +63,19 @@ class PcMenuTests(unittest.TestCase):
             self.assertIn(int(value), names, constant)
 
 
+    def test_framegen_labels_cover_every_native_value_without_overlap(self):
+        source = (ROOT / 'gpu/shim/bbport_pc_menu.cpp').read_text(encoding='utf-8')
+        ids = {name: int(value) for name, value in re.findall(r'(\w+_TEXT) = (\d+)', source)}
+        header = (ROOT / 'gpu/shim/bbport_settings.h').read_text(encoding='utf-8')
+        values = re.search(r'enum FrameGen : int \{(.*?)FrameGenCount', header, re.S).group(1)
+        count = len(re.findall(r'\bFrameGen\w+', values))
+        labels = dict(pc_menu.LABELS)[ids['FRAME_GEN_TEXT']]
+        self.assertEqual(len(labels), count)
+        self.assertEqual(labels[3:], ['AMD ML 4.0.1', 'AMD ML 4.0.2'])
+        self.assertLessEqual(ids['FRAME_GEN_TEXT'] + count, ids['MULTIPLIER_TEXT'])
+        for index, label in enumerate(labels):
+            self.assertEqual(pc_menu.texts()[200][ids['FRAME_GEN_TEXT'] + index], label)
+
+
 if __name__ == '__main__':
     unittest.main()
