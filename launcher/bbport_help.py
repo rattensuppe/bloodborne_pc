@@ -17,6 +17,7 @@ import webbrowser
 from pathlib import Path
 
 import bbport_theme as theme
+import bbport_lang_motion as motion_text
 
 L = None  # bbport_launcher_win, set by bind()
 DISCORD = 'https://discord.gg/WtYT4fXhEN'  # the community Discord (bbport.de); the old invite expired
@@ -36,6 +37,14 @@ def bind(module):
 def _(*texts):
     """Translated; a page named by an older name (Game & language) by its name now."""
     return L.renamed(L._(*texts)) if L else texts[0]
+
+
+def step_text(step):
+    text = _(step)
+    if step == motion_text.HELP_KEYS['Disable']:
+        return text.format(expert=_('Expert view'), graphics=_('All graphics'),
+                           option=_('Object motion vectors'))
+    return text
 
 
 def number(value, digits=0):
@@ -150,6 +159,10 @@ TOPICS = {
         ['All graphics (expert view): Quality preset Balanced or Performance (DLSS on GeForce RTX cards).',
          'Model detail (LOD) "As in the game", object motion vectors off.',
          'Close your browser and other programs while playing.']),
+    'omv_rx6000': (
+        motion_text.HELP_KEYS['Title'],
+        motion_text.HELP_KEYS['Context'],
+        [motion_text.HELP_KEYS[key] for key in ('Disable', 'Repeat', 'Report')]),
     'driver': (
         'The graphics driver stopped (device lost)',
         'The game needs Vulkan 1.3 and a current driver; an old or crashed driver ends the game with '
@@ -236,10 +249,27 @@ TOPICS = {
         "shadPS4's public shadNet server checks which program connects and doesn't accept this port's version at the "
         'moment. The game then plays offline. Your account and your settings are fine.',
         ['Online play: Play with SuperMedo Server, then Sign in with Discord.',
+          'Seamless co-op: choose SuperMedo Seamless co-op under Co-op pool, with the same account.',
          # The page offers an own server only when Seamless co-op opened the launcher (started_by_bbsc).
-         "Seamless co-op or a friend's server: open this launcher from Seamless co-op (OPEN BBPORT LAUNCHER + "
-         "BBSC), then choose Own server under Play with. For a friend's server, enter the address from the person "
-         'who runs it under Server address.']),
+         "A friend's own server: open this launcher from Seamless co-op (OPEN BBPORT LAUNCHER + BBSC), then "
+         'choose Own server and enter the address from the person who runs it under Server address.']),
+    # Playing with others: the account, the party code, and the bells in the game (BBSC's for Seamless co-op).
+    'play_together': (
+        'Playing together online',
+        'Online play needs a free SuperMedo account and the same game version (1.09) for everyone. Friends find '
+        'each other with a party code from this launcher.',
+        ['Online play: tick Play online, choose SuperMedo Server or SuperMedo Seamless co-op (everyone the same), '
+         'and sign in: with Discord, with your Online ID and password, or with a new account.',
+         "Party: one of you makes a party code and sends it, the others join with it. Leave the password in the "
+         "game's network settings empty: the party brings you together.",
+         'SuperMedo Server: in the game, summon and join as on the PS4, with the Beckoning Bell and the Small '
+         'Resonant Bell.',
+         'Seamless co-op: in the game, any of you can host. The host rings the Hunt Bell, the others ring the Kin '
+         "Bell. The host's Seamless co-op settings count for the session.",
+         "A new character in Seamless co-op: ring the bells for the first time in the Hunter's Dream, at the Doll, "
+         'once you have chosen your weapon.',
+         'Nobody shows up: Test connection on the Online play page, and when Windows asks about the firewall, '
+         'click Allow.']),
     'steam_layout': (
         'Steam turns the controller into a mouse and keyboard',
         "With Steam open, its Desktop Layout sends mouse movement and key presses for a controller it manages, on "
@@ -257,7 +287,7 @@ TOPICS = {
 TOPIC_ORDER = ['eboot_modified', 'eboot_truncated', 'eboot_unreadable', 'program_files', 'version', 'update_only',
                'empty_files', 'game_files', 'page_file', 'antivirus', 'location', 'game_location', 'save_lost',
                'controller', 'black_screen', 'vram', 'gpu_unseen', 'driver', 'vc_runtime', 'shader_cache',
-               'firewall', 'smartscreen']
+               'play_together', 'firewall', 'smartscreen']
 # Buttons under a topic's steps: (text, launcher method). They do the step for the player.
 TOPIC_ACTIONS = {'black_screen': [('Clear the shader cache', 'clear_cache')],
                  'page_file': [('Open the memory settings', 'open_memory_settings')],
@@ -274,7 +304,8 @@ TOPIC_ACTIONS = {'black_screen': [('Clear the shader cache', 'clear_cache')],
                  'game_location': [('Choose the game folder', 'choose_game_page')],
                  'game_files': [('Check the game files', 'check_game_files')],
                  'firewall': [('Open the firewall settings', 'open_firewall_settings')],
-                 'shadnet_rejected': [('Open Online play', 'open_online_page')]}
+                 'shadnet_rejected': [('Open Online play', 'open_online_page')],
+                 'play_together': [('Open Online play', 'open_online_page')]}
 TOPIC_ORDER += [key for key in TOPICS if key not in TOPIC_ORDER]  # topics added later: at the end
 
 # The game's and run.py's messages that name the cause of a failed start or crash.
@@ -305,9 +336,25 @@ NOTICE_INTROS = {'shadnet_rejected': 'Online play was off this time. Its log nam
                  'steam_layout': "The controller's input was doubled this time. Its log names the cause:"}
 
 
+def ssbo_device_loss(text):
+    """Track the active path at device loss; this is context, not a cause diagnosis."""
+    active = False
+    for line in (text or '').splitlines():
+        if 'Object motion: storage path ' in line:
+            active = bool(re.search(r'Object motion: storage path SSBO\b', line))
+        elif re.search(r'Object motion: (?:off\b|.*(?:unsupported|failed), off\b)', line):
+            active = False
+        if active and re.search(r'ErrorDeviceLost|\bdevice lost\b', line):
+            return True
+    return False
+
+
 def hints_in_log(text):
     """The topics whose messages the log has, in the order of LOG_HINTS."""
-    return [topic for pattern, topic in LOG_HINTS if re.search(pattern, text or '')]
+    topics = [topic for pattern, topic in LOG_HINTS if re.search(pattern, text or '')]
+    if 'driver' in topics and ssbo_device_loss(text):
+        topics.insert(topics.index('driver'), 'omv_rx6000')
+    return topics
 
 
 def hints_for_game(text, game_dir):
@@ -837,7 +884,7 @@ class HelpMixin:
             line.pack(fill='x', pady=px(2))
             tk.Label(line, text=f'{number}.', bg=theme.CARD, fg=theme.GOLD_LIGHT, font=(theme.BODY_SEMI, 10),
                      width=3, anchor='ne').pack(side='left', anchor='n')
-            self.wrap_within(tk.Label(line, text=_(step), bg=theme.CARD, fg=theme.TEXT, font=(theme.BODY, 10),
+            self.wrap_within(tk.Label(line, text=step_text(step), bg=theme.CARD, fg=theme.TEXT, font=(theme.BODY, 10),
                                       justify='left', anchor='w'), 660).pack(side='left', fill='x', expand=True)
 
         actions = TOPIC_ACTIONS.get(key, [])
@@ -1173,8 +1220,9 @@ class HelpMixin:
                                                          'help.').format(shown))
             return
         title, why, _steps = TOPICS[topics[0]]
-        if self.messagebox.askyesno('Bloodborne', _('The game ended with an error (code {}). Its log names the '
-                                                    'cause:').format(shown) +'\n\n' + _(title) + '\n' + _(why) +
+        intro = (motion_text.HELP_KEYS['Intro'] if topics[0] == 'omv_rx6000' else
+                 'The game ended with an error (code {}). Its log names the cause:')
+        if self.messagebox.askyesno('Bloodborne', _(intro).format(shown) +'\n\n' + _(title) + '\n' + _(why) +
                                     '\n\n' + _('Show the fix?')):
             self.open_topic(topics[0])
 
@@ -1288,9 +1336,21 @@ def report_tool():
     return None
 
 
-SECRET = re.compile(r'password|token|secret|npid|online_id|user$', re.I)
+# Keys whose values are secret or name the player. 'pass' and 'key' too: supermedo_pass and party_key went into the
+# zip in clear text (2026-11-02), as 'password' alone did not match them. A harmless key hidden by mistake (menu_key)
+# costs less than a password in a forum post.
+SECRET = re.compile(r'pass|token|secret|key|npid|online_id|mail|session|auth|cookie|user$', re.I)
+# Variables in extra_env ("NAME=value ..."): the value of a secret-sounding name is hidden as well.
+SECRET_ASSIGNMENT = re.compile(r'(\b\w*(?:PASS|TOKEN|SECRET|KEY|NPID|ONLINE_ID|AUTH)\w*\s*=\s*)("[^"]*"|\S+)', re.I)
 
 
 def private_free(settings):
-    """The launcher settings without passwords, tokens and account names."""
-    return {key: ('(hidden)' if SECRET.search(key) and value else value) for key, value in settings.items()}
+    """The launcher settings without passwords, tokens, keys and account names."""
+    clean = {}
+    for key, value in settings.items():
+        if SECRET.search(key) and value:
+            value = '(hidden)'
+        elif isinstance(value, str):
+            value = SECRET_ASSIGNMENT.sub(r'\1(hidden)', value)
+        clean[key] = value
+    return clean

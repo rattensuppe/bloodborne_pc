@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-#include "../gpu/shadps4/shader_recompiler/motion_storage.h"
-#include "ffx_upscale.h"
 #include "fsr411_support.h"
 #include "fsr411_vulkan_support.h"
 #include "sdk24_upscaling.h"
 #include "vk/ffx_api_vk.h"
+#include "ffx_upscale.h"
 #include <cstdio>
 #include <stdexcept>
 #include <string_view>
 #include <vector>
 #include <windows.h>
+#include "../gpu/shadps4/shader_recompiler/motion_storage.h"
 
 namespace {
 void String(const std::string& value) {

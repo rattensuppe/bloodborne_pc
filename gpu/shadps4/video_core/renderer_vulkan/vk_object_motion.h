@@ -20,7 +20,6 @@ namespace Vulkan {
 
 class Instance;
 class Scheduler;
-struct MotionTargetDiagnostics;
 struct RenderState;
 
 class ObjectMotion {
@@ -33,6 +32,11 @@ public:
     }
 
     using DrawInfo = Motion::Draw;
+    /// Current-frame coverage at the requested render size, after PrepareRead.
+    [[nodiscard]] vk::ImageView CurrentView(u32 width, u32 height) const noexcept {
+        return enabled && Image(width, height) ? View() : vk::ImageView{};
+    }
+
     u32 PrepareDraw(const DrawInfo& draw);
     void BindParameters(vk::PipelineLayout layout);
     /// Small skeletons: whether the bone palette changed (Motion::History::Moving).
@@ -57,8 +61,8 @@ public:
     /// holds this frame's vectors at `width` x `height`.
     vk::ImageView PrepareRead(vk::CommandBuffer cmdbuf, u32 width, u32 height, bool& valid);
     /// The image of the last PrepareRead (layout General), or null.
-    [[nodiscard]] vk::ImageView View() noexcept;
-    [[nodiscard]] vk::Image Image(u32 width, u32 height) noexcept;
+    [[nodiscard]] vk::ImageView View() const noexcept;
+    [[nodiscard]] vk::Image Image(u32 width, u32 height) const noexcept;
 
 private:
     friend struct ObjectMotionCacheTest;
@@ -98,7 +102,7 @@ private:
     u32 image_width = 0, image_height = 0;
     bool written = false; ///< this frame's vectors are in the image
     vk::ImageLayout image_layout = vk::ImageLayout::eUndefined;
-    u64 image_last_use{}, image_last_tick{}, cache_clock{};
+    u64 image_last_use{}, cache_clock{};
     // Four reusable sizes including the active one. Recent uses are ordered within a frame too.
     struct CachedImage {
         VideoCore::UniqueImage image;
@@ -119,7 +123,6 @@ private:
     std::deque<RetiredImage> retired_images;
     u64 retired_bytes{};
     bool cache_enabled = false; ///< opt-in, read once from BB_OBJECT_MOTION_CACHE
-    std::unique_ptr<MotionTargetDiagnostics> target_diagnostics;
 };
 
 } // namespace Vulkan

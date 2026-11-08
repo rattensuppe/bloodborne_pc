@@ -1,31 +1,4 @@
-# Bloodborne for Windows — experimental FSR fork
-
-This fork tests public AMD SDK 2.4 integration for **FSR 4.1.2 Vulkan/DX12** and
-**ML-FG 4.0.2**, plus RCAS/output and motion-cache optimizations, the RX 6000
-object-motion fix and a scaled SDR motion-vector view. Earlier FSR/FG methods
-remain selectable. Bloodborne PC Port is developed by
-[Supermedo and contributors](https://github.com/Supermedo/bloodborne_pc).
-
-**[Download Windows 1.9.7 prototype.1 ZIP](https://github.com/rattensuppe/bloodborne_pc/releases/download/v1.9.7-sdk24-prototype.1/Bloodborne-Windows-1.9.7-SDK24-FSR412-FGML402-prototype.1.zip)** ·
-[Release notes](https://github.com/rattensuppe/bloodborne_pc/releases/tag/v1.9.7-sdk24-prototype.1) ·
-[Component status](docs/fork/STATUS.md) · [Development workflow](docs/fork/WORKFLOW.md) ·
-[Build history](docs/fork/RELEASES.md)
-
-The current base is official Windows **1.9.7**
-([`b480526`](https://github.com/Supermedo/bloodborne_pc/commit/b48052617a919fc4d6b10ae3395e209c9e94e17a)).
-The published package uses runtime commit
-[`2180512`](https://github.com/rattensuppe/bloodborne_pc/commit/21805126c2f7b93d853e17bb5535cb0111a5c4f7).
-Build, isolated GPU and packaged-launcher checks passed; a fresh 1.9.7 gameplay
-comparison remains open. Original SDK Vulkan shaders have
-[documented validation findings](docs/FSR24_UPSCALING.md#local-validation-findings-october-30-2026).
-Gameplay ghosting remains under investigation.
-
-`windows` mirrors upstream; **`integration/windows`** combines fork changes.
-Topic branches use `fix/`, `perf/` or `feat/` names without the changing bbport
-base version. Earlier merged PR branches and all existing downloads are retained.
-
-## Upstream project
-
+# Bloodborne for Windows
 <a href="https://trendshift.io/repositories/306163?utm_source=trendshift-badge&amp;utm_medium=badge&amp;utm_campaign=badge-trendshift-306163" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/306163/daily?language=C%2B%2B" alt="Supermedo%2Funcharted_pc | Trendshift" width="250" height="55"/></a>
 
 **Bloodborne running natively on Windows 10 and 11, by [Supermedo](https://github.com/Supermedo) Mohammed Albarghouthi.**
@@ -34,7 +7,7 @@ The original PlayStation 4 game runs directly on your PC: its own x86-64 code ru
 and the graphics are translated to Vulkan. No emulator window, no setup scripts: unpack the zip,
 start `Bloodborne.exe`, pick your game folder and press **PLAY**.
 
-**[Official upstream download](https://github.com/Supermedo/bloodborne_pc/releases/latest)** · **[Join the Discord](https://discord.gg/HXBaehzTBx)**  **[Join X,com](https://x.com/SuperMedoPorts)**
+**[Download the latest version](https://github.com/Supermedo/bloodborne_pc/releases/latest)** · **[Join the Discord](https://discord.gg/HXBaehzTBx)**  **[Join X,com](https://x.com/SuperMedoPorts)**
 Check my other ports 
 https://nativeretro.com/
 
@@ -61,7 +34,7 @@ https://nativeretro.com/
   its reason, and "Measure on this PC" checks them in the game.
 - **Search** (Ctrl+F): settings and help by your own words ("stutters", "black screen",
   "controller").
-- **Saves from other versions:** characters from shadPS4, Awaken's port, bbhost or a PS4 export
+- **Saves from other versions:** characters from shadPS4, Awaken's port or a PS4 export
   are found and imported (your own saves are backed up first).
 - **Help page:** checks your installation (a clean 1.09 `eboot.bin`, a complete game folder, the
   page file, the port's location) and shows the fix for each problem step by step; after a
@@ -142,15 +115,13 @@ made for shadPS4 can be copied over it), including mouse look: see [docs/INPUT.m
 2. In the launcher, open **Online play**, tick **Play online** and enter your account name
    (not your email) and password.
 3. Press **Test connection**: all three lines should say "reachable". Then press **PLAY** and
-   choose online at the title screen. The Hunter's Dream welcome message means you are online.
+   choose online at the title screen.
 
 Everyone you want to play with needs game version 1.09 and the same co-op server. A private
 shadNet server (from the [shadp2p](https://github.com/Wozzardman/shadp2p) project) works too:
 put its address in **Server address**.
 
-Playing with bbhost players on The Hunter's Dream's co-op pool is off in this port until it
-works properly with their server. Please don't ask The Hunter's Dream for help with bbport: use
-our [Discord server](https://discord.gg/WtYT4fXhEN) instead.
+For help with online play, use our [Discord server](https://discord.gg/WtYT4fXhEN).
 
 ## Known issues
 
@@ -187,11 +158,13 @@ renderer. The original README is in [docs/original-readme](docs/original-readme/
 Online play uses the network, NP and shadNet code of [shadPS4](https://github.com/shadps4-emu/shadPS4)
 0.20 and the shadNet server of the [shadPS4](https://shadps4.net) team, put together for this port
 by **Awaken** ([BloodBorneButPc](https://github.com/Awakenchan/BloodBorneButPc)), whose online code
-bbport now uses, including the backend for [The Hunter's Dream](https://thehuntersdream.com)
-adapted from [bbhost](https://github.com/droogie/bbhost) by droogie (GPL-3.0-or-later; see
-[gpu/bbnet/SHADNET-PORT.md](gpu/bbnet/SHADNET-PORT.md)). Thanks to Metr1k and The Hunter's Dream
-team for their guidance, and to Wozzardman's [shadp2p](https://github.com/Wozzardman/shadp2p),
-which bbport's first online version was built on.
+bbport now uses (see [gpu/bbnet/SHADNET-PORT.md](gpu/bbnet/SHADNET-PORT.md)). Thanks to Wozzardman's
+[shadp2p](https://github.com/Wozzardman/shadp2p), which bbport's first online version was built on.
+
+Seamless co-op is **BBSC: Yharnam Together** by **CLSAMG22** ([CLSAMG22/BBSC](https://github.com/CLSAMG22/BBSC),
+GPL-2.0): this port runs BBSC's game files, co-op event patcher and HUD with its own engine
+(`bin\bb-probe-seamless.exe`) and launcher. This port's change to BBSC's files is listed in the
+package's `seamless\bbport-seamless.txt`.
 
 The low-VRAM profile for 4 GB graphics cards comes from the 4 GB mod by **fixdag** and
 **bashiku**.
@@ -218,8 +191,7 @@ artwork.
 ## License
 
 The port's own code is GNU GPL v2 or later ([LICENSE](LICENSE)). Some parts are GPL v3 or later:
-The Hunter's Dream online code (`gpu/bbnet/thd/`, from droogie's bbhost) and the FSR 4.1 launcher files
-(`launcher/bbport_fsr41*.py`, `launcher/bbport_fsr412.py`, `launcher/bbport_driver_runtime.py`). The
-program built from them together is therefore distributed under the GNU GPL v3 or later
-(`licenses\GPL-3.0-bbhost-online-code.txt` in the download). Third-party components keep their own
+the FSR 4.1 launcher files (`launcher/bbport_fsr41*.py`, `launcher/bbport_fsr412.py`,
+`launcher/bbport_driver_runtime.py`). The program built from them together is therefore distributed
+under the GNU GPL v3 or later (`licenses\GPL-3.0.txt` in the download). Third-party components keep their own
 licenses (see `licenses\` in the download).

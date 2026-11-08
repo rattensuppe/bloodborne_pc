@@ -29,6 +29,10 @@ using namespace Vulkan;
 extern "C" void runtime_restart() { std::abort(); }
 static uint16_t Half(float f) { return std::bit_cast<uint16_t>(static_cast<_Float16>(f)); }
 int main(int argc, char** argv) {
+#ifdef _WIN32
+    _set_error_mode(_OUT_TO_STDERR);
+    _set_abort_behavior(0, _CALL_REPORTFAULT);
+#endif
     std::setvbuf(stdout, nullptr, _IONBF, 0);
     try {
         const bool driver_vk=argc>1&&std::string_view(argv[1])=="driver-vk";

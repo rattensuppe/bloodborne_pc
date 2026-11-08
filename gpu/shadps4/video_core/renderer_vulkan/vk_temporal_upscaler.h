@@ -153,7 +153,7 @@ private:
     void CaptureHudless(VideoCore::ImageId color);
     void CaptureHudlessUi();
     void RunScaled();
-    void ShowScaledMotion(vk::CommandBuffer cmdbuf);
+    void ShowScaledMotion(vk::CommandBuffer cmdbuf, u32 render_width, u32 render_height);
     void RunUiOnly(VideoCore::ImageId color, VideoCore::ImageId depth);
     void EnsureUiResources(u32 width, u32 height, vk::Format color, vk::Format depth);
     void PrepareUiDepth(VideoCore::ImageId depth);
@@ -190,10 +190,12 @@ private:
                     u32 w, u32 h, u32 ow, u32 oh, float frame_ms, bool hdr = true,
                     Fsr4Upscaler::Image *produced = nullptr);
     void RecordTaa(vk::CommandBuffer cmdbuf, vk::ImageView color, vk::ImageView depth);
-    /// Host RCAS for the Windows FSR 4.1.1 providers: read FP16 directly into a separate FP16 image.
-    /// Returns false when the existing sharpening path applies. Called from scaled SDR composition.
+    enum class HostSharpenPath { Unknown, Off, Zero, FusedUi, DirectFp16, CopyFp32 };
+    void ReportHostSharpenPath(HostSharpenPath path, u32 width, u32 height);
+    /// Host RCAS for FSR 4.1.1/4.1.2: FP16 input into a separate FP16 image.
+    /// Retained as a fallback when direct RGBA8 UI composition is unavailable.
     bool DirectSharpen(vk::CommandBuffer cmdbuf, Fsr4Upscaler::Image& produced);
-    /// SDR FSR 4.1 (Vulkan/DX12): RCAS directly into the output-size UI target, with
+    /// FSR 4.1 (Vulkan/DX12): RCAS into the RGBA8 UI target, with
     /// the same FP16 intermediate rounding as DirectSharpen followed by its blit.
     bool FusedSharpenToUi(vk::CommandBuffer cmdbuf, const Fsr4Upscaler::Image& produced);
     /// Sharpness above 1 for FSR 3/4 (their RCAS stops at 1): one more RCAS pass over the target
@@ -309,6 +311,8 @@ private:
     vk::UniquePipeline taa_sharpen_ldr_pipeline;
     vk::UniquePipeline taa_sharpen_direct_pipeline;
     vk::UniquePipeline taa_sharpen_fused_pipeline;
+    HostSharpenPath reported_sharpen_path = HostSharpenPath::Unknown;
+    u32 reported_sharpen_width = 0, reported_sharpen_height = 0;
     VideoCore::UniqueImage direct_sharpen_image;
     vk::UniqueImageView direct_sharpen_view;
     u32 direct_sharpen_width = 0, direct_sharpen_height = 0;

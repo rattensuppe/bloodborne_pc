@@ -45,3 +45,16 @@ Isolated checks cover exact provider identity, both module-loading orders,
 moving synthetic input, 1080p/4K output, serial and overlapping operation,
 repeated 401/402 changes, three in-flight slots, resets and error paths.
 They do not establish game performance or visual quality during gameplay.
+## Standalone review on Windows 1.9.7
+
+This topic starts at shared foundation `238137e`: public SDK API headers,
+verified effect-file fetching, nested manifests and the headless-device fix.
+It adds only the SDK frame-generation effect. FSR 4.1.2 upscaling retains the
+official driver-provider paths; SDK SR, RCAS/cache optimisations, SSBO and
+scaled motion-view changes belong to separate review topics.
+
+The SDK effect retains the existing DX12 interop bridge and 2x SDR output.
+Isolated GPU and package checks do not establish gameplay quality, real
+presentation pacing, RX 6000/7000 support or performance gains. Keep input
+checking disabled for measurements. Review the shared foundation once when
+combining the independent SDK SR and FG topics.

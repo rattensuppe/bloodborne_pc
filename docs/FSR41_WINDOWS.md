@@ -1,11 +1,5 @@
 # FSR 4.1 on Windows
 
-**Motion-vector debug view:** the existing overlay switch also visualizes scaled
-SDR output at WQHD/4K, after reconstruction and sharpening and before the HUD.
-Red/green show the motion supplied to the upscaler; blue marks object-target
-coverage, independently of the depth-validity check. The normal rendering path
-adds no visualization dispatch while the switch is off.
-
 The integration offers one **FSR 4.1 (experimental)** entry in **Upscaler**.
 **FSR 4.1 Settings** lists four independently checked methods:
 
@@ -37,6 +31,11 @@ checking, failed verification or a disabled provider. A failed check is not a
 hardware exclusion. The renderer also validates context creation at the actual
 render size. Provider activation is recorded in the game log.
 
+**Host sharpening:** FSR 4.1.1/4.1.2 use the existing RCAS switch and strength
+control with either backend. Positive sharpening combines with RGBA8 UI output
+where available, saving a separate intermediate image and transfer. The game log
+identifies the active sharpening route when it changes.
+
 Method selection in **Insert / L3+R3** applies live. If a requested method fails,
 the running method can be restored and the overlay reports that outcome.
 Motion-vector cache changes retain their restart requirement. All family/status
@@ -45,12 +44,34 @@ and help text is shared in the 13 launcher languages.
 The 4.1.2 methods use the public SDK API, with separate effect libraries under
 `bin/fsr24`. They do not use the previous internal driver ABI or import lookup
 adjustment. [SDK pinning, loading and verification](FSR24_UPSCALING.md).
-The existing driver-discovery helpers remain separate; SDK effect loading
-does not depend on their `BB_TEST_AMD_*` paths. Existing profile, data-directory,
-save and cache conventions remain unchanged. Actual support still depends on
-the selected GPU and its driver. [Separate SDK ML-FG integration](SDK24_ML_FG.md).
+Installed-driver discovery contributes to support-cache invalidation; the
+SDK can also expose official driver-provided versions. Existing profile, data-directory, save and cache
+conventions remain unchanged. Actual support still depends on the selected GPU
+and its driver.
 Both ML-FG 4.0.1 and 4.0.2 remain separate choices with their existing RX 9000,
 Windows 11, exact-provider and SDR requirements.
 
+## Motion-vector diagnostics
+
+**Show motion vectors (debug)** in the overlay visualizes the motion supplied to
+the temporal upscaler, including scaled output and custom render sizes. In the
+scaled path it runs on the RGBA8 UI image after reconstruction/sharpening and
+before the HUD; display/HDR conversion happens later.
+
+- Red/green show horizontal/vertical motion magnitude: 8 render pixels per frame
+  reach full brightness. Direction signs are not shown.
+- Blue marks current-frame object-target coverage at the matching render size.
+  The upscaler's separate depth-validity check may still reject those vectors.
+  Blue can remain when motion is zero; unwritten or mismatched targets add no blue.
+- Alpha is preserved. With the option off, no visualization dispatch runs.
+
+Compare colors at the same render resolution, camera movement and similar frame
+times. This view helps diagnose inputs; it does not identify a ghosting cause by itself.
+
+## Integration notes
+
 Regression fixtures cover failed loader retries, concurrent initialization, missing
 API callbacks, provider-independent host sharpening and package validation.
+
+ML-FG 4.0.2 uses a separately pinned SDK 2.4 effect DLL. The upscaling
+methods retain their existing runtimes. See [SDK ML-FG](SDK24_ML_FG.md).

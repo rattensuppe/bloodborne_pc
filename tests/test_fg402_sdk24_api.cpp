@@ -46,6 +46,7 @@ template<class F> void Reject(F operation) {
 }
 }
 int main(int argc, char** argv) {
+    _set_error_mode(_OUT_TO_STDERR);
     SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
     _set_abort_behavior(0, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
     if (argc == 3) {

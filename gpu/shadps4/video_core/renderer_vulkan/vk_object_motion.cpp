@@ -1,24 +1,35 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include "video_core/renderer_vulkan/vk_object_motion.h"
-#include "video_core/renderer_vulkan/motion_target_diagnostics.h"
 
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <vk_mem_alloc.h>
 
 #include "bbport_settings.h"
+#include "bbport_motion_ui.h"
 #include "bbport_toggles.h"
 #include "shader_recompiler/motion_storage.h"
 #include "shader_recompiler/runtime_info.h"
 #include "video_core/renderer_vulkan/vk_instance.h"
 #include "video_core/renderer_vulkan/vk_motion_parameters.h"
 #include "video_core/renderer_vulkan/vk_scheduler.h"
-#include <vk_mem_alloc.h>
 
 namespace Vulkan {
 
 namespace {
+
+// UniqueImage's upstream move operations omit ownership metadata. Keep the image,
+// allocation owner and accounting together until that separate issue is resolved.
+void SwapImage(VideoCore::UniqueImage& a, VideoCore::UniqueImage& b) noexcept {
+    std::swap(a.device, b.device);
+    std::swap(a.allocator, b.allocator);
+    std::swap(a.allocation, b.allocation);
+    std::swap(a.image, b.image);
+    std::swap(a.image_ci, b.image_ci);
+    std::swap(a.size_bytes, b.size_bytes);
+}
 
 bool CreateBuffer(const Instance& instance, vk::DeviceSize size, bool host, vk::Buffer& buffer,
                   VmaAllocation& allocation, void** mapped, u64& address, bool transfer = false) {
@@ -65,6 +76,7 @@ ObjectMotion::ObjectMotion(const Instance& instance_, Scheduler& scheduler_)
 ObjectMotion::ObjectMotion(const Instance& instance_, Scheduler& scheduler_, bool ssbo)
     : instance{instance_}, scheduler{scheduler_} {
     Shader::MotionVectors::storage_buffers = false;
+    BbSettings::Get().object_motion_unavailable = nullptr;
     // Pipeline selection limits the extra attachment and vertex stores to likely
     // animated draws. A setting or environment override can still disable the path.
     if (!BbSettings::Get().object_motion ||
@@ -74,6 +86,7 @@ ObjectMotion::ObjectMotion(const Instance& instance_, Scheduler& scheduler_, boo
     }
     const auto& features = instance.GetPhysicalDevice().getFeatures();
     if (!features.vertexPipelineStoresAndAtomics) {
+        BbSettings::Get().object_motion_unavailable = MotionUi::Text(MotionUi::Features);
         std::printf("Object motion: vertexPipelineStoresAndAtomics unsupported, off\n");
         return;
     }
@@ -87,14 +100,14 @@ ObjectMotion::ObjectMotion(const Instance& instance_, Scheduler& scheduler_, boo
          props.limits.maxPerStageDescriptorStorageBuffers < 3 ||
          props.limits.maxBoundDescriptorSets < 2 ||
          props.limits.maxStorageBufferRange < vk::DeviceSize(PositionsPerFrame) * 16 + 16)) {
+        BbSettings::Get().object_motion_unavailable = MotionUi::Text(MotionUi::Limits);
         std::puts("Object motion: SSBO limits unsupported, off");
         return;
     }
     if (props.vendorID == 0x1002 && props.deviceID < 0x7440 && !ssbo &&
         !(forced && forced[0] == '1')) {
-        BbSettings::Get().object_motion_unavailable = "Not available on RX 6000 and older Radeon cards: "
-                                                       "they lose the device with it.";
-        std::printf("Object motion: off on this AMD GPU (RX 6000 and older lose the device with it; "
+        BbSettings::Get().object_motion_unavailable = MotionUi::Text(MotionUi::Gpu);
+        std::printf("Object motion: off on this AMD GPU (existing GPU/driver guard; "
                     "BB_OBJECT_MOTION=1 turns it on)\n");
         return;
     }
@@ -109,8 +122,7 @@ ObjectMotion::ObjectMotion(const Instance& instance_, Scheduler& scheduler_, boo
     }
     if (props.deviceType == vk::PhysicalDeviceType::eDiscreteGpu && vram < (6ull << 30) - (256ull << 20) &&
         !(forced && forced[0] == '1')) {
-        BbSettings::Get().object_motion_unavailable = "Not available under 6 GB of video memory: "
-                                                       "textures need it more.";
+        BbSettings::Get().object_motion_unavailable = MotionUi::Text(MotionUi::Vram);
         std::printf("Object motion: off with %llu MiB of VRAM (under 6 GB the memory goes to "
                     "textures; BB_OBJECT_MOTION=1 turns it on)\n",
                     (unsigned long long)(vram >> 20));
@@ -122,6 +134,7 @@ ObjectMotion::ObjectMotion(const Instance& instance_, Scheduler& scheduler_, boo
                       params_buffer, params_allocation, &mapped, params_address) ||
         !CreateBuffer(instance, vk::DeviceSize(1 + 2 * PositionsPerFrame) * 16, false,
                       positions_buffer, positions_allocation, nullptr, positions_address, ssbo)) {
+        BbSettings::Get().object_motion_unavailable = MotionUi::Text(MotionUi::Buffers);
         std::printf("Object motion: buffer creation failed, off\n");
         return;
     }
@@ -169,10 +182,6 @@ ObjectMotion::ObjectMotion(const Instance& instance_, Scheduler& scheduler_, boo
                 ssbo ? "SSBO" : "BDA");
     const char* cache_setting = std::getenv("BB_OBJECT_MOTION_CACHE");
     cache_enabled = cache_setting && std::strcmp(cache_setting, "1") == 0;
-    const char* diagnostics = std::getenv("BB_OBJECT_MOTION_TARGET_DIAGNOSTICS");
-    if (diagnostics && std::strcmp(diagnostics, "1") == 0) {
-        target_diagnostics = std::make_unique<MotionTargetDiagnostics>();
-    }
     std::printf("Object motion: on (%u vertices per frame)\n", PositionsPerFrame);
     std::printf("Object motion: target cache %s (BB_OBJECT_MOTION_CACHE=0|1)\n",
                 cache_enabled ? "on" : "off");
@@ -195,25 +204,6 @@ void ObjectMotion::OnFrameStart() {
         return;
     }
     CollectRetiredImages();
-    if (target_diagnostics) {
-        auto& d = *target_diagnostics;
-        if (d.counts.frames == 120) {
-            const auto& c = d.counts;
-            std::printf("Motion target diagnostics: frames=%llu attachments=%llu clears=%llu "
-                        "reads=%llu valid=%llu size_mismatch=%llu earlier_matching_attachment=%llu "
-                        "untracked_sizes=%llu\n",
-                        static_cast<unsigned long long>(c.frames),
-                        static_cast<unsigned long long>(c.attachments),
-                        static_cast<unsigned long long>(c.clears),
-                        static_cast<unsigned long long>(c.reads),
-                        static_cast<unsigned long long>(c.valid_reads),
-                        static_cast<unsigned long long>(c.size_mismatches),
-                        static_cast<unsigned long long>(c.earlier_matching_attachment),
-                        static_cast<unsigned long long>(c.untracked_sizes));
-            d.counts = {};
-        }
-        d.BeginFrame();
-    }
     if (BbStats::enabled && (frame % 600) == 0 && history.stats.draws) {
         const auto& s = history.stats;
         std::printf("Object motion: %llu draws, %llu stored, %llu with history, %llu unmatched, "
@@ -326,14 +316,7 @@ void ObjectMotion::RetireCachedImage(CachedImage& cached) {
         // Allocate bookkeeping while cached still owns every live Vulkan resource.
         retired_images.push_back({std::move(storage), cached.last_tick});
         auto& retired = *retired_images.back().target;
-        // UniqueImage's upstream move constructor loses device/size_bytes. Preserve every
-        // ownership field explicitly, as in the existing active/cache swap below.
-        std::swap(retired.image.device, cached.image.device);
-        std::swap(retired.image.allocator, cached.image.allocator);
-        std::swap(retired.image.allocation, cached.image.allocation);
-        std::swap(retired.image.image, cached.image.image);
-        std::swap(retired.image.image_ci, cached.image.image_ci);
-        std::swap(retired.image.size_bytes, cached.image.size_bytes);
+        SwapImage(retired.image, cached.image);
         retired.view.swap(cached.view);
         retired_bytes += bytes;
     }
@@ -346,26 +329,23 @@ void ObjectMotion::EnsureImage(u32 width, u32 height) {
     if (image && width == image_width && height == image_height) {
         if (cache_enabled) {
             image_last_use = ++cache_clock;
-            image_last_tick = scheduler.CurrentTick();
         }
         return;
     }
     if (cache_enabled) {
         const auto swap_target = [&](CachedImage &cached) {
-            // Swap every UniqueImage field explicitly: its upstream move constructor omits
-            // device/size_bytes, which are still kept consistent here.
-            std::swap(image.device, cached.image.device);
-            std::swap(image.allocator, cached.image.allocator);
-            std::swap(image.allocation, cached.image.allocation);
-            std::swap(image.image, cached.image.image);
-            std::swap(image.image_ci, cached.image.image_ci);
-            std::swap(image.size_bytes, cached.image.size_bytes);
+            SwapImage(image, cached.image);
             view.swap(cached.view);
             std::swap(image_width, cached.width);
             std::swap(image_height, cached.height);
             std::swap(image_layout, cached.layout);
             std::swap(image_last_use, cached.last_use);
-            std::swap(image_last_tick, cached.last_tick);
+            // Attach can precede an upload-triggered submission; the actual draw then
+            // belongs to a newer tick. Stashing bounds every use recorded before this
+            // size change, including that delayed draw and late image/view reads.
+            if (cached.image) {
+                cached.last_tick = scheduler.CurrentTick();
+            }
             // Legacy resize discards the previous contents, even when returning to a size
             // used earlier in this frame. Preserve the existing clear/read behavior.
             written = false;
@@ -374,7 +354,6 @@ void ObjectMotion::EnsureImage(u32 width, u32 height) {
             if (cached.image && cached.width == width && cached.height == height) {
                 swap_target(cached);
                 image_last_use = ++cache_clock;
-                image_last_tick = scheduler.CurrentTick();
                 return;
             }
         }
@@ -425,7 +404,6 @@ void ObjectMotion::EnsureImage(u32 width, u32 height) {
             CollectRetiredImages();
         }
         image_last_use = ++cache_clock;
-        image_last_tick = scheduler.CurrentTick();
     } else {
         image.Create(create_info);
     }
@@ -471,22 +449,19 @@ void ObjectMotion::Attach(RenderState& state, u32 width, u32 height) {
         written = true;
     }
     state.num_color_attachments = std::max<u16>(state.num_color_attachments, slot + 1);
-    if (target_diagnostics) {
-        target_diagnostics->Attach(width, height, attachment.is_clear);
-    }
 }
 
-vk::ImageView ObjectMotion::View() noexcept {
-    if (!view) return {};
-    // Debug/dump reads can follow a provider Finish(), in a newer submission
-    // than PrepareRead(). Keep the attachment alive through the actual last read.
-    if (cache_enabled) image_last_tick = scheduler.CurrentTick();
+vk::ImageView ObjectMotion::View() const noexcept {
+    if (!view) {
+        return {};
+    }
     return *view;
 }
 
-vk::Image ObjectMotion::Image(u32 width, u32 height) noexcept {
-    if (!written || width != image_width || height != image_height) return {};
-    if (cache_enabled) image_last_tick = scheduler.CurrentTick();
+vk::Image ObjectMotion::Image(u32 width, u32 height) const noexcept {
+    if (!written || width != image_width || height != image_height) {
+        return {};
+    }
     return vk::Image(image);
 }
 
@@ -494,9 +469,6 @@ vk::ImageView ObjectMotion::PrepareRead(vk::CommandBuffer cmdbuf, u32 width, u32
                                         bool& valid) {
     EnsureImage(std::max(image_width, 1u), std::max(image_height, 1u));
     valid = written && width == image_width && height == image_height;
-    if (target_diagnostics) {
-        target_diagnostics->Read(width, height, image_width, image_height, valid);
-    }
     const vk::ImageMemoryBarrier2 barrier{
         .srcStageMask = vk::PipelineStageFlagBits2::eAllCommands,
         .srcAccessMask = vk::AccessFlagBits2::eMemoryRead | vk::AccessFlagBits2::eMemoryWrite,
