@@ -2,30 +2,25 @@
 
 [Status](STATUS.md) · [Workflow](WORKFLOW.md) · [All downloads](https://github.com/rattensuppe/bloodborne_pc/releases)
 
-Updated October 31, 2026. All 13 existing Pre-Releases are retained.
-Branch reorganisation creates no new binary package and changes none of
-these tags or assets. Each linked release contains its original notes,
-Windows ZIP, sources and checksums.
+Updated November 8, 2026. All 14 existing Pre-Releases and their tags/assets
+are retained. Updating integration source does not publish a new binary package.
 
-## Current package
+## Current published package
 
-[Windows 1.9.7 SDK 2.4 prototype.1](https://github.com/rattensuppe/bloodborne_pc/releases/tag/v1.9.7-sdk24-prototype.1)
-uses runtime `2180512` on official base `b480526`. It contains public SDK
-FSR 4.1.2 Vulkan/DX12, SDK ML-FG 4.0.2, retained earlier methods, RCAS/
-cache optimisations, RX 6000 SSBO and the scaled SDR vector view.
+[Windows 1.9.7 SDK 2.4 prototype.2](https://github.com/rattensuppe/bloodborne_pc/releases/tag/v1.9.7-sdk24-prototype.2)
+is the latest published fork test package, source `b1ca96e` on official base
+`b480526`. It contains the seven topic states published for that November 2
+test, before their latest follow-ups and the 1.9.8.4 integration.
 
-Build, isolated GPU and frozen-package checks passed. A fresh 1.9.7 game
-comparison remains open; original SDK Vulkan validation findings remain.
-[Component status and limits](STATUS.md#validation-and-remaining-limits).
-
-The ZIP has an additional prototype README and RX 6000 notes. The later
-`2a8ec7e` source commit records the download link and future standard
-copying of those notes; runtime program files are unchanged.
+The current `integration/windows` source is now based on 1.9.8.4 and was built
+and packaged locally. No 1.9.8.4 release was uploaded and no older download was
+relabelled. [Current component status](STATUS.md#validation-and-remaining-limits).
 
 ## Published history
 
 | Release | Official base version | Tagged source |
 | --- | --- | --- |
+| [v1.9.7-sdk24-prototype.2](https://github.com/rattensuppe/bloodborne_pc/releases/tag/v1.9.7-sdk24-prototype.2) | 1.9.7 | [`b1ca96e`](https://github.com/rattensuppe/bloodborne_pc/commit/b1ca96efa0cacba9750aff495cca8eeb8baff0d2) |
 | [v1.9.7-sdk24-prototype.1](https://github.com/rattensuppe/bloodborne_pc/releases/tag/v1.9.7-sdk24-prototype.1) | 1.9.7 | [`2180512`](https://github.com/rattensuppe/bloodborne_pc/commit/21805126c2f7b93d853e17bb5535cb0111a5c4f7) |
 | [v1.9.6-sdk24-prototype.3](https://github.com/rattensuppe/bloodborne_pc/releases/tag/v1.9.6-sdk24-prototype.3) | 1.9.6 | [`3449119`](https://github.com/rattensuppe/bloodborne_pc/commit/3449119f07446085ce763a40f51cbfbfe8867861) |
 | [v1.9.5-sdk24-prototype.2](https://github.com/rattensuppe/bloodborne_pc/releases/tag/v1.9.5-sdk24-prototype.2) | 1.9.5 | [`bd28740`](https://github.com/rattensuppe/bloodborne_pc/commit/bd28740e5e664aeb134a4443a6442db2cf5ee245) |

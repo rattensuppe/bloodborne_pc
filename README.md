@@ -1,4 +1,27 @@
-# Bloodborne for Windows
+# Bloodborne PC — experimental FSR fork
+
+This fork combines public AMD SDK 2.4 **FSR 4.1.2 Vulkan/DX12** and **ML-FG 4.0.2**,
+RCAS/output and motion-cache optimizations, RX 6000 object-motion SSBO and the
+scaled SDR motion-vector view. Earlier FSR/FG methods remain selectable.
+Bloodborne PC Port is developed by [Supermedo and contributors](https://github.com/Supermedo/bloodborne_pc).
+
+**Source base: Windows 1.9.8.4** ([`115a029`](https://github.com/rattensuppe/bloodborne_pc/commit/115a0299aa0f7132e98305b74855bf5840495ba1)). `windows` is the exact upstream
+mirror; `integration/windows` combines all seven current topic heads.
+[Component status](docs/fork/STATUS.md) · [Review/merge notes](docs/fork/REVIEW.md) ·
+[Workflow](docs/fork/WORKFLOW.md) · [Published builds](docs/fork/RELEASES.md).
+
+The latest published test package is still
+[Windows 1.9.7 SDK24 prototype.2](https://github.com/rattensuppe/bloodborne_pc/releases/tag/v1.9.7-sdk24-prototype.2).
+The 1.9.8.4 integration was built and checked locally; it has not replaced that
+download. Existing releases and assets are retained.
+
+Build and isolated tests cover the combined code. Original SDK Vulkan
+[validation findings](docs/development/FSR24_UPSCALING.md) remain open; SDK
+upscaling stays a Draft PR. No new gameplay, performance or HDR-display result
+is claimed by this source update. The private Vulkan shaderfix is separate.
+
+## Upstream project
+
 <a href="https://trendshift.io/repositories/306163?utm_source=trendshift-badge&amp;utm_medium=badge&amp;utm_campaign=badge-trendshift-306163" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/306163/daily?language=C%2B%2B" alt="Supermedo%2Funcharted_pc | Trendshift" width="250" height="55"/></a>
 
 **Bloodborne running natively on Windows 10 and 11, by [Supermedo](https://github.com/Supermedo) Mohammed Albarghouthi.**
