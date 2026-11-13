@@ -12,9 +12,9 @@ is the latest published fork test package, source `b1ca96e` on official base
 `b480526`. It contains the seven topic states published for that November 2
 test, before their latest follow-ups and the later integrations.
 
-The current `integration/windows` source is now based on 1.9.8.5 and was built
-and packaged locally. No 1.9.8.5 release was uploaded and no older download was
-relabelled. [Current component status](STATUS.md#validation-and-remaining-limits).
+The current `integration/windows` source is based on 1.9.8.6 (version/news
+metadata sync). The last full local build/package is 1.9.8.5; no new 1.9.8.6
+ZIP or release was created and no older download was relabelled. [Current component status](STATUS.md#validation-and-remaining-limits).
 
 ## Published history
 

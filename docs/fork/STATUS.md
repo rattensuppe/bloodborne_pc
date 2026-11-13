@@ -7,12 +7,12 @@ Updated November 13, 2026. [Workflow](WORKFLOW.md) · [Review](REVIEW.md) ·
 
 | Role | Current state |
 | --- | --- |
-| Official mirror `windows` | Windows **1.9.8.5**, exact upstream [`1a4ba07`](https://github.com/rattensuppe/bloodborne_pc/commit/1a4ba07ad63abe793832f7f5188ca0bedcc88485) |
-| Combined source | `integration/windows`; upstream merge [`791ece2`](https://github.com/rattensuppe/bloodborne_pc/commit/791ece2173d23f8b38a312b2b5d377129ea2c0a5), followed by fork documentation |
-| Runtime source | Identical to official 1.9.8.5; the fork adds navigation/status documents |
+| Official mirror `windows` | Windows **1.9.8.6**, exact upstream [`b69561c`](https://github.com/rattensuppe/bloodborne_pc/commit/b69561c0fae84f115db00110d28442ee5f3672d5) |
+| Combined source | `integration/windows`; upstream merge [`586bbd4`](https://github.com/rattensuppe/bloodborne_pc/commit/586bbd49b5cbb36b49b94adcd719dee37b9e7aa2), followed by fork documentation |
+| Runtime source | Identical to official 1.9.8.6; the fork adds navigation/status documents |
 | Published fork test download | [Windows 1.9.7 SDK24 prototype.2](https://github.com/rattensuppe/bloodborne_pc/releases/tag/v1.9.7-sdk24-prototype.2) |
 | `test/all-features` | Historical published tester source, unchanged |
-| New 1.9.8.5 ZIP | Local verification package only |
+| Last local verification ZIP | 1.9.8.5; no 1.9.8.6 package created |
 
 ## Upstream adoption and retained topic history
 
@@ -34,6 +34,18 @@ was compared before merging and was not applied a second time.
 
 
 ## Fresh combined validation
+
+The 1.9.8.6 sync changes only the Windows/Linux version constants and the
+release-notes alias. The merge is conflict-free; the runtime source matches
+official 1.9.8.6. **49 targeted Python tests** and explicit version/news
+consistency checks passed in isolated profiles. The renderer, SDK runtimes,
+build configuration and packaging scripts are unchanged from the fully checked
+1.9.8.5 source, so native/GPU/Frozen tests were not repeated and no new ZIP was made.
+
+The new Seamless engine is distributed separately in the official 1.9.8.6
+release; this Git sync does not build or replace that external engine binary.
+
+The full-build results below belong to **1.9.8.5**, checked earlier on November 13:
 
 - Native Windows product build and **26 CPU programs** passed,
   including the new upstream command-buffer, hang-snapshot, frame-rate, flip-tail,

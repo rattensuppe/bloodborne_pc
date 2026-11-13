@@ -1,6 +1,6 @@
 # Bloodborne PC — Windows integration fork
 
-**Source base: Windows 1.9.8.5** ([`1a4ba07`](https://github.com/rattensuppe/bloodborne_pc/commit/1a4ba07ad63abe793832f7f5188ca0bedcc88485)). `windows` mirrors upstream exactly;
+**Source base: Windows 1.9.8.6** ([`b69561c`](https://github.com/rattensuppe/bloodborne_pc/commit/b69561c0fae84f115db00110d28442ee5f3672d5)). `windows` mirrors upstream exactly;
 `integration/windows` retains our topic history and fork documentation.
 The runtime now matches the official release, which includes SDK 2.4 FSR 4.1.2
 Vulkan/DX12, ML-FG 4.0.2, RCAS/cache optimizations, RX 6000 SSBO fixes and the
@@ -11,7 +11,8 @@ scaled motion-vector view. Earlier FSR/FG choices remain available.
 
 The latest published fork test package remains
 [Windows 1.9.7 SDK24 prototype.2](https://github.com/rattensuppe/bloodborne_pc/releases/tag/v1.9.7-sdk24-prototype.2).
-The 1.9.8.5 verification ZIP is local only; existing releases are retained.
+The last full verification ZIP (1.9.8.5) is local only; existing releases are retained.
+The 1.9.8.6 source sync changes version/news metadata only.
 Original SDK Vulkan [validation findings](docs/development/FSR24_UPSCALING.md)
 remain open. The private shaderfix is separate. See Status for fresh checks
 and the recorded upstream Windows adapter-list test failure.

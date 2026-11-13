@@ -1,17 +1,29 @@
 # Topic review and integration
 
-Updated November 13, 2026. Official base: Windows 1.9.8.5 [`1a4ba07`](https://github.com/rattensuppe/bloodborne_pc/commit/1a4ba07ad63abe793832f7f5188ca0bedcc88485).
+Updated November 13, 2026. Official base: Windows 1.9.8.6 [`b69561c`](https://github.com/rattensuppe/bloodborne_pc/commit/b69561c0fae84f115db00110d28442ee5f3672d5).
 [Status](STATUS.md) · [Workflow](WORKFLOW.md) · [Published builds](RELEASES.md).
 
 ## Included code and history
 
 The [seven retained topic heads](STATUS.md#upstream-adoption-and-retained-topic-history)
-are all ancestors of merge [`791ece2`](https://github.com/rattensuppe/bloodborne_pc/commit/791ece2173d23f8b38a312b2b5d377129ea2c0a5). Official 1.9.8.5 already contains their
+are all ancestors of merge [`586bbd4`](https://github.com/rattensuppe/bloodborne_pc/commit/586bbd49b5cbb36b49b94adcd719dee37b9e7aa2). Official 1.9.8.5 already contains their
 implementation, including the independent SDK ML-FG prototype. PRs #140–144
 remain open and #146 remains Draft; adoption in the release is not an individual
 GitHub PR merge.
 
 ## Merge resolution
+
+The 1.9.8.6 sync changes only the Windows/Linux version constants and the
+release-notes alias. The merge is conflict-free; the runtime source matches
+official 1.9.8.6. **49 targeted Python tests** and explicit version/news
+consistency checks passed in isolated profiles. The renderer, SDK runtimes,
+build configuration and packaging scripts are unchanged from the fully checked
+1.9.8.5 source, so native/GPU/Frozen tests were not repeated and no new ZIP was made.
+
+The new Seamless engine is distributed separately in the official 1.9.8.6
+release; this Git sync does not build or replace that external engine binary.
+
+## Previous 1.9.8.5 resolution
 
 Four files needed explicit resolution against the previous integration:
 
@@ -30,6 +42,8 @@ two explicit S/C and U/F resolutions). This sync uses the already adopted
 upstream implementation, not another reconstruction of those pairwise merges.
 
 ## Current coverage
+
+The full-build/GPU results below are the earlier **1.9.8.5** checks; the targeted 1.9.8.6 scope is above.
 
 - Native Windows product build and **26 CPU programs** passed,
   including the new upstream command-buffer, hang-snapshot, frame-rate, flip-tail,
