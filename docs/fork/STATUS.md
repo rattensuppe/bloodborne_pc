@@ -1,24 +1,26 @@
 # Fork status
 
-Updated November 8, 2026. [Workflow](WORKFLOW.md) · [Review](REVIEW.md) ·
+Updated November 13, 2026. [Workflow](WORKFLOW.md) · [Review](REVIEW.md) ·
 [Build history](RELEASES.md) · [Fork overview](../../README.md).
 
 ## Source and downloads
 
 | Role | Current state |
 | --- | --- |
-| Official mirror `windows` | Windows **1.9.8.4**, exact upstream [`115a029`](https://github.com/rattensuppe/bloodborne_pc/commit/115a0299aa0f7132e98305b74855bf5840495ba1) |
-| Combined source | `integration/windows`; reviewed runtime merge [`50306c8`](https://github.com/rattensuppe/bloodborne_pc/commit/50306c87fbca389de25c7b1e8cc51fffc3fb2f17), followed by integration-only test/documentation updates |
-| Current published test download | [Windows 1.9.7 SDK24 prototype.2](https://github.com/rattensuppe/bloodborne_pc/releases/tag/v1.9.7-sdk24-prototype.2), source `b1ca96e` |
-| `test/all-features` | Retains that earlier published tester source; unchanged by this integration |
-| New 1.9.8.4 ZIP | Local verification package only; no release uploaded |
+| Official mirror `windows` | Windows **1.9.8.5**, exact upstream [`1a4ba07`](https://github.com/rattensuppe/bloodborne_pc/commit/1a4ba07ad63abe793832f7f5188ca0bedcc88485) |
+| Combined source | `integration/windows`; upstream merge [`791ece2`](https://github.com/rattensuppe/bloodborne_pc/commit/791ece2173d23f8b38a312b2b5d377129ea2c0a5), followed by fork documentation |
+| Runtime source | Identical to official 1.9.8.5; the fork adds navigation/status documents |
+| Published fork test download | [Windows 1.9.7 SDK24 prototype.2](https://github.com/rattensuppe/bloodborne_pc/releases/tag/v1.9.7-sdk24-prototype.2) |
+| `test/all-features` | Historical published tester source, unchanged |
+| New 1.9.8.5 ZIP | Local verification package only |
 
-## Integrated components and review topics
+## Upstream adoption and retained topic history
 
-All seven exact heads below are ancestors of the current integration. Their
-individual public branches and PRs were not modified. Only SDK upscaling was
-already refreshed to 1.9.8.4; the other independent topics retain their reviewed
-bases. A combined test does not replace a standalone-topic hardware test.
+Official 1.9.8.5 contains all six submitted topics and SDK ML-FG 4.0.2. Their
+implementation was incorporated in the release commit; the individual PRs
+remain formally open (#146 Draft). No PR was closed or updated by this sync.
+All seven previous heads below remain in the integration history. Their code
+was compared before merging and was not applied a second time.
 
 | ID | Component | Topic | Included head | Submission |
 | --- | --- | --- | --- | --- |
@@ -30,45 +32,38 @@ bases. A combined test does not replace a standalone-topic hardware test.
 | U | SDK 2.4 upscaling | [`feat/fsr-sdk24-upscaling`](https://github.com/rattensuppe/bloodborne_pc/tree/feat/fsr-sdk24-upscaling) | [`a58e2eb`](https://github.com/rattensuppe/bloodborne_pc/commit/a58e2eb2405a7b09db97df949ff635350a6321c7) | Draft [#146](https://github.com/Supermedo/bloodborne_pc/pull/146) |
 | F | SDK 2.4 ML-FG 4.0.2 | [`feat/mlfg-sdk24`](https://github.com/rattensuppe/bloodborne_pc/tree/feat/mlfg-sdk24) | [`94e16c6`](https://github.com/rattensuppe/bloodborne_pc/commit/94e16c69a7e10b985151aa10c877ad57d781ccb2) | Prototype; no PR |
 
+
 ## Fresh combined validation
 
-- Windows native product build and **18 CPU programs** passed,
-  including native SR/FG menu policies, SDK contracts, motion storage,
-  composition, preferences and upstream runtime/file-position tests.
-- **262 Python tests**, plus **86 repeated gate/manifest/TLS
-  checks under `-O` and `-OO`, passed in private profiles.
-- **93 isolated GPU cases** cover BDA/SSBO bounds and history, indirect
-  descriptor rebinding, cache off/on, LRU/retirement/lifetime, current-frame
-  scaled visualization, RCAS pixel/reference checks, all four SR methods,
-  both ML-FG versions and DLL-order/switch/reset/fallback/HUD controls.
-- Standard Windows ZIP checks cover manifest/CRC, pinned runtimes/licenses,
-  native identity, actual frozen-launcher imports and relocated 13-language
-  UI/support/preferences. The package is retained locally, not published.
-- Shared text generation and all 21 current topic pairs were rechecked.
-  Nineteen pairs merge automatically; the two explicit resolutions are in
-  [Review](REVIEW.md#merge-resolution).
-
-The integration-only TLS test correction excludes the Linux-only client from
-the Windows/shared routing lint. That client uses its own default verifying
-SSL context and its existing tests also pass. No network runtime changed.
+- Native Windows product build and **26 CPU programs** passed,
+  including the new upstream command-buffer, hang-snapshot, frame-rate, flip-tail,
+  GCN float-rule and render-target guard checks.
+- **563 of 564 normal Python tests** passed; **86 optimized
+  gate/manifest/TLS repeats** passed. One unchanged upstream adapter-list test
+  fails on this host: DXGI exposes an additional Microsoft Basic Render Driver
+  without its software flag. This is recorded separately, not counted as a pass.
+- **93 isolated GPU cases** cover the four FSR methods, both ML-FG versions,
+  BDA/SSBO motion storage, cache lifetimes, scaled visualization and RCAS/HUD.
+- The standard Windows ZIP is checked for manifest/CRC, original pinned
+  runtimes and licenses, native executable identity, and actual frozen-launcher
+  imports. Relocated UI/support/preferences checks cover the 13 FSR languages;
+  upstream Korean launcher/menu regression tests are also included.
 
 ## Validation and remaining limits
 
-The original SDK Vulkan shaders retain their documented validation findings.
-The sentinel deliberately emits one invalid-buffer VUID; exercised other paths
-report no new validation findings or synchronization hazards. Functional output
-is not Vulkan conformance. [Technical scope](../development/FSR24_UPSCALING.md).
+The original SDK Vulkan shaders retain the documented validation findings.
+No new validation IDs or synchronization hazards were found in the exercised
+paths. Functional output is not Vulkan conformance.
+[Technical scope](../development/FSR24_UPSCALING.md).
 
-This round starts no game and provides no new FPS/lows, gameplay-quality,
-HDR-monitor or D3D12-debug-layer result. Forced SSBO fixtures on the available
-GPU do not certify all RX 6000 hardware. The earlier RX 6800 XT feedback is
-basic combined-build functionality only; see [player notes](../RX6000_OBJECT_MOTION.md).
-SDK FG remains a prototype pending its separate presentation/gameplay review.
+This synchronization starts no game and provides no new gameplay, FPS/lows,
+HDR-monitor, D3D12-debug-layer or RX 6000 hardware result. Forced SSBO fixtures
+on the available RX 9070 do not certify all RX 6000 cards. Earlier RX 6800 XT
+feedback remains basic functionality; see [player notes](../RX6000_OBJECT_MOTION.md).
+SDK ML-FG is now also upstream code; isolated checks do not replace its separate
+presentation/gameplay review.
 
-The separate Seamless-co-op engine and data are optional packager inputs and
-are not built or bundled by this normal-engine check. Upstream source changes
-are retained; fork changes do not automatically modify the separate engine.
-
-The private shaderfix, Lite experiment, UI-view cleanup and further renderer
-work are not included in this synchronization. PRs, published downloads and
-personal installations remain unchanged.
+The normal engine is built and packaged. The optional separate Seamless-co-op
+engine/data are not built or bundled in this check. The private shaderfix, Lite
+experiment and further renderer work remain separate. Existing releases,
+individual topic branches and personal installations are unchanged.

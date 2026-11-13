@@ -1,24 +1,20 @@
-# Bloodborne PC — experimental FSR fork
+# Bloodborne PC — Windows integration fork
 
-This fork combines public AMD SDK 2.4 **FSR 4.1.2 Vulkan/DX12** and **ML-FG 4.0.2**,
-RCAS/output and motion-cache optimizations, RX 6000 object-motion SSBO and the
-scaled SDR motion-vector view. Earlier FSR/FG methods remain selectable.
-Bloodborne PC Port is developed by [Supermedo and contributors](https://github.com/Supermedo/bloodborne_pc).
+**Source base: Windows 1.9.8.5** ([`1a4ba07`](https://github.com/rattensuppe/bloodborne_pc/commit/1a4ba07ad63abe793832f7f5188ca0bedcc88485)). `windows` mirrors upstream exactly;
+`integration/windows` retains our topic history and fork documentation.
+The runtime now matches the official release, which includes SDK 2.4 FSR 4.1.2
+Vulkan/DX12, ML-FG 4.0.2, RCAS/cache optimizations, RX 6000 SSBO fixes and the
+scaled motion-vector view. Earlier FSR/FG choices remain available.
 
-**Source base: Windows 1.9.8.4** ([`115a029`](https://github.com/rattensuppe/bloodborne_pc/commit/115a0299aa0f7132e98305b74855bf5840495ba1)). `windows` is the exact upstream
-mirror; `integration/windows` combines all seven current topic heads.
-[Component status](docs/fork/STATUS.md) · [Review/merge notes](docs/fork/REVIEW.md) ·
+[Component status](docs/fork/STATUS.md) · [Review notes](docs/fork/REVIEW.md) ·
 [Workflow](docs/fork/WORKFLOW.md) · [Published builds](docs/fork/RELEASES.md).
 
-The latest published test package is still
+The latest published fork test package remains
 [Windows 1.9.7 SDK24 prototype.2](https://github.com/rattensuppe/bloodborne_pc/releases/tag/v1.9.7-sdk24-prototype.2).
-The 1.9.8.4 integration was built and checked locally; it has not replaced that
-download. Existing releases and assets are retained.
-
-Build and isolated tests cover the combined code. Original SDK Vulkan
-[validation findings](docs/development/FSR24_UPSCALING.md) remain open; SDK
-upscaling stays a Draft PR. No new gameplay, performance or HDR-display result
-is claimed by this source update. The private Vulkan shaderfix is separate.
+The 1.9.8.5 verification ZIP is local only; existing releases are retained.
+Original SDK Vulkan [validation findings](docs/development/FSR24_UPSCALING.md)
+remain open. The private shaderfix is separate. See Status for fresh checks
+and the recorded upstream Windows adapter-list test failure.
 
 ## Upstream project
 

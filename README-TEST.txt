@@ -1,3 +1,6 @@
+HISTORICAL TESTER NOTE: instructions for the unchanged 1.9.7 prototype.2 release.
+For current source and verification status, see docs/fork/STATUS.md.
+
 Bloodborne Windows 1.9.7 - SDK 2.4 prototype.2
 Combined test build, 2 November 2026
 

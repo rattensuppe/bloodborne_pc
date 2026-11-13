@@ -2,7 +2,7 @@
 
 [Status](STATUS.md) · [Workflow](WORKFLOW.md) · [All downloads](https://github.com/rattensuppe/bloodborne_pc/releases)
 
-Updated November 8, 2026. All 14 existing Pre-Releases and their tags/assets
+Updated November 13, 2026. All 14 existing Pre-Releases and their tags/assets
 are retained. Updating integration source does not publish a new binary package.
 
 ## Current published package
@@ -10,10 +10,10 @@ are retained. Updating integration source does not publish a new binary package.
 [Windows 1.9.7 SDK 2.4 prototype.2](https://github.com/rattensuppe/bloodborne_pc/releases/tag/v1.9.7-sdk24-prototype.2)
 is the latest published fork test package, source `b1ca96e` on official base
 `b480526`. It contains the seven topic states published for that November 2
-test, before their latest follow-ups and the 1.9.8.4 integration.
+test, before their latest follow-ups and the later integrations.
 
-The current `integration/windows` source is now based on 1.9.8.4 and was built
-and packaged locally. No 1.9.8.4 release was uploaded and no older download was
+The current `integration/windows` source is now based on 1.9.8.5 and was built
+and packaged locally. No 1.9.8.5 release was uploaded and no older download was
 relabelled. [Current component status](STATUS.md#validation-and-remaining-limits).
 
 ## Published history
