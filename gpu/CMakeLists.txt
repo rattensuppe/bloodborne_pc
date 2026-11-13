@@ -322,8 +322,10 @@ if (WIN32)
     add_library(atrac9 STATIC ${BB_ATRAC9})
     target_compile_options(atrac9 PRIVATE -w)
     set_target_properties(atrac9 PROPERTIES C_STANDARD 99 INTERPROCEDURAL_OPTIMIZATION OFF)
+    # Offline Chalice Glyphs (docs/LOCAL_CHALICE.md).
+    set(BB_LOCAL_CHALICE ../src/local_chalice.cpp ../src/lc_desc.cpp ../src/lc_platform.cpp ../src/offline_slot.cpp)
     add_executable(bb-probe ../src/probe.c ${BB_RUNTIME} ../src/compat_win.c ../src/vulkan_smoke.c
-        ../packaging/windows/bb-probe.rc)
+        ${BB_LOCAL_CHALICE} ../packaging/windows/bb-probe.rc)
     # The overlay's GPU usage comes from Windows' GPU Engine counters (pdh), the CPU name from the
     # registry (advapi32).
     target_link_libraries(bbgpu INTERFACE pdh advapi32)
@@ -387,20 +389,63 @@ if (WIN32)
 endif()
 
 # Explicit test targets; neither launches the game nor needs a Vulkan device.
+add_executable(hang-snapshot-test EXCLUDE_FROM_ALL ../tests/test_hang_snapshot.cpp)
+target_compile_options(hang-snapshot-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
+target_include_directories(hang-snapshot-test PRIVATE ..)
+
 add_executable(fsr411-requirements-test EXCLUDE_FROM_ALL ../tests/test_fsr411_requirements.cpp)
 target_include_directories(fsr411-requirements-test PRIVATE shim)
 target_link_libraries(fsr411-requirements-test PRIVATE Vulkan::Headers)
 target_compile_options(fsr411-requirements-test PRIVATE -UNDEBUG -Wall -Wextra -Werror -Wno-missing-field-initializers)
 
+add_executable(copy-shader-test EXCLUDE_FROM_ALL ../tests/test_copy_shader.cpp)
+target_compile_options(copy-shader-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
+target_include_directories(copy-shader-test PRIVATE ..)
+
 add_executable(command-buffer-test EXCLUDE_FROM_ALL ../tests/test_command_buffers.cpp)
 target_compile_options(command-buffer-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
 target_include_directories(command-buffer-test PRIVATE ..)
+
+add_executable(frame-rate-test EXCLUDE_FROM_ALL ../tests/test_frame_rate.cpp)
+target_compile_options(frame-rate-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
+target_include_directories(frame-rate-test PRIVATE ..)
 
 add_executable(fsr4vk-post-test EXCLUDE_FROM_ALL ../tests/test_fsr4vk_post.cpp
     shadps4/video_core/renderer_vulkan/fsr4vk_post.cpp)
 target_include_directories(fsr4vk-post-test PRIVATE shadps4)
 target_compile_options(fsr4vk-post-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
 target_link_libraries(fsr4vk-post-test PRIVATE PkgConfig::XXHASH)
+
+add_executable(flip-tail-test EXCLUDE_FROM_ALL ../tests/test_flip_tail.cpp)
+target_compile_options(flip-tail-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
+target_include_directories(flip-tail-test PRIVATE ..)
+
+# The GCN float rules of the shader translator (Profile::gcn_float_rules, BB_GCN_FLOAT). On
+# Windows with the runtime, as rt-guard-test.
+if (WIN32)
+    add_executable(gcn-float-test EXCLUDE_FROM_ALL ../tests/test_gcn_float_rules.cpp ${BB_RUNTIME} ../src/compat_win.c)
+    target_include_directories(gcn-float-test PRIVATE .. ../src shim shadps4 third_party/gcn/include
+        third_party/sirit/externals/SPIRV-Headers/include)
+    target_link_libraries(gcn-float-test PRIVATE bbgpu atrac9 onecore bcrypt ws2_32 -pthread)
+else()
+    add_executable(gcn-float-test EXCLUDE_FROM_ALL ../tests/test_gcn_float_rules.cpp ../tests/test_gpu_runtime_stubs.cpp)
+    target_include_directories(gcn-float-test PRIVATE shim shadps4 third_party/gcn/include
+        third_party/sirit/externals/SPIRV-Headers/include)
+    target_link_libraries(gcn-float-test PRIVATE bbgpu)
+endif()
+
+# The float render-target guard of the shader translator (export.cpp, BB_NAN_GUARD).
+if (WIN32)
+    add_executable(rt-guard-test EXCLUDE_FROM_ALL ../tests/test_rt_guard.cpp ${BB_RUNTIME} ../src/compat_win.c)
+    target_include_directories(rt-guard-test PRIVATE .. ../src shim shadps4 third_party/gcn/include
+        third_party/sirit/externals/SPIRV-Headers/include)
+    target_link_libraries(rt-guard-test PRIVATE bbgpu atrac9 onecore bcrypt ws2_32 -pthread)
+else()
+    add_executable(rt-guard-test EXCLUDE_FROM_ALL ../tests/test_rt_guard.cpp ../tests/test_gpu_runtime_stubs.cpp)
+    target_include_directories(rt-guard-test PRIVATE shim shadps4 third_party/gcn/include
+        third_party/sirit/externals/SPIRV-Headers/include)
+    target_link_libraries(rt-guard-test PRIVATE bbgpu)
+endif()
 
 add_executable(motion-history-test EXCLUDE_FROM_ALL ../tests/test_motion_history.cpp)
 target_compile_options(motion-history-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)

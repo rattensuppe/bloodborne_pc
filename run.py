@@ -185,6 +185,16 @@ def image_sha256(game):
     return hashlib.sha256(eboot_image(game)).hexdigest()
 
 
+def default_game():
+    """Without BB_GAME_DIR: a retail release's folder beside the port (CUSA03173 first, as before)."""
+    sys.path.insert(0, str(PORT / 'scripts'))
+    from patches import BLOODBORNE_IDS
+    for title in sorted(BLOODBORNE_IDS, key=lambda title: (title != 'CUSA03173', title)):
+        if (PORT.parent / title / 'eboot.bin').is_file():
+            return PORT.parent / title
+    return PORT.parent / 'CUSA03173'
+
+
 def fail(message):
     print(message, file=sys.stderr)
     sys.exit(1)
@@ -651,7 +661,7 @@ def main():
         if clang64.is_dir():
             env['PATH'] = f'{clang64}{os.pathsep}{env.get("PATH", "")}'
 
-    game = Path(env.get('BB_GAME_DIR', PORT.parent / 'CUSA03173'))
+    game = Path(env['BB_GAME_DIR']) if env.get('BB_GAME_DIR') else default_game()
     if not (game / 'eboot.bin').is_file():
         fail(f'No eboot.bin in {game} (set BB_GAME_DIR).')
     original_game = game.resolve()
@@ -886,6 +896,11 @@ def main():
                         env['BB_PREP_WORKERS'] = '0'
                         notes.append('no draw-preparation workers')
             print(f'Low-VRAM profile ({vram} MiB card): {", ".join(notes)}; BB_LOW_VRAM=0 turns it off')
+        # Offline Chalice Glyphs (docs/LOCAL_CHALICE.md): a package has the catalog beside bb-probe.exe
+        # (bin/LocalChalice); a checkout reads it from data/.
+        catalog = PORT / 'data' / 'local_chalice' / 'catalog.bin'
+        if 'BB_LOCAL_CHALICE_CATALOG' not in env and catalog.is_file():
+            env['BB_LOCAL_CHALICE_CATALOG'] = str(catalog)
         extra = env.get('BB_PATCHES', '')
         lang = env.get('BB_LANGUAGE') or read_settings(config).get('language')
         if lang in ('10', '11'):
@@ -938,6 +953,8 @@ def main():
             if env.get('BB_EXIT_BACKUP') == '1':  # the save as the game left it, also after a crash
                 sys.path.insert(0, str(PORT / 'launcher'))
                 from bbport_exit_backup import run_with_backup
+                import bbport_saves
+                bbport_saves.OUTSIDE = bbport_saves.outside_dir()  # also outside the port folder (R86)
                 return run_with_backup(command, saves_dir, original_game, creationflags=no_console())
             return subprocess.run(command, stdin=subprocess.DEVNULL, creationflags=no_console()).returncode
         finally:

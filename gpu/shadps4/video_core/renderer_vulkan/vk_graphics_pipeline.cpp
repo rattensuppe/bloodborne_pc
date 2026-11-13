@@ -28,6 +28,20 @@ static constexpr std::array LogicalStageToStageBit = {
     vk::ShaderStageFlagBits::eCompute,
 };
 
+// bbport: whether the vertex stage hands its clip distances to the fragment stage, at output
+// location 0 (the profile emulates them there: SPIR-V emitter, DefineVertexBlock/DefineOutputs).
+// The emitter's own test, so the answer always matches the compiled vertex shader. Without a
+// pixel shader the pipeline then needs the discard shader; the fragment runtime info it was
+// read from before belonged to whichever draw last had a pixel shader, and is empty when
+// preloading, so the discard shader went missing (geometry past the clip planes drawn) or read
+// a location the vertex shader filled with something else (pixels cut out at random).
+static bool VertexStageEmulatesClipDistances(const Shader::Info* vs,
+                                             const Shader::Profile& profile) {
+    return vs && profile.needs_clip_distance_emulation &&
+           vs->hw_stage == Shader::HwStage::Vertex &&
+           vs->stores.GetAny(Shader::IR::Attribute::ClipDistance);
+}
+
 GraphicsPipeline::GraphicsPipeline(
     const Instance& instance, Scheduler& scheduler, DescriptorHeap& desc_heap,
     const Shader::Profile& profile, const GraphicsPipelineKey& key_,
@@ -82,7 +96,7 @@ GraphicsPipeline::GraphicsPipeline(
     const bool is_quad_list = key.prim_type == AmdGpu::PrimitiveType::QuadList;
     const bool clip_discard =
         !infos[u32(Shader::SwStage::Fragment)] &&
-        runtime_infos[u32(Shader::SwStage::Fragment)].hw.fs.clip_distance_emulation;
+        VertexStageEmulatesClipDistances(infos[u32(Shader::SwStage::Vertex)], profile);
     if (!preloading) {
         const auto& fs_info = runtime_infos[u32(Shader::SwStage::Fragment)].hw.fs;
         sdata.multisampling = {
@@ -102,10 +116,12 @@ GraphicsPipeline::GraphicsPipeline(
                     AuxShaderType::PassthroughTES, fs_info);
             }
         }
-        if (clip_discard) {
-            const auto& vs = runtime_infos[static_cast<u32>(Shader::SwStage::Vertex)].hw.vs;
-            sdata.fragment = Shader::Backend::SPIRV::EmitDiscardFragmentShader(vs.outputs);
-        }
+    }
+    // bbport: preloaded pipelines too. The discard shader is not saved; LoadPipelineStage
+    // restores the vertex stage's runtime info, whose output map it is made from.
+    if (clip_discard) {
+        const auto& vs = runtime_infos[static_cast<u32>(Shader::SwStage::Vertex)].hw.vs;
+        sdata.fragment = Shader::Backend::SPIRV::EmitDiscardFragmentShader(vs.outputs);
     }
 
     if (deferred) {
@@ -486,12 +502,12 @@ void GraphicsPipeline::GetVertexInputs(
         attributes.push_back(Attribute{
             .location = attrib.semantic,
             .binding = attrib.semantic,
-            .format = LiverpoolToVK::SurfaceFormat(buffer.GetDataFmt(), buffer.GetNumberFmt()),
+            .format = LiverpoolToVK::VertexInputFormat(buffer),
             .offset = 0,
         });
         bindings.push_back(Binding{
             .binding = attrib.semantic,
-            .stride = buffer.GetStride(),
+            .stride = LiverpoolToVK::VertexInputStride(buffer),
             .inputRate = step_rate == InstanceIdType::None ? vk::VertexInputRate::eVertex
                                                            : vk::VertexInputRate::eInstance,
         });

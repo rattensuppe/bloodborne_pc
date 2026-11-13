@@ -110,6 +110,9 @@ bool dirty = false; // settings changed while open: saved on close
 // The game's text dialog (SetTextEntry), guarded by imgui_mutex.
 bool text_entry_active = false;
 std::string text_entry_prompt, text_entry_text;
+// bbport: where its typed line was drawn last (TextEntryArea), guarded by imgui_mutex.
+bool text_entry_drawn = false;
+BbOverlay::TextArea text_entry_area{};
 // Video memory warning (BbOverlay::Warn): text from the GPU thread, read by the present thread.
 std::mutex warn_mutex;
 std::string warn_headline;
@@ -834,6 +837,10 @@ void Menu() {
         }
         ImGui::EndCombo();
     }
+    Hint("Model LOD game patch. Highest (-2) asks for a detail level some armor parts don't have: capes vanish and some armor looks wrong.");
+    if (s.model_lod == -2) {
+        ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.3f, 1.0f), "Highest can break armor and capes");
+    }
     int fov = s.fov;
     Store(s.fov, fov, ImGui::SliderInt("Field of view", &fov, BbSettings::FovMin, BbSettings::FovMax,
                                        fov == BbSettings::FovDefault ? "%d (game)" : "%d"));
@@ -937,6 +944,14 @@ void TextEntryBox() {
     ImGui::Separator();
     ImGui::SetWindowFontScale(1.4f);
     ImGui::Text("%s_", text_entry_text.c_str());
+    // bbport: the IME places its candidate list next to this line (TextEntryArea), the cursor
+    // where the "_" is drawn.
+    const ImVec2 line_min = ImGui::GetItemRectMin(), line_max = ImGui::GetItemRectMax();
+    const ImVec2 display = ImGui::GetIO().DisplaySize;
+    const float cursor = ImGui::CalcTextSize(text_entry_text.c_str()).x;
+    text_entry_area = {line_min.x, line_min.y, line_max.x - line_min.x, line_max.y - line_min.y,
+                       cursor, display.x, display.y};
+    text_entry_drawn = true;
     ImGui::SetWindowFontScale(1.0f);
     ImGui::Separator();
     ImGui::TextDisabled("Keyboard: type, Backspace to erase, Enter = OK, Esc = cancel");
@@ -1667,6 +1682,34 @@ void Init(const Vulkan::Instance& instance, vk::Format format, u32 image_count) 
         }
     }
 #endif
+    // bbport: DejaVu Sans has no Hangul, kana or Han characters, so the game's text dialog
+    // drew Korean as "?". Windows' own fonts are merged behind it (Korean first, then Japanese
+    // and Chinese); glyphs load as they are drawn (dynamic fonts), the first font that has one
+    // wins, and a missing file is skipped. In Chinese, Japanese and Korean the port has merged them
+    // above: not twice.
+    const std::string shown_language = Fsr41Ui::languages[Fsr41Ui::Language()];
+    if (const char* windir = std::getenv("WINDIR");
+        windir && shown_language != "zh" && shown_language != "ja" && shown_language != "ko") {
+        static const char* const cjk_fonts[][2] = {
+            {"malgun.ttf", "gulim.ttc"},  // Korean: Malgun Gothic, else Gulim
+            {"YuGothM.ttc", "msgothic.ttc"},  // Japanese
+            {"msyh.ttc", "simsun.ttc"},  // Chinese
+        };
+        for (const auto& choices : cjk_fonts) {
+            for (const char* file : choices) {
+                const std::string path = std::string(windir) + "\\Fonts\\" + file;
+                if (FILE* probe = std::fopen(path.c_str(), "rb")) {
+                    std::fclose(probe);
+                    ImFontConfig merge;
+                    merge.MergeMode = true;
+                    if (io.Fonts->AddFontFromFileTTF(path.c_str(), 18.0f, &merge)) {
+                        std::printf("Overlay: font %s merged (Korean, Japanese, Chinese text)\n", file);
+                        break;
+                    }
+                }
+            }
+        }
+    }
     const vk::Instance vk_instance = instance.GetInstance();
     ImGui_ImplVulkan_LoadFunctions(
         instance.ApiVersion(),
@@ -1841,6 +1884,18 @@ void SetTextEntry(bool active, const std::string& prompt, const std::string& tex
     text_entry_active = active;
     text_entry_prompt = prompt;
     text_entry_text = text;
+    if (!active) {
+        text_entry_drawn = false;
+    }
+}
+
+bool TextEntryArea(TextArea& area) {
+    std::scoped_lock lock{imgui_mutex};
+    if (!text_entry_active || !text_entry_drawn) {
+        return false;
+    }
+    area = text_entry_area;
+    return true;
 }
 
 void Warn(const std::string& headline, const std::string& detail, float used_fraction) {

@@ -356,6 +356,8 @@ bool Instance::CreateDevice(bool presentation) {
 
     // Optional
     maintenance_5 = add_extension(VK_KHR_MAINTENANCE_5_EXTENSION_NAME);
+    // bbport: null index buffers (Rasterizer::ResolveIndexBuffer, from Jgamrot/yharnam-pc f62b114e).
+    maintenance_6 = add_extension(VK_KHR_MAINTENANCE_6_EXTENSION_NAME);
     // bbport: after a device loss the driver says where the GPU faulted (ReportDeviceLost).
     device_fault = feature_chain.get<vk::PhysicalDeviceFaultFeaturesEXT>().deviceFault &&
                    add_extension(VK_EXT_DEVICE_FAULT_EXTENSION_NAME);
@@ -766,6 +768,9 @@ bool Instance::CreateDevice(bool presentation) {
         vk::PhysicalDeviceMaintenance5FeaturesKHR{
             .maintenance5 = true,
         },
+        vk::PhysicalDeviceMaintenance6FeaturesKHR{
+            .maintenance6 = true,
+        },
         vk::PhysicalDeviceFaultFeaturesEXT{
             .deviceFault = true,
         },
@@ -854,6 +859,9 @@ bool Instance::CreateDevice(bool presentation) {
     }
     if (!maintenance_5) {
         device_chain.unlink<vk::PhysicalDeviceMaintenance5FeaturesKHR>();
+    }
+    if (!maintenance_6) {
+        device_chain.unlink<vk::PhysicalDeviceMaintenance6FeaturesKHR>();
     }
     if (!device_fault) {
         device_chain.unlink<vk::PhysicalDeviceFaultFeaturesEXT>();

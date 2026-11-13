@@ -13,6 +13,7 @@
 #include <string>
 #include <unordered_set>
 
+#include "video_core/renderer_vulkan/vk_shader_hle.h"
 #include "bbport_toggles.h"
 #include "common/hash.h"
 #include "common/io_file.h"
@@ -308,6 +309,15 @@ struct PipelineCache::BuildWorkers {
                         queue.pop_front();
                     }
                     pipeline->BuildDeferred();
+                    // BB_ASYNC_DELAY_MS=<ms> (diagnosis): each pipeline is ready that much later,
+                    // so its draws are skipped for longer.
+                    static const int delay_ms = [] {
+                        const char* env = std::getenv("BB_ASYNC_DELAY_MS");
+                        return env ? std::atoi(env) : 0;
+                    }();
+                    if (delay_ms > 0) {
+                        std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
+                    }
                     done.fetch_add(1, std::memory_order_release);
                 }
             });
@@ -391,6 +401,16 @@ PipelineCache::PipelineCache(const Instance& instance_, Scheduler& scheduler_,
         .needs_unorm_fixup = instance.GetDriverID() == vk::DriverId::eMesaKosmickrisp,
         .needs_clip_distance_emulation = instance.GetDriverID() == vk::DriverId::eNvidiaProprietary,
         .supports_shader_stencil_export = instance_.IsShaderStencilExportSupported(),
+        // bbport: the GCN float rules (Profile::gcn_float_rules); BB_GCN_FLOAT=0 for comparison.
+        .gcn_float_rules = [] {
+            const char* env = std::getenv("BB_GCN_FLOAT");
+            return !env || env[0] != '0';
+        }(),
+        // bbport: the float render-target guard (export.cpp); BB_NAN_GUARD=0 for comparison.
+        .rt_nan_guard = [] {
+            const char* env = std::getenv("BB_NAN_GUARD");
+            return !env || env[0] != '0';
+        }(),
     };
     // bbport: the driver cache before WarmUp: the preload builds its pipelines through it. It
     // used to be made after the preload, which so built every cached pipeline without one.
@@ -402,10 +422,13 @@ PipelineCache::PipelineCache(const Instance& instance_, Scheduler& scheduler_,
 }
 
 namespace {
+// bbport: on by default (2026-11-12): a fresh cache's first walk had frames of 41-236 ms where
+// each new pipeline was waited for, 10-23 ms with them built in the background.
+// BB_ASYNC_PIPELINES=0: each is waited for (exact, as before).
 bool AsyncPipelines() {
     static const bool value = [] {
         const char* env = std::getenv("BB_ASYNC_PIPELINES");
-        return env && env[0] == '1' && !EmulatorSettings.IsShaderCollect();
+        return !(env && env[0] == '0') && !EmulatorSettings.IsShaderCollect();
     }();
     return value;
 }
@@ -427,8 +450,12 @@ void PipelineCache::FinishAsyncBuilds() {
             ++num_new_pipelines;
             ++driver_cache_changes;
         } else {
-            // As for one built at once: kept empty, skipped, not compiled again.
-            graphics_pipelines[build.key].reset();
+            // As for one built at once: kept empty, skipped, not compiled again. Only its own
+            // entry: operator[] would make one for a key that does not match.
+            const auto found = graphics_pipelines.find(build.key);
+            if (found != graphics_pipelines.end() && found->second.get() == build.pipeline) {
+                found.value().reset();
+            }
         }
         return true;
     });
@@ -569,6 +596,23 @@ bool PipelineCache::PrepareGraphicsPipeline(PipelineSelection& worker_sel) {
     return RefreshGraphicsKey(worker_sel) && !worker_sel.worker->failed;
 }
 
+void NoteStaleVertexInputs() {
+    static std::atomic<u64> stale{0};
+    static std::atomic<s64> last_report{0};
+    const u64 count = stale.fetch_add(1, std::memory_order_relaxed) + 1;
+    const s64 now = std::chrono::duration_cast<std::chrono::milliseconds>(
+                        std::chrono::steady_clock::now().time_since_epoch())
+                        .count();
+    s64 last = last_report.load(std::memory_order_relaxed);
+    if ((last != 0 && now - last < 5000) ||
+        !last_report.compare_exchange_strong(last, now, std::memory_order_relaxed)) {
+        return;
+    }
+    std::printf("Vertex inputs: %llu prepared draws in all had stale V#s and read them "
+                "again\n",
+                static_cast<unsigned long long>(count));
+}
+
 const GraphicsPipeline* PipelineCache::TryPreparedPipeline(const PreparedDraw& prepared) {
     if (prepared.state.load(std::memory_order_acquire) != PreparedDraw::Ready ||
         prepared.reg_checksum != liverpool->gfx_reg_checksum) {
@@ -599,7 +643,24 @@ const GraphicsPipeline* PipelineCache::TryPreparedPipeline(const PreparedDraw& p
         }
     }
     const auto it = graphics_pipelines.find(prepared.key);
-    return it != graphics_pipelines.end() ? Usable(it->second.get()) : nullptr;
+    const GraphicsPipeline* pipeline =
+        it != graphics_pipelines.end() ? Usable(it->second.get()) : nullptr;
+    if (!pipeline) {
+        return nullptr;
+    }
+    // bbport: the V# table is guest memory behind a user-data pointer, so the checks above do
+    // not cover it. A worker that read the V#s before the game rewrote the table chose the vertex
+    // shader's specialization (number class, component selection) from stale V#s: such a draw
+    // takes the regular path, as without a worker. ResolveVertexBuffers checks the V#s once more
+    // when the draw is recorded, after the writes queued before it (from SpartanPort bc78995e).
+    const auto& fetch = pipeline->GetFetchShader();
+    if (prepared.vertex.valid && fetch && fetch->attributes.size() == prepared.vertex.count &&
+        !fetch->SharpsUnchanged(pipeline->GetStage(Shader::SwStage::Vertex),
+                                prepared.vertex.buffers)) {
+        NoteStaleVertexInputs();
+        return nullptr;
+    }
+    return pipeline;
 }
 
 const GraphicsPipeline* PipelineCache::GetGraphicsPipeline(const DrawIndirectParams params,
@@ -927,7 +988,14 @@ bool PipelineCache::RefreshGraphicsStages(PipelineSelection& sel) {
     sel.infos.fill(nullptr);
     sel.modules.fill(nullptr);
 
-    bind_stage(HwStage::Fragment, SwStage::Fragment);
+    if (!bind_stage(HwStage::Fragment, SwStage::Fragment)) {
+        // bbport: no pixel shader. The fragment runtime info still held the one of the last
+        // draw that had a pixel shader (its sample shading went into this pipeline): an empty
+        // one instead. The discard shader for clip distances follows the vertex stage
+        // (GraphicsPipeline, VertexStageEmulatesClipDistances).
+        sel.runtime_infos[static_cast<u32>(SwStage::Fragment)].Initialize(HwStage::Fragment,
+                                                                           SwStage::Fragment);
+    }
 
     const auto* fs_info = sel.infos[static_cast<u32>(SwStage::Fragment)];
     key.mrt_mask = fs_info ? fs_info->mrt_mask : 0u;
@@ -1021,7 +1089,7 @@ bool PipelineCache::RefreshGraphicsStages(PipelineSelection& sel) {
                        "Vertex attribute binding count exceeded limit: {} >= {}", vertex_binding,
                        MaxVertexBufferCount);
             key.vertex_buffer_formats[vertex_binding++] =
-                Vulkan::LiverpoolToVK::SurfaceFormat(buffer.GetDataFmt(), buffer.GetNumberFmt());
+                Vulkan::LiverpoolToVK::VertexInputFormat(buffer);
         }
     }
 
@@ -1161,6 +1229,13 @@ PipelineCache::Result PipelineCache::GetProgram(PipelineSelection& sel, HwStage 
                   : std::ranges::find(program->modules, spec, &Program::Module::spec);
     if (it != program->modules.end()) {
         program->last_used = std::distance(program->modules.begin(), it);
+    }
+    // bbport: a module that never runs needs no permutation of its own. Buffers that are not the
+    // copy shader's made one on the way to a dispatch that does not run it either,
+    // and compiling for such formats can stop the game by itself (LowerBufferFormatToRaw,
+    // IREmitter::Pack/Unpack: asserts on the combinations a real buffer does not have).
+    if (it == program->modules.end() && IsShaderHLE(params.hash)) {
+        it = std::ranges::find_if(program->modules, [](const auto& m) { return bool(m.module); });
     }
     if (it == program->modules.end()) {
         auto new_info = Shader::Info(hw_stage, sw_stage, params);

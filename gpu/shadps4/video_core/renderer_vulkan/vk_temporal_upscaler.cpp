@@ -70,7 +70,7 @@ int DumpFrame() {
         }
         const char* frames = std::getenv("BB_DUMP_FRAMES");
         remaining = frames ? std::max(1, std::atoi(frames)) : 8;
-        index = 0;
+        // bbport: numbering goes on across triggers, so a later dump does not overwrite one.
     }
     --remaining;
     return index++;
@@ -1384,6 +1384,19 @@ void TemporalUpscaler::Run() {
             failed = true;
         } else {
             dispatched = true;
+        }
+    }
+    // bbport: BB_DUMP_TRIGGER on this path too (the upscaler on the scene color, before the
+    // game's post-processing): its inputs and result, with the scene color's alpha.
+    if (dispatched) {
+        if (const int dump = DumpFrame(); dump >= 0) {
+            DumpImages(instance, scheduler, cmdbuf, dump,
+                       {{input_color, w, h, 8, "input", "rgba16f"},
+                        {vk::Image(motion_image), w, h, 4, "motion", "rg16f"},
+                        {produced.image, ow, oh, 8, "output", "rgba16f"}});
+            DumpImages(instance, scheduler, cmdbuf, dump,
+                       {{input_depth, w, h, 4, "depth", "f32", vk::ImageAspectFlagBits::eDepth}});
+            std::printf("Dump: scene-color upscaler frame %d (reset %d)\n", dump, int(reset));
         }
     }
     if (dispatched) {
